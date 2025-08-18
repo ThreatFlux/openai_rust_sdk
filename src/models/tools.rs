@@ -322,6 +322,7 @@ impl Default for WebSearchBuilder {
 }
 
 impl WebSearchBuilder {
+    /// Create a new WebSearchBuilder
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -333,12 +334,14 @@ impl WebSearchBuilder {
         }
     }
 
+    /// Set the maximum number of search results to return
     #[must_use]
     pub fn max_results(mut self, max: u32) -> Self {
         self.config.max_results = Some(max);
         self
     }
 
+    /// Include only results from specified domains
     #[must_use]
     pub fn include_domains(mut self, domains: Vec<String>) -> Self {
         let filters = self.config.filters.get_or_insert(SearchFilters {
@@ -351,6 +354,7 @@ impl WebSearchBuilder {
         self
     }
 
+    /// Exclude results from specified domains
     #[must_use]
     pub fn exclude_domains(mut self, domains: Vec<String>) -> Self {
         let filters = self.config.filters.get_or_insert(SearchFilters {
@@ -363,11 +367,13 @@ impl WebSearchBuilder {
         self
     }
 
+    /// Set the time range for search results (e.g., "past_week", "past_month")
     pub fn time_range(mut self, range: impl Into<String>) -> Self {
         self.config.time_range = Some(range.into());
         self
     }
 
+    /// Build the configured web search tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::WebSearch(self.config)
@@ -380,6 +386,7 @@ pub struct FileSearchBuilder {
 }
 
 impl FileSearchBuilder {
+    /// Create a new FileSearchBuilder with the specified vector store IDs
     #[must_use]
     pub fn new(vector_store_ids: Vec<String>) -> Self {
         Self {
@@ -391,18 +398,21 @@ impl FileSearchBuilder {
         }
     }
 
+    /// Set the maximum number of chunks to search
     #[must_use]
     pub fn max_chunks(mut self, max: u32) -> Self {
         self.config.max_chunks = Some(max);
         self
     }
 
+    /// Specify the file types to search
     #[must_use]
     pub fn file_types(mut self, types: Vec<String>) -> Self {
         self.config.file_types = Some(types);
         self
     }
 
+    /// Build the configured file search tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::FileSearch(self.config)
@@ -415,6 +425,7 @@ pub struct FunctionBuilder {
 }
 
 impl FunctionBuilder {
+    /// Create a new FunctionBuilder with the specified name and description
     pub fn new(name: impl Into<String>, description: impl Into<String>) -> Self {
         Self {
             tool: FunctionTool {
@@ -430,18 +441,21 @@ impl FunctionBuilder {
         }
     }
 
+    /// Set the function parameters schema
     #[must_use]
     pub fn parameters(mut self, params: Value) -> Self {
         self.tool.parameters = params;
         self
     }
 
+    /// Enable or disable strict mode for function calls
     #[must_use]
     pub fn strict(mut self, strict: bool) -> Self {
         self.tool.strict = Some(strict);
         self
     }
 
+    /// Build the configured function tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::Function(self.tool)
@@ -454,6 +468,7 @@ pub struct McpBuilder {
 }
 
 impl McpBuilder {
+    /// Create a new McpBuilder with the specified server label and URL
     pub fn new(server_label: impl Into<String>, server_url: impl Into<String>) -> Self {
         Self {
             tool: McpTool {
@@ -466,24 +481,28 @@ impl McpBuilder {
         }
     }
 
+    /// Set the approval requirement for MCP operations
     #[must_use]
     pub fn require_approval(mut self, approval: McpApproval) -> Self {
         self.tool.require_approval = approval;
         self
     }
 
+    /// Add a custom header to MCP requests
     pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         let headers = self.tool.headers.get_or_insert_with(HashMap::new);
         headers.insert(key.into(), value.into());
         self
     }
 
+    /// Set the timeout in milliseconds for MCP operations
     #[must_use]
     pub fn timeout_ms(mut self, timeout: u32) -> Self {
         self.tool.timeout_ms = Some(timeout);
         self
     }
 
+    /// Build the configured MCP tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::Mcp(self.tool)
@@ -502,6 +521,7 @@ impl Default for ImageGenerationToolBuilder {
 }
 
 impl ImageGenerationToolBuilder {
+    /// Create a new ImageGenerationToolBuilder
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -514,27 +534,32 @@ impl ImageGenerationToolBuilder {
         }
     }
 
+    /// Set the image size (e.g., "1024x1024", "1792x1024")
     pub fn size(mut self, size: impl Into<String>) -> Self {
         self.config.size = Some(size.into());
         self
     }
 
+    /// Set the image quality (e.g., "standard", "hd")
     pub fn quality(mut self, quality: impl Into<String>) -> Self {
         self.config.quality = Some(quality.into());
         self
     }
 
+    /// Set the image style (e.g., "vivid", "natural")
     pub fn style(mut self, style: impl Into<String>) -> Self {
         self.config.style = Some(style.into());
         self
     }
 
+    /// Set the number of images to generate
     #[must_use]
     pub fn count(mut self, n: u32) -> Self {
         self.config.n = Some(n);
         self
     }
 
+    /// Build the configured image generation tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::ImageGeneration(self.config)
@@ -553,6 +578,7 @@ impl Default for CodeInterpreterBuilder {
 }
 
 impl CodeInterpreterBuilder {
+    /// Create a new CodeInterpreterBuilder
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -570,18 +596,21 @@ impl CodeInterpreterBuilder {
         }
     }
 
+    /// Set the container mode for code execution
     #[must_use]
     pub fn container_mode(mut self, mode: crate::models::containers::ContainerMode) -> Self {
         self.config.container_mode = Some(mode);
         self
     }
 
+    /// Set the container ID for explicit container mode
     pub fn container_id(mut self, id: impl Into<String>) -> Self {
         self.config.container_id = Some(id.into());
         self.config.container_mode = Some(crate::models::containers::ContainerMode::Explicit);
         self
     }
 
+    /// Set the container configuration for auto mode
     #[must_use]
     pub fn container_config(mut self, config: crate::models::containers::ContainerConfig) -> Self {
         self.config.container_config = Some(config);
@@ -589,41 +618,48 @@ impl CodeInterpreterBuilder {
         self
     }
 
+    /// Set the programming language to use
     pub fn language(mut self, lang: impl Into<String>) -> Self {
         self.config.language = Some(lang.into());
         self
     }
 
+    /// Set the maximum execution time in milliseconds
     #[must_use]
     pub fn max_execution_time_ms(mut self, ms: u32) -> Self {
         self.config.max_execution_time_ms = Some(ms);
         self
     }
 
+    /// Set the libraries to make available in the code interpreter
     #[must_use]
     pub fn libraries(mut self, libs: Vec<String>) -> Self {
         self.config.libraries = Some(libs);
         self
     }
 
+    /// Set the file IDs to make available to the code interpreter
     #[must_use]
     pub fn file_ids(mut self, ids: Vec<String>) -> Self {
         self.config.file_ids = Some(ids);
         self
     }
 
+    /// Enable or disable container persistence between executions
     #[must_use]
     pub fn persist_container(mut self, persist: bool) -> Self {
         self.config.persist_container = Some(persist);
         self
     }
 
+    /// Enable or disable citation inclusion in outputs
     #[must_use]
     pub fn include_citations(mut self, include: bool) -> Self {
         self.config.include_citations = Some(include);
         self
     }
 
+    /// Build the configured code interpreter tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::CodeInterpreter(self.config)
@@ -642,6 +678,7 @@ impl Default for ComputerUseBuilder {
 }
 
 impl ComputerUseBuilder {
+    /// Create a new ComputerUseBuilder
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -654,28 +691,33 @@ impl ComputerUseBuilder {
         }
     }
 
+    /// Set the screen resolution (e.g., "1920x1080")
     pub fn resolution(mut self, res: impl Into<String>) -> Self {
         self.config.resolution = Some(res.into());
         self
     }
 
+    /// Set the operating system type (e.g., "windows", "macos", "linux")
     pub fn os_type(mut self, os: impl Into<String>) -> Self {
         self.config.os_type = Some(os.into());
         self
     }
 
+    /// Set the applications available for computer use
     #[must_use]
     pub fn applications(mut self, apps: Vec<String>) -> Self {
         self.config.applications = Some(apps);
         self
     }
 
+    /// Set the maximum number of actions allowed
     #[must_use]
     pub fn max_actions(mut self, max: u32) -> Self {
         self.config.max_actions = Some(max);
         self
     }
 
+    /// Build the configured computer use tool
     #[must_use]
     pub fn build(self) -> EnhancedTool {
         EnhancedTool::ComputerUse(self.config)

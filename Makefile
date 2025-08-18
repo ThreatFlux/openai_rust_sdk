@@ -24,12 +24,12 @@ NC = \033[0m # No Color
 .PHONY: help all all-coverage all-docker all-docker-coverage clean docker-build docker-clean
 .PHONY: fmt fmt-check fmt-docker lint lint-docker audit audit-docker deny deny-docker codedup
 .PHONY: test test-docker test-doc test-doc-docker test-features feature-check build build-docker build-all build-all-docker
-.PHONY: docs docs-docker examples examples-docker bench bench-docker
+.PHONY: docs doc-check docs-docker examples examples-docker bench bench-docker
 .PHONY: coverage coverage-open coverage-lcov coverage-html coverage-summary coverage-json coverage-docker
 .PHONY: dev-setup setup-dev ci-local ci-local-coverage
 
 # Default target
-all: fmt-check lint audit test docs build examples ## Run all checks and builds locally
+all: fmt-check lint audit test docs doc-check build examples ## Run all checks and builds locally
 
 # Extended target with coverage
 all-coverage: fmt-check lint audit test coverage docs build examples ## Run all checks including coverage locally
@@ -270,6 +270,12 @@ build-release-docker: docker-build ## Build optimized release in Docker
 docs: ## Generate documentation
 	@echo "$(CYAN)Generating documentation...$(NC)"
 	@cargo doc --all-features --no-deps
+
+doc-check: ## Check for missing documentation
+	@echo "$(CYAN)Checking for missing documentation...$(NC)"
+	@RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps 2>&1 | grep -q "warning" && \
+		(echo "$(RED)❌ Missing documentation found!$(NC)" && exit 1) || \
+		echo "$(GREEN)✅ All documentation present!$(NC)"
 
 docs-docker: docker-build ## Generate documentation in Docker
 	@echo "$(CYAN)Generating documentation in Docker...$(NC)"

@@ -127,10 +127,16 @@ pub struct TextContent {
 pub enum MessageContent {
     /// Text content
     #[serde(rename = "text")]
-    Text { text: String },
+    Text {
+        /// The text content
+        text: String,
+    },
     /// Image content
     #[serde(rename = "image_url")]
-    Image { image_url: ImageUrl },
+    Image {
+        /// The image URL details
+        image_url: ImageUrl,
+    },
 }
 
 /// Message content input - can be simple text or array of content items
@@ -956,9 +962,13 @@ impl ResponseRequest {
 /// Supported image formats for validation
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImageFormat {
+    /// JPEG image format
     Jpeg,
+    /// PNG image format
     Png,
+    /// GIF image format
     Gif,
+    /// WebP image format
     Webp,
 }
 

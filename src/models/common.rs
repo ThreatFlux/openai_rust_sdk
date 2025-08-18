@@ -6,10 +6,15 @@ use std::collections::HashMap;
 
 /// Common builder methods for requests with assistant configuration
 pub trait AssistantConfigBuilder: Sized {
+    /// Get mutable reference to assistant ID field
     fn get_assistant_id_mut(&mut self) -> &mut Option<String>;
+    /// Get mutable reference to model field
     fn get_model_mut(&mut self) -> &mut Option<String>;
+    /// Get mutable reference to instructions field
     fn get_instructions_mut(&mut self) -> &mut Option<String>;
+    /// Get mutable reference to tools field
     fn get_tools_mut(&mut self) -> &mut Option<Vec<AssistantTool>>;
+    /// Get mutable reference to metadata field
     fn get_metadata_mut(&mut self) -> &mut Option<HashMap<String, String>>;
 
     /// Set the assistant ID
@@ -59,9 +64,13 @@ pub trait AssistantConfigBuilder: Sized {
 
 /// Common builder methods for image generation requests
 pub trait ImageRequestBuilder: Sized {
+    /// Get mutable reference to n (number of images) field
     fn get_n_mut(&mut self) -> &mut Option<u32>;
+    /// Get mutable reference to response format field
     fn get_response_format_mut(&mut self) -> &mut Option<ImageResponseFormat>;
+    /// Get mutable reference to size field
     fn get_size_mut(&mut self) -> &mut Option<ImageSize>;
+    /// Get mutable reference to user field
     fn get_user_mut(&mut self) -> &mut Option<String>;
 
     /// Set the number of images to generate
