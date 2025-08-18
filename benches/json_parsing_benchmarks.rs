@@ -3,7 +3,7 @@
 //! These benchmarks measure the performance of JSON operations used throughout
 //! the SDK for API communication and data storage.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
 use std::time::Duration;

@@ -409,7 +409,7 @@ impl ImageData {
     pub fn decode_b64_json(&self) -> Result<Vec<u8>, String> {
         match &self.b64_json {
             Some(b64_data) => {
-                use base64::{engine::general_purpose, Engine as _};
+                use base64::{Engine as _, engine::general_purpose};
                 general_purpose::STANDARD
                     .decode(b64_data)
                     .map_err(|e| format!("Failed to decode base64: {e}"))

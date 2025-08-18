@@ -8,10 +8,10 @@
 //! - Complete conversation flow with function results
 
 use openai_rust_sdk::{
+    ChatBuilder, Message, OpenAIClient,
     api::functions::FunctionConfig,
     builders::FunctionBuilder,
     models::functions::{CustomTool, FunctionCallOutput, Tool, ToolChoice},
-    ChatBuilder, Message, OpenAIClient,
 };
 use serde_json::json;
 
@@ -300,11 +300,13 @@ async fn complete_conversation_flow(
     ];
 
     // Start conversation
-    let initial_messages = vec![
-        Message::user("Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?")
-    ];
+    let initial_messages = vec![Message::user(
+        "Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?",
+    )];
 
-    println!("User: Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?");
+    println!(
+        "User: Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?"
+    );
 
     // Execute the conversation with automatic function handling
     let conversation_results = client
@@ -373,7 +375,9 @@ async fn weather_assistant_example(
         .developer("You are a helpful weather assistant. Use the available functions to provide accurate weather information. Always check for weather alerts when appropriate.")
         .user("I'm planning a camping trip to Yellowstone National Park next weekend. What should I expect weather-wise?");
 
-    println!("User: I'm planning a camping trip to Yellowstone National Park next weekend. What should I expect weather-wise?");
+    println!(
+        "User: I'm planning a camping trip to Yellowstone National Park next weekend. What should I expect weather-wise?"
+    );
 
     // Configure function calling with strict mode
     let config = FunctionConfig::new()

@@ -9,7 +9,7 @@ use crate::models::containers::{
     CodeExecutionRequest, CodeExecutionResult, Container, ContainerConfig, ContainerFile,
     ContainerFileList, ContainerList, ListContainersParams,
 };
-use reqwest::{multipart, Client};
+use reqwest::{Client, multipart};
 use serde_json::json;
 use std::path::Path;
 use tokio::fs;

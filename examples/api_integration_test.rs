@@ -1,4 +1,5 @@
 use openai_rust_sdk::{
+    OpenAIClient,
     api::{
         batch::BatchApi,
         functions::{FunctionConfig, FunctionsApi},
@@ -12,8 +13,7 @@ use openai_rust_sdk::{
         responses::{Message, ResponseRequest},
     },
     schema::builder::SchemaBuilder,
-    testing::{yara_validator::YaraValidator, BatchJobGenerator},
-    OpenAIClient,
+    testing::{BatchJobGenerator, yara_validator::YaraValidator},
 };
 use std::env;
 use tokio_stream::StreamExt;
@@ -88,9 +88,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     println!("      Failed: {}", status.request_counts.failed);
 
                                     println!("   💡 Batch is now processing. In production:");
-                                    println!("      - Poll status every 30-60 seconds using get_batch_status()");
-                                    println!("      - Or use wait_for_completion() to automatically wait");
-                                    println!("      - Retrieve results with get_batch_results() when completed");
+                                    println!(
+                                        "      - Poll status every 30-60 seconds using get_batch_status()"
+                                    );
+                                    println!(
+                                        "      - Or use wait_for_completion() to automatically wait"
+                                    );
+                                    println!(
+                                        "      - Retrieve results with get_batch_results() when completed"
+                                    );
                                 }
                                 Err(e) => println!("   ⚠️ Status check error: {e}"),
                             }

@@ -4,7 +4,7 @@
 use crate::models::responses::{
     ImageDetail, MessageContent, MessageContentInput, MessageRole, ResponseFormat,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Convert message role to OpenAI format
 pub fn role_to_string(role: MessageRole) -> &'static str {
@@ -21,10 +21,12 @@ pub fn content_to_json(content: &MessageContentInput) -> Value {
     match content {
         MessageContentInput::Text(text) => json!(text),
         MessageContentInput::Array(contents) => {
-            json!(contents
-                .iter()
-                .map(content_item_to_json)
-                .collect::<Vec<_>>())
+            json!(
+                contents
+                    .iter()
+                    .map(content_item_to_json)
+                    .collect::<Vec<_>>()
+            )
         }
     }
 }

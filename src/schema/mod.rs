@@ -6,7 +6,7 @@ pub mod builder;
 use crate::error::{OpenAIError, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 pub use builder::SchemaBuilder as EnhancedSchemaBuilder;

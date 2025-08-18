@@ -99,9 +99,18 @@ async fn main() -> Result<()> {
 
     // Create sample files (in real usage, these would be your actual documents)
     let sample_files = vec![
-        ("knowledge_base_1.txt", "This is the first knowledge base document containing important information about AI and machine learning."),
-        ("knowledge_base_2.txt", "This is the second knowledge base document with details about natural language processing and embeddings."),
-        ("knowledge_base_3.txt", "This is the third knowledge base document covering vector databases and retrieval systems."),
+        (
+            "knowledge_base_1.txt",
+            "This is the first knowledge base document containing important information about AI and machine learning.",
+        ),
+        (
+            "knowledge_base_2.txt",
+            "This is the second knowledge base document with details about natural language processing and embeddings.",
+        ),
+        (
+            "knowledge_base_3.txt",
+            "This is the third knowledge base document covering vector databases and retrieval systems.",
+        ),
     ];
 
     let mut uploaded_file_ids = Vec::new();

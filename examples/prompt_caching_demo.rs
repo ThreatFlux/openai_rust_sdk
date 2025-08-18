@@ -17,7 +17,7 @@ use openai_rust_sdk::{
     models::responses::{Message, ResponseRequest},
 };
 use std::{env, time::Instant};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 // Static system prompt that will be cached (>1024 tokens)
 const SYSTEM_PROMPT: &str = r#"

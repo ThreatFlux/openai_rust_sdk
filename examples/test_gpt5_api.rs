@@ -10,7 +10,7 @@ use openai_rust_sdk::{
     api::gpt5::GPT5Api,
     error::Result,
     models::{
-        gpt5::{models, ReasoningEffort, Verbosity},
+        gpt5::{ReasoningEffort, Verbosity, models},
         responses::{Message, MessageContentInput, MessageRole, ResponseInput},
     },
 };

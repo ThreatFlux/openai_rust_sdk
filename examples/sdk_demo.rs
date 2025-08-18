@@ -1,4 +1,5 @@
 use openai_rust_sdk::{
+    OpenAIClient,
     api::{
         functions::{FunctionConfig, FunctionsApi},
         gpt5::{GPT5Api, GPT5RequestBuilder},
@@ -13,7 +14,6 @@ use openai_rust_sdk::{
     },
     schema::builder::SchemaBuilder,
     testing::yara_validator::YaraValidator,
-    OpenAIClient,
 };
 
 #[tokio::main]

@@ -588,19 +588,23 @@ mod tests {
     fn test_empty_api_key() {
         let result = FineTuningApi::new("");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("API key cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("API key cannot be empty")
+        );
     }
 
     #[test]
     fn test_whitespace_api_key() {
         let result = FineTuningApi::new("   ");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("API key cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("API key cannot be empty")
+        );
     }
 }

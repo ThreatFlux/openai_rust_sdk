@@ -5,7 +5,7 @@
 //! and various detail levels.
 
 use openai_rust_sdk::{
-    from_env, ImageDetail, ImageFormat, ImageUtils, Message, OpenAIClient, ResponseRequest,
+    ImageDetail, ImageFormat, ImageUtils, Message, OpenAIClient, ResponseRequest, from_env,
 };
 
 #[tokio::main]
@@ -146,7 +146,7 @@ async fn multi_image_analysis(client: &OpenAIClient) -> Result<(), Box<dyn std::
 
     let message = Message::user_with_images(
         "Compare these two programming technologies. What are the differences and how do they relate to each other?",
-        image_urls
+        image_urls,
     );
 
     println!(

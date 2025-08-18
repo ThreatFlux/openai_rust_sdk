@@ -343,10 +343,12 @@ fn test_batch_request_response_correlation() {
 
     for (request, response) in request_response_pairs {
         assert_eq!(request.custom_id, response.custom_id);
-        assert!(response.response.choices[0]
-            .message
-            .content
-            .contains("rule"));
+        assert!(
+            response.response.choices[0]
+                .message
+                .content
+                .contains("rule")
+        );
 
         // Verify the generated rule name correlates with request ID
         let rule_content = &response.response.choices[0].message.content;
