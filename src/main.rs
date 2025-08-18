@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
         eprintln!("Please rebuild with: cargo build --features yara");
         std::process::exit(1);
     }
-    
+
     #[cfg(feature = "yara")]
     {
         let cli = Cli::parse();
@@ -57,49 +57,49 @@ async fn main() -> Result<()> {
                 let rule_content = fs::read_to_string(&file)?;
                 let validator = YaraValidator::new();
 
-            match validator.validate_rule(&rule_content) {
-                Ok(result) => {
-                    println!("Valid: {}", result.is_valid);
-                    if let Some(name) = &result.rule_name {
-                        println!("Rule Name: {name}");
-                    }
-                    println!("Compilation Time: {}ms", result.metrics.compilation_time_ms);
+                match validator.validate_rule(&rule_content) {
+                    Ok(result) => {
+                        println!("Valid: {}", result.is_valid);
+                        if let Some(name) = &result.rule_name {
+                            println!("Rule Name: {name}");
+                        }
+                        println!("Compilation Time: {}ms", result.metrics.compilation_time_ms);
 
-                    if verbose {
-                        println!("Features: {:?}", result.features);
-                    }
+                        if verbose {
+                            println!("Features: {:?}", result.features);
+                        }
 
-                    if !result.errors.is_empty() {
-                        println!("Errors: {:?}", result.errors);
+                        if !result.errors.is_empty() {
+                            println!("Errors: {:?}", result.errors);
+                        }
                     }
-                }
-                Err(e) => {
-                    eprintln!("Failed to validate: {e}");
-                    std::process::exit(1);
+                    Err(e) => {
+                        eprintln!("Failed to validate: {e}");
+                        std::process::exit(1);
+                    }
                 }
             }
+            Commands::RunTests => {
+                let test_cases = YaraTestCases::new();
+                let results = test_cases.run_all_tests()?;
+
+                println!("Test Results:");
+                println!("Total Tests: {}", results.total_tests);
+                println!("Passed: {}", results.passed_tests);
+                println!("Failed: {}", results.failed_tests);
+                println!("Success Rate: {:.1}%", results.success_rate);
+            }
+            Commands::GenerateBatch { output_dir, suite } => {
+                fs::create_dir_all(&output_dir)?;
+
+                let generator = BatchJobGenerator::new(None);
+                let output_file = output_dir.join(format!("{suite}_batch_jobs.jsonl"));
+
+                generator.generate_test_suite(&output_file, &suite)?;
+
+                println!("Generated batch jobs: {}", output_file.display());
+            }
         }
-        Commands::RunTests => {
-            let test_cases = YaraTestCases::new();
-            let results = test_cases.run_all_tests()?;
-
-            println!("Test Results:");
-            println!("Total Tests: {}", results.total_tests);
-            println!("Passed: {}", results.passed_tests);
-            println!("Failed: {}", results.failed_tests);
-            println!("Success Rate: {:.1}%", results.success_rate);
-        }
-        Commands::GenerateBatch { output_dir, suite } => {
-            fs::create_dir_all(&output_dir)?;
-
-            let generator = BatchJobGenerator::new(None);
-            let output_file = output_dir.join(format!("{suite}_batch_jobs.jsonl"));
-
-            generator.generate_test_suite(&output_file, &suite)?;
-
-            println!("Generated batch jobs: {}", output_file.display());
-        }
-    }
 
         Ok(())
     }
