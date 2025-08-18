@@ -234,13 +234,13 @@ jobs:
       
       - name: Run benchmarks
         run: |
-          cargo bench --all-features -- --output-format bencher | tee output.txt
+          cargo bench --all-features -- --output-format bencher | tee benchmark-output.txt
       
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'cargo'
-          output-file-path: output.txt
+          output-file-path: benchmark-output.txt
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: false
           comment-on-alert: true

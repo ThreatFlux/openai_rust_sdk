@@ -371,9 +371,9 @@ impl ErrorStatistics {
         error: &openai_rust_sdk::testing::yara_validator::ValidationError,
     ) {
         let error_type = match error {
-            openai_rust_sdk::testing::yara_validator::ValidationError::CompilationError { .. } => {
-                "CompilationError"
-            }
+            openai_rust_sdk::testing::yara_validator::ValidationError::CompilationError {
+                ..
+            } => "CompilationError",
         };
 
         *self

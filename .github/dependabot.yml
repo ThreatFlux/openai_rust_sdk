@@ -1,17 +1,19 @@
+# Dependabot configuration for automated dependency updates
+# See: https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
 version: 2
 updates:
-  # Rust dependencies
+  # Rust dependencies (Cargo)
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "04:00"
+      timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "wyattroersma"
-    assignees:
-      - "wyattroersma"
+      - "wyattroersma"  # Add your GitHub username
     labels:
       - "dependencies"
       - "rust"
@@ -20,20 +22,21 @@ updates:
       prefix-development: "chore"
       include: "scope"
     groups:
+      # Group minor and patch updates together
       minor-and-patch:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+    # Allow specific updates
+    allow:
+      - dependency-type: "all"
+    # Ignore specific dependencies if needed
     ignore:
-      # Ignore major version updates for critical dependencies
-      - dependency-name: "tokio"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "serde"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "reqwest"
-        update-types: ["version-update:semver-major"]
+      # Example: - dependency-name: "tokio"
+      #            versions: ["1.x"]
+    rebase-strategy: "auto"
     
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -41,11 +44,10 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "04:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "wyattroersma"
-    assignees:
       - "wyattroersma"
     labels:
       - "dependencies"
@@ -54,21 +56,21 @@ updates:
       prefix: "ci"
       include: "scope"
     groups:
+      # Group all action updates together
       actions:
         patterns:
           - "*"
-  
+    
   # Docker dependencies
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "04:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "wyattroersma"
-    assignees:
       - "wyattroersma"
     labels:
       - "dependencies"
@@ -76,3 +78,5 @@ updates:
     commit-message:
       prefix: "build"
       include: "scope"
+
+# Security updates are enabled by default and run separately from the above schedule

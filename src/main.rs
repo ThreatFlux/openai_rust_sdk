@@ -6,7 +6,10 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::PathBuf;
-use testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
+use testing::BatchJobGenerator;
+
+#[cfg(feature = "yara")]
+use testing::{YaraTestCases, YaraValidator};
 
 #[derive(Parser)]
 #[command(name = "openai_rust_sdk")]
@@ -38,12 +41,21 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cli = Cli::parse();
+    #[cfg(not(feature = "yara"))]
+    {
+        eprintln!("This CLI requires the 'yara' feature to be enabled.");
+        eprintln!("Please rebuild with: cargo build --features yara");
+        std::process::exit(1);
+    }
+    
+    #[cfg(feature = "yara")]
+    {
+        let cli = Cli::parse();
 
-    match cli.command {
-        Commands::ValidateRule { file, verbose } => {
-            let rule_content = fs::read_to_string(&file)?;
-            let validator = YaraValidator::new();
+        match cli.command {
+            Commands::ValidateRule { file, verbose } => {
+                let rule_content = fs::read_to_string(&file)?;
+                let validator = YaraValidator::new();
 
             match validator.validate_rule(&rule_content) {
                 Ok(result) => {
@@ -89,5 +101,6 @@ async fn main() -> Result<()> {
         }
     }
 
-    Ok(())
+        Ok(())
+    }
 }

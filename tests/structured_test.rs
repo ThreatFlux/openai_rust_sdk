@@ -283,27 +283,38 @@ fn test_feature_flags_structure() {
     )> = vec![
         (
             r#"rule simple { condition: true }"#,
-            Box::new(|f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                !f.has_strings && !f.has_hex_patterns && !f.has_regex_patterns && !f.has_metadata
-            }),
+            Box::new(
+                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
+                    !f.has_strings
+                        && !f.has_hex_patterns
+                        && !f.has_regex_patterns
+                        && !f.has_metadata
+                },
+            ),
         ),
         (
             r#"rule with_strings { strings: $s = "test" condition: $s }"#,
-            Box::new(|f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                f.has_strings && !f.has_hex_patterns && !f.has_regex_patterns
-            }),
+            Box::new(
+                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
+                    f.has_strings && !f.has_hex_patterns && !f.has_regex_patterns
+                },
+            ),
         ),
         (
             r#"rule with_hex { strings: $h = { FF FE } condition: $h }"#,
-            Box::new(|f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                f.has_strings && f.has_hex_patterns && !f.has_regex_patterns
-            }),
+            Box::new(
+                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
+                    f.has_strings && f.has_hex_patterns && !f.has_regex_patterns
+                },
+            ),
         ),
         (
             r#"rule with_regex { strings: $r = /test[0-9]+/ condition: $r }"#,
-            Box::new(|f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                f.has_strings && !f.has_hex_patterns && f.has_regex_patterns
-            }),
+            Box::new(
+                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
+                    f.has_strings && !f.has_hex_patterns && f.has_regex_patterns
+                },
+            ),
         ),
     ];
 

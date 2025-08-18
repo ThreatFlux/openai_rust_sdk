@@ -3,8 +3,8 @@
 //! These benchmarks measure the performance of various validation operations
 //! to ensure the SDK performs well under different workloads.
 
-use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
 use std::time::Duration;
 
 fn benchmark_simple_rule_validation(c: &mut Criterion) {

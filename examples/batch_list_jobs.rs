@@ -6,9 +6,9 @@
 //! - Display batch job details and statistics
 //! - Filter by status and analyze completion rates
 
+use chrono::{DateTime, Utc};
 use openai_rust_sdk::api::batch::{BatchApi, BatchStatus};
 use openai_rust_sdk::error::Result;
-use chrono::{DateTime, Utc};
 use std::env;
 
 #[tokio::main]

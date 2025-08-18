@@ -4,8 +4,8 @@
 //! useful for handling large batches of rules efficiently.
 
 use anyhow::Result;
-use openai_rust_sdk::testing::{BatchJobGenerator, YaraValidator};
 use futures::stream::{self, StreamExt};
+use openai_rust_sdk::testing::{BatchJobGenerator, YaraValidator};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 

@@ -220,8 +220,8 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
 
     println!("Streaming function calls...");
 
-    use openai_rust_sdk::api::streaming::FunctionStreamEvent;
     use futures::StreamExt;
+    use openai_rust_sdk::api::streaming::FunctionStreamEvent;
 
     while let Some(event_result) = stream.next().await {
         match event_result? {

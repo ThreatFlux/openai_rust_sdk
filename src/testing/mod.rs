@@ -1,38 +1,33 @@
 //! # Testing Module
 //!
-//! This module provides comprehensive testing and validation functionality for YARA rules
-//! integrated with `OpenAI`'s Batch API.
+//! This module provides comprehensive testing and validation functionality.
+//!
+//! ## Features
+//!
+//! When the `yara` feature is enabled, this module provides YARA rule validation:
+//! - Core YARA rule validation using the yara-x engine
+//! - Pre-defined test cases and test suite management
+//! - OpenAI Batch API job generation for YARA testing
 //!
 //! ## Sub-modules
 //!
-//! - [`yara_validator`](crate::testing::yara_validator): Core YARA rule validation using the yara-x engine
-//! - [`test_cases`](crate::testing::test_cases): Pre-defined test cases and test suite management
-//! - [`batch_generator`](crate::testing::batch_generator): `OpenAI` Batch API job generation and management
-//!
-//! ## Usage
-//!
-//! ```rust
-//! use openai_rust_sdk::testing::{YaraValidator, YaraTestCases, BatchJobGenerator};
-//!
-//! // Validate a single rule
-//! let validator = YaraValidator::new();
-//! let result = validator.validate_rule("rule test { condition: true }")?;
-//!
-//! // Run a test suite
-//! let test_cases = YaraTestCases::new();
-//! let results = test_cases.run_all_tests()?;
-//!
-//! // Generate batch jobs
-//! let generator = BatchJobGenerator::new(None);
-//! generator.generate_test_suite(std::path::Path::new("batch.jsonl"), "basic")?;
-//! # Ok::<(), anyhow::Error>(())
-//! ```
+//! - [`batch_generator`](crate::testing::batch_generator): OpenAI Batch API job generation
 
 pub mod batch_generator;
+
+#[cfg(feature = "yara")]
 pub mod test_cases;
+
+#[cfg(feature = "yara")]
 mod validator_helpers;
+
+#[cfg(feature = "yara")]
 pub mod yara_validator;
 
 pub use batch_generator::BatchJobGenerator;
+
+#[cfg(feature = "yara")]
 pub use test_cases::YaraTestCases;
+
+#[cfg(feature = "yara")]
 pub use yara_validator::YaraValidator;

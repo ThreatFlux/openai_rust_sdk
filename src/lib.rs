@@ -119,9 +119,12 @@ pub use prompt_engineering::{
 };
 pub use schema::{EnhancedSchemaBuilder, JsonSchema, SchemaBuilder};
 
-// Re-export YARA testing functionality
+// Re-export testing functionality
+pub use testing::batch_generator::BatchJobGenerator;
+
+// Re-export YARA testing functionality when feature is enabled
+#[cfg(feature = "yara")]
 pub use testing::{
-    batch_generator::BatchJobGenerator,
     test_cases::YaraTestCases,
     yara_validator::{ValidationError, ValidationResult, YaraValidator},
 };

@@ -4,11 +4,11 @@
 //! including simple text generation, streaming responses, multi-turn conversations,
 //! and prompt template usage.
 
+use futures::StreamExt;
 use openai_rust_sdk::{
     from_env, ChatBuilder, OpenAIClient, PromptTemplate, PromptVariable, ResponseInput,
     ResponseRequest,
 };
-use futures::StreamExt;
 use std::collections::HashMap;
 
 #[tokio::main]
