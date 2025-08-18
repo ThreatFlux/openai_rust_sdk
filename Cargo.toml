@@ -1,7 +1,7 @@
 [package]
 name = "openai_rust_sdk"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"
 description = "Comprehensive OpenAI API SDK for Rust with YARA rule validation"
 license = "MIT"

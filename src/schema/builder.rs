@@ -218,12 +218,12 @@ impl SchemaBuilder {
         let name = name.into();
 
         // Add to properties
-        if let Some(Value::Object(ref mut properties)) = self.schema.get_mut("properties") {
+        if let Some(Value::Object(properties)) = self.schema.get_mut("properties") {
             properties.insert(name.clone(), property_schema.build().unwrap_or(Value::Null));
         }
 
         // Add to required array
-        if let Some(Value::Array(ref mut required)) = self.schema.get_mut("required") {
+        if let Some(Value::Array(required)) = self.schema.get_mut("required") {
             if !required.iter().any(|v| v.as_str() == Some(&name)) {
                 required.push(Value::String(name));
             }
@@ -241,7 +241,7 @@ impl SchemaBuilder {
         let name = name.into();
 
         // Add to properties only (not to required)
-        if let Some(Value::Object(ref mut properties)) = self.schema.get_mut("properties") {
+        if let Some(Value::Object(properties)) = self.schema.get_mut("properties") {
             properties.insert(name, property_schema.build().unwrap_or(Value::Null));
         }
 
