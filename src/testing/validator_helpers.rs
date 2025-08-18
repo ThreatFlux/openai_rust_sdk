@@ -1,5 +1,4 @@
 //! Helper functions for YARA validator to reduce complexity
-#![cfg(feature = "yara")]
 #![allow(dead_code)]
 
 /// Check if a line is a string pattern definition

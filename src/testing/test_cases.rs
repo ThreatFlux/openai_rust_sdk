@@ -1,5 +1,4 @@
 //! # YARA Test Cases and Test Suite Management
-#![cfg(feature = "yara")]
 //!
 //! This module provides pre-defined test cases and test suite management
 //! for comprehensive YARA rule validation testing.

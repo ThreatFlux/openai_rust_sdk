@@ -1,7 +1,6 @@
 //! # YARA Rule Validation
 //!
 //! This module provides comprehensive YARA rule validation using the yara-x engine.
-#![cfg(feature = "yara")]
 //! It includes compilation testing, feature analysis, and pattern matching validation.
 //!
 //! ## Features
