@@ -6,10 +6,21 @@
 //! - Batch validation with structured output
 //! - Feature analysis and reporting
 
+#[cfg(not(feature = "yara"))]
+#[tokio::main]
+async fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example structured_outputs --features yara");
+}
+
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "yara")]
 use serde_json::json;
 
+#[cfg(feature = "yara")]
 #[derive(Debug, Serialize, Deserialize)]
 struct ValidationReport {
     rule_name: String,
@@ -19,6 +30,7 @@ struct ValidationReport {
     errors: Vec<String>,
 }
 
+#[cfg(feature = "yara")]
 #[derive(Debug, Serialize, Deserialize)]
 struct BatchValidationSummary {
     total_rules: usize,
@@ -28,6 +40,7 @@ struct BatchValidationSummary {
     reports: Vec<ValidationReport>,
 }
 
+#[cfg(feature = "yara")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Structured YARA Validation Output Examples");
@@ -48,6 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn example_structured_validation() -> Result<(), Box<dyn std::error::Error>> {
     println!("1. Individual Rule Validation with Structured Output");
     println!("---------------------------------------------------");
@@ -91,6 +105,7 @@ async fn example_structured_validation() -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn example_batch_structured_validation() -> Result<(), Box<dyn std::error::Error>> {
     println!("2. Batch Validation with Summary Report");
     println!("---------------------------------------");
@@ -132,6 +147,7 @@ async fn example_batch_structured_validation() -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn example_json_export() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n3. JSON Export of Validation Results");
     println!("------------------------------------");

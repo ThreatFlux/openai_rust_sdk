@@ -218,12 +218,19 @@ impl AssistantRequest {
 /// Builder for creating assistant requests
 #[derive(Debug, Clone, Default)]
 pub struct AssistantRequestBuilder {
+    /// The model ID to use
     model: Option<String>,
+    /// The name of the assistant
     name: Option<String>,
+    /// The description of the assistant
     description: Option<String>,
+    /// Instructions that the assistant uses
     instructions: Option<String>,
+    /// A list of tools enabled on the assistant
     tools: Vec<AssistantTool>,
+    /// A list of file IDs attached to this assistant
     file_ids: Vec<String>,
+    /// Metadata for the assistant
     metadata: HashMap<String, String>,
 }
 

@@ -3,10 +3,20 @@
 //! These benchmarks measure the performance of various validation operations
 //! to ensure the SDK performs well under different workloads.
 
+#[cfg(not(feature = "yara"))]
+fn main() {
+    println!("This benchmark requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo bench --features yara");
+}
+
+#[cfg(feature = "yara")]
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
 use std::time::Duration;
 
+#[cfg(feature = "yara")]
 fn benchmark_simple_rule_validation(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let simple_rule = r#"
@@ -20,6 +30,7 @@ fn benchmark_simple_rule_validation(c: &mut Criterion) {
     });
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_complex_rule_validation(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let complex_rule = r#"
@@ -47,6 +58,7 @@ fn benchmark_complex_rule_validation(c: &mut Criterion) {
     });
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_rule_validation_by_size(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("validation_by_rule_size");
@@ -70,6 +82,7 @@ fn benchmark_rule_validation_by_size(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_concurrent_validation(c: &mut Criterion) {
     let mut group = c.benchmark_group("concurrent_validation");
 
@@ -109,6 +122,7 @@ fn benchmark_concurrent_validation(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_test_suite_execution(c: &mut Criterion) {
     let test_cases = YaraTestCases::new();
 
@@ -117,6 +131,7 @@ fn benchmark_test_suite_execution(c: &mut Criterion) {
     });
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_pattern_testing(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("pattern_testing");
@@ -161,6 +176,7 @@ fn benchmark_pattern_testing(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_feature_analysis(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("feature_analysis");
@@ -221,6 +237,7 @@ fn benchmark_feature_analysis(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_memory_usage(c: &mut Criterion) {
     let mut group = c.benchmark_group("memory_usage");
     group.measurement_time(Duration::from_secs(10));
@@ -239,6 +256,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_error_handling(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("error_handling");
@@ -263,6 +281,7 @@ fn benchmark_error_handling(c: &mut Criterion) {
 }
 
 // Helper function to generate rules with varying numbers of strings
+#[cfg(feature = "yara")]
 fn generate_rule_with_strings(string_count: usize) -> String {
     let mut rule = String::from("rule generated_rule {\n    strings:\n");
 
@@ -274,6 +293,7 @@ fn generate_rule_with_strings(string_count: usize) -> String {
     rule
 }
 
+#[cfg(feature = "yara")]
 criterion_group!(
     benches,
     benchmark_simple_rule_validation,
@@ -287,4 +307,5 @@ criterion_group!(
     benchmark_error_handling
 );
 
+#[cfg(feature = "yara")]
 criterion_main!(benches);

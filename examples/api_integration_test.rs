@@ -1,3 +1,10 @@
+#[cfg(not(feature = "yara"))]
+fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example api_integration_test --features yara");
+}
+
+#[cfg(feature = "yara")]
 use openai_rust_sdk::{
     OpenAIClient,
     api::{
@@ -15,9 +22,12 @@ use openai_rust_sdk::{
     schema::builder::SchemaBuilder,
     testing::{BatchJobGenerator, yara_validator::YaraValidator},
 };
+#[cfg(feature = "yara")]
 use std::env;
+#[cfg(feature = "yara")]
 use tokio_stream::StreamExt;
 
+#[cfg(feature = "yara")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get API key from environment

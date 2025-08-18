@@ -371,6 +371,7 @@ pub enum ContainerMode {
 
 /// Builder for container configuration
 pub struct ContainerBuilder {
+    /// The container configuration being built
     config: ContainerConfig,
 }
 

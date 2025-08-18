@@ -232,6 +232,7 @@ impl EmbeddingModels {
 
 /// Builder for creating embedding requests
 pub struct EmbeddingBuilder {
+    /// The embedding request being built
     request: EmbeddingRequest,
 }
 

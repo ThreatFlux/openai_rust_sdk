@@ -776,6 +776,7 @@ impl AudioProcessor {
 
 /// Builder for creating real-time audio sessions
 pub struct RealtimeSessionBuilder {
+    /// The realtime session request
     request: RealtimeSessionRequest,
 }
 

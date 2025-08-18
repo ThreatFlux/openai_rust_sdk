@@ -3,12 +3,25 @@
 //! This example shows how to process YARA rules in a streaming fashion,
 //! useful for handling large batches of rules efficiently.
 
+#[cfg(not(feature = "yara"))]
+#[tokio::main]
+async fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example streaming_demo --features yara");
+}
+
+#[cfg(feature = "yara")]
 use anyhow::Result;
+#[cfg(feature = "yara")]
 use futures::stream::{self, StreamExt};
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraValidator};
+#[cfg(feature = "yara")]
 use std::time::{Duration, Instant};
+#[cfg(feature = "yara")]
 use tokio::time::sleep;
 
+#[cfg(feature = "yara")]
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("Streaming YARA Validation Demo");
@@ -32,6 +45,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn await_sequential_streaming() -> Result<()> {
     println!("1. Sequential Streaming Validation");
     println!("----------------------------------");
@@ -66,6 +80,7 @@ async fn await_sequential_streaming() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn await_concurrent_streaming() -> Result<()> {
     println!("2. Concurrent Streaming Validation");
     println!("----------------------------------");
@@ -92,7 +107,7 @@ async fn await_concurrent_streaming() -> Result<()> {
 
     // Collect results
     let mut results = Vec::new();
-    let mut stream = std::pin::pin!(validation_stream);
+    let mut stream = Box::pin(validation_stream);
 
     while let Some(result) = stream.next().await {
         let (index, name, validation_result) = result?;
@@ -117,6 +132,7 @@ async fn await_concurrent_streaming() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn await_batch_job_streaming() -> Result<()> {
     println!("3. Batch Job Streaming Simulation");
     println!("---------------------------------");
@@ -160,7 +176,7 @@ async fn await_batch_job_streaming() -> Result<()> {
 
     let mut processed = 0;
     let mut valid_responses = 0;
-    let mut stream = std::pin::pin!(batch_stream);
+    let mut stream = Box::pin(batch_stream);
 
     while let Some(result) = stream.next().await {
         let (custom_id, validation_result) = result?;
@@ -179,6 +195,7 @@ async fn await_batch_job_streaming() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 async fn await_backpressure_demo() -> Result<()> {
     println!("4. Backpressure Handling Demo");
     println!("-----------------------------");
@@ -218,7 +235,7 @@ async fn await_backpressure_demo() -> Result<()> {
 
     let mut completed = 0;
     let mut valid = 0;
-    let mut stream = std::pin::pin!(validation_stream);
+    let mut stream = Box::pin(validation_stream);
 
     while let Some(result) = stream.next().await {
         let validation_result = result?;
@@ -276,6 +293,7 @@ fn generate_sample_rules() -> Vec<(String, String)> {
     ]
 }
 
+#[cfg(feature = "yara")]
 fn generate_large_rule_set() -> Vec<String> {
     (1..=8)
         .map(|i| {

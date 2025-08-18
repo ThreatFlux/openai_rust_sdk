@@ -1,6 +1,15 @@
+#[cfg(not(feature = "yara"))]
+fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example full_integration --features yara");
+}
+
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{batch_generator::BatchJobGenerator, yara_validator::YaraValidator};
+#[cfg(feature = "yara")]
 use std::fs;
 
+#[cfg(feature = "yara")]
 fn main() {
     println!("OpenAI Batch API + Yara-X Integration Test");
     println!("===========================================\n");

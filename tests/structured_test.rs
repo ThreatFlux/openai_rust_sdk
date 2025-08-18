@@ -2,10 +2,14 @@
 //!
 //! These tests verify structured data handling, serialization, and validation result processing.
 
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
 use std::collections::HashMap;
+#[cfg(feature = "yara")]
 use tempfile::NamedTempFile;
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_validation_result_structure() {
     let validator = YaraValidator::new();
@@ -53,6 +57,7 @@ fn test_validation_result_structure() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_test_suite_result_structure() {
     let test_cases = YaraTestCases::new();
@@ -83,6 +88,7 @@ fn test_test_suite_result_structure() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_batch_job_structure() {
     let generator = BatchJobGenerator::new(Some("gpt-4".to_string()));
@@ -121,6 +127,7 @@ fn test_batch_job_structure() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_json_serialization_roundtrip() {
     let validator = YaraValidator::new();
@@ -190,6 +197,7 @@ fn test_json_serialization_roundtrip() {
     );
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_pretty_json_output() {
     let validator = YaraValidator::new();
@@ -209,6 +217,7 @@ fn test_pretty_json_output() {
     assert!(pretty_json.contains("\"metrics\""));
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_nested_structure_access() {
     let validator = YaraValidator::new();
@@ -245,6 +254,7 @@ fn test_nested_structure_access() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_error_structure() {
     let validator = YaraValidator::new();
@@ -272,6 +282,7 @@ fn test_error_structure() {
     assert!(json.contains("message"));
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_feature_flags_structure() {
     let validator = YaraValidator::new();
@@ -327,6 +338,7 @@ fn test_feature_flags_structure() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_metrics_consistency() {
     let validator = YaraValidator::new();
@@ -372,6 +384,7 @@ fn test_metrics_consistency() {
     // assert_eq!(results[2].features.string_count, 4);
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_structured_data_aggregation() {
     let test_cases = YaraTestCases::new();

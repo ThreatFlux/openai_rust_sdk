@@ -1,3 +1,11 @@
+#[cfg(not(feature = "yara"))]
+#[tokio::main]
+async fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example sdk_demo --features yara");
+}
+
+#[cfg(feature = "yara")]
 use openai_rust_sdk::{
     OpenAIClient,
     api::{
@@ -16,6 +24,7 @@ use openai_rust_sdk::{
     testing::yara_validator::YaraValidator,
 };
 
+#[cfg(feature = "yara")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 OpenAI SDK Demo - Structure and Configuration");

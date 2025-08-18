@@ -113,8 +113,11 @@ impl Hyperparameters {
 /// Builder for hyperparameters
 #[derive(Debug, Default)]
 pub struct HyperparametersBuilder {
+    /// Number of training epochs
     n_epochs: Option<u32>,
+    /// Batch size for training
     batch_size: Option<u32>,
+    /// Learning rate multiplier
     learning_rate_multiplier: Option<f64>,
 }
 
@@ -251,11 +254,17 @@ impl FineTuningJobRequest {
 /// Builder for fine-tuning job requests
 #[derive(Debug, Default)]
 pub struct FineTuningJobRequestBuilder {
+    /// The training file ID
     training_file: Option<String>,
+    /// The validation file ID
     validation_file: Option<String>,
+    /// The model to fine-tune
     model: Option<String>,
+    /// Hyperparameters for fine-tuning
     hyperparameters: Option<Hyperparameters>,
+    /// Custom suffix for the fine-tuned model name
     suffix: Option<String>,
+    /// Metadata for the fine-tuning job
     metadata: Option<HashMap<String, String>>,
 }
 

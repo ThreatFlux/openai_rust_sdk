@@ -492,6 +492,7 @@ impl AudioModels {
 
 /// Builder for creating speech requests
 pub struct SpeechBuilder {
+    /// The audio speech request being built
     request: AudioSpeechRequest,
 }
 
@@ -564,6 +565,7 @@ impl SpeechBuilder {
 
 /// Builder for creating transcription requests
 pub struct TranscriptionBuilder {
+    /// The audio transcription request being built
     request: AudioTranscriptionRequest,
 }
 
@@ -650,6 +652,7 @@ impl TranscriptionBuilder {
 
 /// Builder for creating translation requests
 pub struct TranslationBuilder {
+    /// The audio translation request being built
     request: AudioTranslationRequest,
 }
 

@@ -3,10 +3,20 @@
 //! This example showcases comprehensive error handling patterns and best practices
 //! when working with YARA rule validation and batch processing.
 
+#[cfg(not(feature = "yara"))]
+fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example error_handling --features yara");
+}
+
+#[cfg(feature = "yara")]
 use anyhow::{Context, Result};
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
 use std::collections::HashMap;
 
+#[cfg(feature = "yara")]
 fn main() -> Result<()> {
     println!("Error Handling Patterns Demo");
     println!("============================\n");
@@ -32,6 +42,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn demo_validation_errors() -> Result<()> {
     println!("1. Validation Error Handling");
     println!("----------------------------");
@@ -81,6 +92,7 @@ fn demo_validation_errors() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn demo_batch_processing_errors() -> Result<()> {
     println!("2. Batch Processing Error Handling");
     println!("----------------------------------");
@@ -125,6 +137,7 @@ fn demo_batch_processing_errors() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn demo_file_operation_errors() -> Result<()> {
     println!("\n3. File Operation Error Handling");
     println!("--------------------------------");
@@ -192,6 +205,7 @@ fn demo_file_operation_errors() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn demo_recovery_strategies() -> Result<()> {
     println!("\n4. Recovery Strategies");
     println!("---------------------");
@@ -273,6 +287,7 @@ fn demo_recovery_strategies() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn demo_error_aggregation() -> Result<()> {
     println!("\n5. Error Aggregation and Reporting");
     println!("----------------------------------");
@@ -316,6 +331,7 @@ fn demo_error_aggregation() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn attempt_individual_validation() -> Result<()> {
     println!("  Attempting basic individual validations...");
     let validator = YaraValidator::new();
@@ -344,6 +360,7 @@ fn attempt_individual_validation() -> Result<()> {
 }
 
 // Helper struct for error aggregation
+#[cfg(feature = "yara")]
 struct ErrorStatistics {
     success_count: usize,
     validation_errors: HashMap<String, usize>,
@@ -351,6 +368,7 @@ struct ErrorStatistics {
     rule_errors: Vec<(String, String)>,
 }
 
+#[cfg(feature = "yara")]
 impl ErrorStatistics {
     fn new() -> Self {
         Self {

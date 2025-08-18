@@ -90,11 +90,17 @@ pub fn add_optional_params(request: &mut Value, params: OptionalParams) {
 
 /// Optional parameters for OpenAI requests
 pub struct OptionalParams {
+    /// The sampling temperature
     pub temperature: Option<f32>,
+    /// The maximum tokens to generate
     pub max_tokens: Option<u32>,
+    /// Top-p nucleus sampling
     pub top_p: Option<f32>,
+    /// Frequency penalty to reduce repetition
     pub frequency_penalty: Option<f32>,
+    /// Presence penalty to encourage new topics
     pub presence_penalty: Option<f32>,
+    /// Whether to stream the response
     pub stream: Option<bool>,
 }
 

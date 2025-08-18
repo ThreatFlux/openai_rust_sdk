@@ -69,6 +69,7 @@ pub async fn process_tool_call_delta(
 
 /// Build a function call from builder if complete
 impl FunctionCallBuilder {
+    /// Build a function call from the builder if all required fields are present
     pub fn build(self) -> Option<FunctionCall> {
         match (self.call_id, self.name) {
             (Some(call_id), Some(name)) => Some(FunctionCall {

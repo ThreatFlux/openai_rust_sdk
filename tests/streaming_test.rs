@@ -2,9 +2,12 @@
 //!
 //! These tests verify the streaming API integration with mock HTTP responses.
 
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraValidator};
+#[cfg(feature = "yara")]
 use tempfile::NamedTempFile;
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_streaming_response_simulation() {
     // Test streaming-like behavior by processing multiple YARA validations
@@ -55,6 +58,7 @@ async fn test_streaming_response_simulation() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_batch_job_streaming_generation() {
     // Test generating batch jobs that would be used for streaming
@@ -86,6 +90,7 @@ async fn test_batch_job_streaming_generation() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_concurrent_validation_streaming() {
     // Test concurrent validation (simulating multiple streams)
@@ -121,6 +126,7 @@ async fn test_concurrent_validation_streaming() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_error_handling_in_stream() {
     // Test error handling in streaming scenarios
@@ -153,6 +159,7 @@ async fn test_error_handling_in_stream() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_streaming_metrics_collection() {
     // Test collecting metrics across a stream of validations
@@ -205,6 +212,7 @@ async fn test_streaming_metrics_collection() {
     assert_eq!(feature_counts.get("metadata").unwrap_or(&0), &1);
 }
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_backpressure_simulation() {
     // Simulate backpressure by limiting concurrent validations
@@ -250,6 +258,7 @@ async fn test_backpressure_simulation() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[tokio::test]
 async fn test_stream_cancellation() {
     // Test cancellation of streaming operations

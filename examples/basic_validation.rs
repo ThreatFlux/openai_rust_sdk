@@ -3,9 +3,18 @@
 //! This example demonstrates the fundamental usage of the YARA validator
 //! for validating individual rules and understanding the validation results.
 
+#[cfg(not(feature = "yara"))]
+fn main() {
+    println!("This example requires the 'yara' feature to be enabled.");
+    println!("Run with: cargo run --example basic_validation --features yara");
+}
+
+#[cfg(feature = "yara")]
 use anyhow::Result;
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::YaraValidator;
 
+#[cfg(feature = "yara")]
 fn main() -> Result<()> {
     println!("Basic YARA Rule Validation Example");
     println!("==================================\n");
@@ -78,6 +87,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "yara")]
 fn print_validation_result(
     name: &str,
     result: &openai_rust_sdk::testing::yara_validator::ValidationResult,

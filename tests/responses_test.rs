@@ -3,8 +3,12 @@
 //! These tests verify the response handling, API integration patterns, and data flow
 //! for the `OpenAI` batch API integration.
 
+#[cfg(not(feature = "yara"))]
+use openai_rust_sdk::testing::BatchJobGenerator;
 use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
 use std::collections::HashMap;
 use tempfile::NamedTempFile;
 
@@ -42,6 +46,7 @@ fn test_chat_completion_request_format() {
     assert!(!user_msg.content.is_empty());
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_response_simulation_with_validation() {
     // Simulate receiving responses from OpenAI and processing them
@@ -100,6 +105,7 @@ fn test_response_simulation_with_validation() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_batch_response_processing_pipeline() {
     // Test complete pipeline: generate request -> simulate response -> validate
@@ -159,6 +165,7 @@ fn test_batch_response_processing_pipeline() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_error_response_handling() {
     // Test handling of various error scenarios in responses
@@ -196,6 +203,7 @@ fn test_error_response_handling() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_response_metrics_aggregation() {
     // Test aggregating metrics across multiple responses
@@ -241,6 +249,7 @@ fn test_response_metrics_aggregation() {
     assert!((calculated_success_rate - suite_result.success_rate).abs() < 0.01);
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_response_content_validation() {
     // Test validating the content of simulated responses
@@ -356,6 +365,7 @@ fn test_batch_request_response_correlation() {
     }
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_response_format_validation() {
     // Test validation of different response formats
@@ -430,6 +440,7 @@ struct SimulatedMessage {
     content: String,
 }
 
+#[cfg(feature = "yara")]
 #[test]
 fn test_high_volume_response_processing() {
     // Test processing a large number of responses efficiently
