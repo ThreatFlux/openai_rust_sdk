@@ -1,0 +1,3 @@
+{"custom_id": "test-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "What is yara-x?"}], "max_tokens": 100}}
+{"custom_id": "test-2", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "How do I install yara-x?"}], "max_tokens": 150}}
+{"custom_id": "test-3", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "Show me a simple YARA rule example."}], "max_tokens": 200}}

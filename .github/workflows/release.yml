@@ -1,0 +1,342 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Validate and prepare release
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Invalid version format: $VERSION"
+            exit 1
+          fi
+      
+      - name: Check CHANGELOG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then
+            echo "Warning: Version $VERSION not found in CHANGELOG.md"
+          fi
+      
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Extract release notes from CHANGELOG if available
+          if [ -f CHANGELOG.md ]; then
+            awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '1d;$d' > release_notes.md || echo "No specific release notes found" > release_notes.md
+          else
+            echo "Release $VERSION" > release_notes.md
+          fi
+          echo "Release notes generated"
+      
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease || contains(steps.version.outputs.version, '-') }}
+
+  # Build release artifacts for multiple platforms
+  build:
+    name: Build Release Artifacts
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: openai-rust-sdk-linux-amd64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: openai-rust-sdk-linux-musl-amd64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: openai-rust-sdk-linux-arm64
+            use_cross: true
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: openai-rust-sdk-macos-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: openai-rust-sdk-macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: openai-rust-sdk-windows-amd64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+          if [ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]; then
+            sudo apt-get install -y musl-tools
+          fi
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+      
+      - name: Install cross-compilation tool
+        if: matrix.use_cross
+        run: cargo install cross
+      
+      - name: Update version in Cargo.toml
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          sed -i.bak "s/^version = .*/version = \"$VERSION\"/" Cargo.toml || \
+          sed -i '' "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+      
+      - name: Build release binary
+        run: |
+          if [ "${{ matrix.use_cross }}" == "true" ]; then
+            cross build --release --target ${{ matrix.target }} --all-features
+          else
+            cargo build --release --target ${{ matrix.target }} --all-features
+          fi
+      
+      - name: Package binary
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            7z a ../../../${{ matrix.artifact_name }}.zip openai_rust_sdk.exe
+          else
+            tar czf ../../../${{ matrix.artifact_name }}.tar.gz openai_rust_sdk
+          fi
+      
+      - name: Calculate checksums
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            certutil -hashfile ${{ matrix.artifact_name }}.zip SHA256 > ${{ matrix.artifact_name }}.zip.sha256
+          else
+            shasum -a 256 ${{ matrix.artifact_name }}.tar.gz > ${{ matrix.artifact_name }}.tar.gz.sha256
+          fi
+      
+      - name: Upload release artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare.outputs.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
+          asset_name: ${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
+          asset_content_type: ${{ matrix.os == 'windows-latest' && 'application/zip' || 'application/gzip' }}
+      
+      - name: Upload checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare.outputs.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip.sha256' || '.tar.gz.sha256' }}
+          asset_name: ${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip.sha256' || '.tar.gz.sha256' }}
+          asset_content_type: text/plain
+
+  # Publish to crates.io
+  publish-crate:
+    name: Publish to crates.io
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+      
+      - name: Update version in Cargo.toml
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+      
+      - name: Verify package
+        run: |
+          cargo package --all-features
+          cargo package --list
+      
+      - name: Publish to crates.io
+        run: cargo publish --all-features --token ${{ secrets.CRATES_IO_TOKEN }}
+        continue-on-error: true  # Don't fail the whole release if crates.io publish fails
+
+  # Build and push Docker images
+  docker:
+    name: Build and Push Docker Images
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            threatflux/openai-rust-sdk
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.prepare.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.prepare.outputs.version }}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ needs.prepare.outputs.version }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Generate and upload signatures
+  signatures:
+    name: Generate Signatures
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      
+      - name: Sign artifacts with cosign
+        run: |
+          echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+          # Sign each artifact (would need to download them first)
+          # This is a placeholder for the actual signing process
+          echo "Artifact signing would happen here"
+          rm cosign.key
+        continue-on-error: true
+
+  # Update documentation
+  docs:
+    name: Update Documentation
+    needs: [prepare, publish-crate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Generate API documentation
+        run: |
+          cargo doc --all-features --no-deps
+          echo "<meta http-equiv=refresh content=0;url=openai_rust_sdk/index.html>" > target/doc/index.html
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/doc
+          cname: openai-rust-sdk.threatflux.com
+        continue-on-error: true
+
+  # Create release announcement
+  announce:
+    name: Announce Release
+    needs: [prepare, publish-crate, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        if: secrets.DISCORD_WEBHOOK
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d "{\"content\": \"🚀 OpenAI Rust SDK v${{ needs.prepare.outputs.version }} has been released! Check it out at https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare.outputs.version }}\"}" \
+            ${{ secrets.DISCORD_WEBHOOK }}
+        continue-on-error: true
+      
+      - name: Send Slack notification
+        if: secrets.SLACK_WEBHOOK
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚀 OpenAI Rust SDK v${{ needs.prepare.outputs.version }} has been released!\\n<https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare.outputs.version }}|View Release>\"}" \
+            ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true

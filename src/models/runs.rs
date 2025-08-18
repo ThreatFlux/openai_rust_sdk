@@ -1,0 +1,707 @@
+//! # OpenAI Runs & Run Steps API Models
+//!
+//! This module provides data structures for OpenAI's Runs API, which allows you to
+//! execute assistants on threads with tool calling capabilities and step-by-step execution tracking.
+//!
+//! ## Overview
+//!
+//! The Runs API supports:
+//! - **Run Execution**: Execute assistants on threads with specified parameters
+//! - **Tool Calling**: Support for Code Interpreter, Retrieval, and Function calling
+//! - **Status Tracking**: Monitor run progress through various status states
+//! - **Step Tracking**: Detailed tracking of individual execution steps
+//! - **Error Handling**: Comprehensive error reporting and recovery
+//! - **Token Usage**: Track token consumption for runs and steps
+//! - **Required Actions**: Handle function calls that require user input
+//! - **Streaming**: Real-time updates for run execution
+//!
+//! ## Run Lifecycle
+//!
+//! Runs go through several status states:
+//! - `queued`: Run is waiting to be processed
+//! - `in_progress`: Run is currently executing
+//! - `requires_action`: Run is waiting for user input (e.g., function call results)
+//! - `cancelling`: Run is being cancelled
+//! - `cancelled`: Run was cancelled
+//! - `failed`: Run failed with an error
+//! - `completed`: Run completed successfully
+//! - `expired`: Run expired without completion
+//!
+//! ## Run Steps
+//!
+//! Each run is broken down into individual steps that can be:
+//! - **Message Creation**: Creating a new message in the thread
+//! - **Tool Calls**: Executing tools like Code Interpreter, Retrieval, or Functions
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use openai_rust_sdk::models::runs::{RunRequest, RunStatus, ToolOutput};
+//! use std::collections::HashMap;
+//!
+//! // Create a run request
+//! let run_request = RunRequest::builder()
+//!     .assistant_id("asst_abc123")
+//!     .model("gpt-4")
+//!     .instructions("Please analyze the data and provide insights.")
+//!     .build();
+//!
+//! // Create tool output for function calls
+//! let tool_output = ToolOutput {
+//!     tool_call_id: "call_abc123".to_string(),
+//!     output: "The calculation result is 42".to_string(),
+//! };
+//! ```
+
+use crate::models::assistants::AssistantTool;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+/// A run represents an execution of an Assistant on a Thread
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Run {
+    /// The identifier, which can be referenced in API endpoints
+    pub id: String,
+    /// The object type, which is always `thread.run`
+    pub object: String,
+    /// The Unix timestamp (in seconds) for when the run was created
+    pub created_at: i64,
+    /// The ID of the thread that was executed on as a part of this run
+    pub thread_id: String,
+    /// The ID of the assistant used for execution of this run
+    pub assistant_id: String,
+    /// The status of the run
+    pub status: RunStatus,
+    /// Details on the action required to continue the run
+    pub required_action: Option<RequiredAction>,
+    /// The last error associated with this run
+    pub last_error: Option<RunError>,
+    /// The Unix timestamp (in seconds) for when the run will expire
+    pub expires_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run was started
+    pub started_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run was cancelled
+    pub cancelled_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run failed
+    pub failed_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run completed
+    pub completed_at: Option<i64>,
+    /// The model that the assistant used for this run
+    pub model: String,
+    /// The instructions that the assistant used for this run
+    pub instructions: String,
+    /// The list of tools that the assistant used for this run
+    #[serde(default)]
+    pub tools: Vec<AssistantTool>,
+    /// The list of File IDs the assistant can access (deprecated in v2)
+    #[serde(default)]
+    pub file_ids: Vec<String>,
+    /// Set of 16 key-value pairs that can be attached to an object
+    #[serde(default)]
+    pub metadata: HashMap<String, String>,
+    /// Usage statistics for the completion request
+    pub usage: Option<Usage>,
+}
+
+/// Request to create a new run
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunRequest {
+    /// The ID of the assistant to use to execute this run
+    pub assistant_id: String,
+    /// The model to use for this run
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Override the default system message of the assistant
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<String>,
+    /// Override the tools the assistant can use for this run
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<AssistantTool>>,
+    /// Override the file IDs the assistant can access
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_ids: Option<Vec<String>>,
+    /// Set of 16 key-value pairs that can be attached to an object
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+/// Request to create a thread and run it in one request
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CreateThreadAndRunRequest {
+    /// The ID of the assistant to use to execute this run
+    pub assistant_id: String,
+    /// If no thread is provided, an empty thread will be created
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread: Option<ThreadCreateRequest>,
+    /// The model to use for this run
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Override the default system message of the assistant
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<String>,
+    /// Override the tools the assistant can use for this run
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<AssistantTool>>,
+    /// Override the file IDs the assistant can access
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_ids: Option<Vec<String>>,
+    /// Set of 16 key-value pairs that can be attached to an object
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+/// Thread creation request for use in `create_thread_and_run`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ThreadCreateRequest {
+    /// A list of messages to start the thread with
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub messages: Option<Vec<ThreadMessage>>,
+    /// Set of 16 key-value pairs that can be attached to an object
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+/// Message for thread creation
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ThreadMessage {
+    /// The role of the message author
+    pub role: String,
+    /// The content of the message
+    pub content: String,
+    /// A list of File IDs that the message should use
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_ids: Option<Vec<String>>,
+    /// Set of 16 key-value pairs that can be attached to an object
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+/// The status of a run
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RunStatus {
+    /// The run is queued and waiting to be processed
+    Queued,
+    /// The run is currently in progress
+    InProgress,
+    /// The run requires action from the user to continue
+    RequiresAction,
+    /// The run is being cancelled
+    Cancelling,
+    /// The run was cancelled
+    Cancelled,
+    /// The run failed
+    Failed,
+    /// The run completed successfully
+    Completed,
+    /// The run expired
+    Expired,
+}
+
+/// Details on the action required to continue the run
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RequiredAction {
+    /// The type of action required
+    #[serde(rename = "type")]
+    pub action_type: String,
+    /// Details of the action required
+    pub submit_tool_outputs: SubmitToolOutputs,
+}
+
+/// Details for submitting tool outputs
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SubmitToolOutputs {
+    /// A list of the relevant tool calls
+    pub tool_calls: Vec<ToolCall>,
+}
+
+/// A tool call generated by the assistant
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ToolCall {
+    /// The ID of the tool call
+    pub id: String,
+    /// The type of tool call
+    #[serde(rename = "type")]
+    pub call_type: String,
+    /// The function definition
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function: Option<FunctionCall>,
+}
+
+/// Function call details
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FunctionCall {
+    /// The name of the function to call
+    pub name: String,
+    /// The arguments to call the function with, as generated by the model in JSON format
+    pub arguments: String,
+}
+
+/// Tool output for submitting results of tool calls
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ToolOutput {
+    /// The ID of the tool call to which this output corresponds
+    pub tool_call_id: String,
+    /// The output of the tool call to be submitted back to the assistant
+    pub output: String,
+}
+
+/// Request to submit tool outputs
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SubmitToolOutputsRequest {
+    /// A list of tools for which the outputs are being submitted
+    pub tool_outputs: Vec<ToolOutput>,
+}
+
+/// Error information for a run
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunError {
+    /// One of `server_error` or `rate_limit_exceeded`
+    pub code: String,
+    /// A human-readable description of the error
+    pub message: String,
+}
+
+/// A run step represents a step in execution of a run
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunStep {
+    /// The identifier of the run step, which can be referenced in API endpoints
+    pub id: String,
+    /// The object type, which is always `thread.run.step`
+    pub object: String,
+    /// The Unix timestamp (in seconds) for when the run step was created
+    pub created_at: i64,
+    /// The ID of the assistant associated with the run step
+    pub assistant_id: String,
+    /// The ID of the thread that was run
+    pub thread_id: String,
+    /// The ID of the run that this run step is a part of
+    pub run_id: String,
+    /// The type of run step
+    #[serde(rename = "type")]
+    pub step_type: String,
+    /// The status of the run step
+    pub status: RunStepStatus,
+    /// The details of the run step
+    pub step_details: StepDetails,
+    /// The last error associated with this run step
+    pub last_error: Option<RunError>,
+    /// The Unix timestamp (in seconds) for when the run step expired
+    pub expired_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run step was cancelled
+    pub cancelled_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run step failed
+    pub failed_at: Option<i64>,
+    /// The Unix timestamp (in seconds) for when the run step completed
+    pub completed_at: Option<i64>,
+    /// Set of 16 key-value pairs that can be attached to an object
+    pub metadata: HashMap<String, String>,
+    /// Usage statistics for this step
+    pub usage: Option<Usage>,
+}
+
+/// The status of a run step
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RunStepStatus {
+    /// The run step is in progress
+    InProgress,
+    /// The run step was cancelled
+    Cancelled,
+    /// The run step failed
+    Failed,
+    /// The run step completed
+    Completed,
+    /// The run step expired
+    Expired,
+}
+
+/// Details of a run step
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum StepDetails {
+    /// Details of a message creation step
+    MessageCreation {
+        /// Details of the message creation
+        message_creation: MessageCreation,
+    },
+    /// Details of a tool calls step
+    ToolCalls {
+        /// Details of the tool calls
+        tool_calls: Vec<StepToolCall>,
+    },
+}
+
+/// Details of message creation step
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MessageCreation {
+    /// The ID of the message that was created by this run step
+    pub message_id: String,
+}
+
+/// A tool call within a run step
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum StepToolCall {
+    /// Code interpreter tool call
+    CodeInterpreter {
+        /// The ID of the tool call
+        id: String,
+        /// The Code Interpreter tool call definition
+        code_interpreter: CodeInterpreterCall,
+    },
+    /// Retrieval tool call
+    Retrieval {
+        /// The ID of the tool call
+        id: String,
+        /// The retrieval tool call definition
+        retrieval: HashMap<String, serde_json::Value>,
+    },
+    /// Function tool call
+    Function {
+        /// The ID of the tool call
+        id: String,
+        /// The function tool call definition
+        function: FunctionCall,
+    },
+}
+
+/// Code interpreter tool call details
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CodeInterpreterCall {
+    /// The input to the Code Interpreter tool call
+    pub input: String,
+    /// The outputs from the Code Interpreter tool call
+    pub outputs: Vec<CodeInterpreterOutput>,
+}
+
+/// Output from a Code Interpreter tool call
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CodeInterpreterOutput {
+    /// Logs output from Code Interpreter
+    Logs {
+        /// The text output from the Code Interpreter tool call
+        logs: String,
+    },
+    /// Image output from Code Interpreter
+    Image {
+        /// The image data
+        image: CodeInterpreterImage,
+    },
+}
+
+/// Image output from Code Interpreter
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CodeInterpreterImage {
+    /// The file ID of the image
+    pub file_id: String,
+}
+
+/// Response containing a list of runs
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ListRunsResponse {
+    /// The object type, which is always `list`
+    pub object: String,
+    /// The list of runs
+    pub data: Vec<Run>,
+    /// The first ID in the list
+    pub first_id: Option<String>,
+    /// The last ID in the list
+    pub last_id: Option<String>,
+    /// Whether there are more results available
+    pub has_more: bool,
+}
+
+/// Parameters for listing runs
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ListRunsParams {
+    /// A limit on the number of objects to be returned (1-100, default 20)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Sort order by the `created_at` timestamp (asc or desc, default desc)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<String>,
+    /// A cursor for use in pagination. after is an object ID that defines your place in the list
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after: Option<String>,
+    /// A cursor for use in pagination. before is an object ID that defines your place in the list
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before: Option<String>,
+}
+
+/// Response containing a list of run steps
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ListRunStepsResponse {
+    /// The object type, which is always `list`
+    pub object: String,
+    /// The list of run steps
+    pub data: Vec<RunStep>,
+    /// The first ID in the list
+    pub first_id: Option<String>,
+    /// The last ID in the list
+    pub last_id: Option<String>,
+    /// Whether there are more results available
+    pub has_more: bool,
+}
+
+/// Parameters for listing run steps
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ListRunStepsParams {
+    /// A limit on the number of objects to be returned (1-100, default 20)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Sort order by the `created_at` timestamp (asc or desc, default desc)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<String>,
+    /// A cursor for use in pagination. after is an object ID that defines your place in the list
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after: Option<String>,
+    /// A cursor for use in pagination. before is an object ID that defines your place in the list
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before: Option<String>,
+}
+
+/// Usage statistics for a run or run step
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Usage {
+    /// Number of completion tokens used
+    pub completion_tokens: u32,
+    /// Number of prompt tokens used
+    pub prompt_tokens: u32,
+    /// Total number of tokens used
+    pub total_tokens: u32,
+}
+
+/// Request to modify a run
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ModifyRunRequest {
+    /// Set of 16 key-value pairs that can be attached to an object
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+/// Builder for `RunRequest`
+impl RunRequest {
+    /// Create a new builder for `RunRequest`
+    #[must_use]
+    pub fn builder() -> RunRequestBuilder {
+        RunRequestBuilder::default()
+    }
+}
+
+/// Builder for `RunRequest`
+#[derive(Debug, Default)]
+pub struct RunRequestBuilder {
+    assistant_id: Option<String>,
+    model: Option<String>,
+    instructions: Option<String>,
+    tools: Option<Vec<AssistantTool>>,
+    file_ids: Option<Vec<String>>,
+    metadata: Option<HashMap<String, String>>,
+}
+
+impl RunRequestBuilder {
+    /// Set the assistant ID
+    pub fn assistant_id<S: Into<String>>(mut self, assistant_id: S) -> Self {
+        self.assistant_id = Some(assistant_id.into());
+        self
+    }
+
+    /// Set the model
+    pub fn model<S: Into<String>>(mut self, model: S) -> Self {
+        self.model = Some(model.into());
+        self
+    }
+
+    /// Set the instructions
+    pub fn instructions<S: Into<String>>(mut self, instructions: S) -> Self {
+        self.instructions = Some(instructions.into());
+        self
+    }
+
+    /// Add a tool
+    pub fn tool(mut self, tool: AssistantTool) -> Self {
+        self.tools.get_or_insert_with(Vec::new).push(tool);
+        self
+    }
+
+    /// Set tools
+    #[must_use]
+    pub fn tools(mut self, tools: Vec<AssistantTool>) -> Self {
+        self.tools = Some(tools);
+        self
+    }
+
+    /// Add a file ID
+    pub fn file_id<S: Into<String>>(mut self, file_id: S) -> Self {
+        self.file_ids
+            .get_or_insert_with(Vec::new)
+            .push(file_id.into());
+        self
+    }
+
+    /// Set file IDs
+    #[must_use]
+    pub fn file_ids(mut self, file_ids: Vec<String>) -> Self {
+        self.file_ids = Some(file_ids);
+        self
+    }
+
+    /// Add metadata key-value pair
+    pub fn metadata_pair<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
+        self.metadata
+            .get_or_insert_with(HashMap::new)
+            .insert(key.into(), value.into());
+        self
+    }
+
+    /// Set metadata
+    #[must_use]
+    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Build the `RunRequest`
+    pub fn build(self) -> Result<RunRequest, String> {
+        let assistant_id = self.assistant_id.ok_or("assistant_id is required")?;
+
+        Ok(RunRequest {
+            assistant_id,
+            model: self.model,
+            instructions: self.instructions,
+            tools: self.tools,
+            file_ids: self.file_ids,
+            metadata: self.metadata,
+        })
+    }
+}
+
+/// Builder for `CreateThreadAndRunRequest`
+impl CreateThreadAndRunRequest {
+    /// Create a new builder for `CreateThreadAndRunRequest`
+    #[must_use]
+    pub fn builder() -> CreateThreadAndRunRequestBuilder {
+        CreateThreadAndRunRequestBuilder::default()
+    }
+}
+
+/// Builder for `CreateThreadAndRunRequest`
+#[derive(Debug, Default)]
+pub struct CreateThreadAndRunRequestBuilder {
+    assistant_id: Option<String>,
+    thread: Option<ThreadCreateRequest>,
+    model: Option<String>,
+    instructions: Option<String>,
+    tools: Option<Vec<AssistantTool>>,
+    file_ids: Option<Vec<String>>,
+    metadata: Option<HashMap<String, String>>,
+}
+
+impl CreateThreadAndRunRequestBuilder {
+    /// Set the assistant ID
+    pub fn assistant_id<S: Into<String>>(mut self, assistant_id: S) -> Self {
+        self.assistant_id = Some(assistant_id.into());
+        self
+    }
+
+    /// Set the thread
+    #[must_use]
+    pub fn thread(mut self, thread: ThreadCreateRequest) -> Self {
+        self.thread = Some(thread);
+        self
+    }
+
+    /// Set the model
+    pub fn model<S: Into<String>>(mut self, model: S) -> Self {
+        self.model = Some(model.into());
+        self
+    }
+
+    /// Set the instructions
+    pub fn instructions<S: Into<String>>(mut self, instructions: S) -> Self {
+        self.instructions = Some(instructions.into());
+        self
+    }
+
+    /// Add a tool
+    pub fn tool(mut self, tool: AssistantTool) -> Self {
+        self.tools.get_or_insert_with(Vec::new).push(tool);
+        self
+    }
+
+    /// Set tools
+    #[must_use]
+    pub fn tools(mut self, tools: Vec<AssistantTool>) -> Self {
+        self.tools = Some(tools);
+        self
+    }
+
+    /// Add a file ID
+    pub fn file_id<S: Into<String>>(mut self, file_id: S) -> Self {
+        self.file_ids
+            .get_or_insert_with(Vec::new)
+            .push(file_id.into());
+        self
+    }
+
+    /// Set file IDs
+    #[must_use]
+    pub fn file_ids(mut self, file_ids: Vec<String>) -> Self {
+        self.file_ids = Some(file_ids);
+        self
+    }
+
+    /// Add metadata key-value pair
+    pub fn metadata_pair<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
+        self.metadata
+            .get_or_insert_with(HashMap::new)
+            .insert(key.into(), value.into());
+        self
+    }
+
+    /// Set metadata
+    #[must_use]
+    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Build the `CreateThreadAndRunRequest`
+    pub fn build(self) -> Result<CreateThreadAndRunRequest, String> {
+        let assistant_id = self.assistant_id.ok_or("assistant_id is required")?;
+
+        Ok(CreateThreadAndRunRequest {
+            assistant_id,
+            thread: self.thread,
+            model: self.model,
+            instructions: self.instructions,
+            tools: self.tools,
+            file_ids: self.file_ids,
+            metadata: self.metadata,
+        })
+    }
+}
+
+impl Default for ListRunsParams {
+    fn default() -> Self {
+        Self {
+            limit: Some(20),
+            order: Some("desc".to_string()),
+            after: None,
+            before: None,
+        }
+    }
+}
+
+impl Default for ListRunStepsParams {
+    fn default() -> Self {
+        Self {
+            limit: Some(20),
+            order: Some("desc".to_string()),
+            after: None,
+            before: None,
+        }
+    }
+}

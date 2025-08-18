@@ -1,0 +1,209 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Compiled executables (without extension on Unix)
+test_validation
+**/test_validation
+
+# Cargo
+Cargo.lock
+# Keep Cargo.lock for binary crates, remove this line if this is a library
+# Cargo.lock
+
+# IDE and editor files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# API keys and credentials
+**/secrets/
+**/credentials/
+*.key
+*.pem
+*.crt
+
+# Test and coverage artifacts
+tarpaulin-report.html
+cobertura.xml
+lcov.info
+coverage/
+*.profraw
+*.profdata
+/target/llvm-cov-target/
+
+# Benchmark results
+/target/criterion/
+
+# Documentation
+/target/doc/
+
+# Batch processing outputs
+/batch_processing_output/
+*.jsonl
+!test_data/**/*.jsonl
+
+# YARA test outputs
+*.yar
+!test_data/**/*.yar
+!test_data/**/*.yara
+
+# OpenAI API responses cache
+.openai_cache/
+*.cache
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+/temp/
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Python (for any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Node.js (if any JS/TS tooling is used)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Archives
+*.tar
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# CI/CD
+.github/workflows/local/
+.gitlab-ci-local/
+
+# Custom build outputs
+/build/
+/dist/
+/out/
+
+# Test data outputs (keep test data inputs)
+test_output/
+test_results/
+
+# Claude.md is tracked, but CLAUDE_LOCAL.md might be for local notes
+CLAUDE_LOCAL.md
+
+# Rust workspace
+/target-remote/
+
+# Flamegraph profiling
+flamegraph.svg
+perf.data
+perf.data.old
+
+# Memory profiling
+massif.out.*
+cachegrind.out.*
+callgrind.out.*
+
+# Security scanning
+*.sarif
+security-report.json
+
+# Integration test artifacts
+integration_test_results/
+
+# Model outputs and experiments
+experiments/
+model_outputs/
+*.checkpoint
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Core dumps
+core
+core.*
+*.core
+
+# Valgrind
+vgcore.*
+
+# ctags
+tags
+TAGS
+
+# rusty-tags
+rusty-tags.vi
+rusty-tags.emacs
+
+# RLS
+rls*.log
+
+# Cargo configuration (local overrides)
+.cargo/config.toml
+!.cargo/config.toml.example
+
+# mdBook output
+book/
+
+# Criterion benchmark plots
+/target/criterion/**/*.svg
+/target/criterion/**/*.html
+
+# Cargo vendor
+/vendor/
+
+# Nix
+result
+result-*
+
+# direnv
+.envrc
+.direnv/
+
+# asdf
+.tool-versions
+
+# rustfmt backup files
+**/*.rs.fmt

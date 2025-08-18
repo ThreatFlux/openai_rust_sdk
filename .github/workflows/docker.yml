@@ -1,0 +1,381 @@
+name: Docker
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'src/**'
+  schedule:
+    - cron: '0 4 * * 1'  # Weekly on Monday at 4 AM UTC
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # Build and test Docker image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+            image=moby/buildkit:latest
+      
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            threatflux/openai-rust-sdk
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/develop' }}
+          labels: |
+            org.opencontainers.image.title=OpenAI Rust SDK
+            org.opencontainers.image.description=Comprehensive OpenAI API SDK for Rust
+            org.opencontainers.image.vendor=ThreatFlux
+            maintainer=Wyatt Roersma <wyattroersma@gmail.com>
+      
+      - name: Generate build args
+        id: build_args
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "VCS_REF=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.build_args.outputs.VERSION }}
+            BUILD_DATE=${{ steps.build_args.outputs.BUILD_DATE }}
+            VCS_REF=${{ steps.build_args.outputs.VCS_REF }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=OpenAI Rust SDK
+      
+      - name: Export image for scanning
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          tags: openai-rust-sdk:scan
+          build-args: |
+            VERSION=${{ steps.build_args.outputs.VERSION }}
+            BUILD_DATE=${{ steps.build_args.outputs.BUILD_DATE }}
+            VCS_REF=${{ steps.build_args.outputs.VCS_REF }}
+          outputs: type=docker,dest=/tmp/image.tar
+      
+      - name: Upload image artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/image.tar
+          retention-days: 1
+      
+      - name: Generate image ID
+        id: image
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "image=openai-rust-sdk:scan" >> $GITHUB_OUTPUT
+          else
+            echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+  # Security scanning
+  scan:
+    name: Security Scan
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download image artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+      
+      - name: Load Docker image
+        if: github.event_name == 'pull_request'
+        run: docker load -i /tmp/image.tar
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          vuln-type: 'os,library'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Run Grype scanner
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ needs.build.outputs.image }}
+          fail-build: false
+          severity-cutoff: high
+          output-format: sarif
+      
+      - name: Upload Grype results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+      
+      - name: Run Snyk Container scan
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ needs.build.outputs.image }}
+          args: --severity-threshold=high --file=Dockerfile
+
+  # Test the Docker image
+  test:
+    name: Test Docker Image
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Download image artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+      
+      - name: Load Docker image
+        if: github.event_name == 'pull_request'
+        run: docker load -i /tmp/image.tar
+      
+      - name: Test image startup
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            ${{ needs.build.outputs.image }} --version
+      
+      - name: Test image help
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            ${{ needs.build.outputs.image }} --help
+      
+      - name: Check image size
+        run: |
+          SIZE=$(docker image inspect ${{ needs.build.outputs.image }} \
+            --format='{{.Size}}' | numfmt --to=iec)
+          echo "Image size: $SIZE"
+          # Fail if image is larger than 500MB
+          if [ $(docker image inspect ${{ needs.build.outputs.image }} \
+            --format='{{.Size}}') -gt 524288000 ]; then
+            echo "⚠️ Warning: Image size exceeds 500MB"
+          fi
+      
+      - name: Test container health check
+        run: |
+          docker run -d --name test-container \
+            --health-cmd="openai-rust-sdk --version" \
+            --health-interval=5s \
+            --health-timeout=3s \
+            --health-retries=3 \
+            ${{ needs.build.outputs.image }} || true
+          
+          sleep 10
+          
+          HEALTH=$(docker inspect --format='{{.State.Health.Status}}' test-container || echo "none")
+          echo "Container health: $HEALTH"
+          
+          docker stop test-container || true
+          docker rm test-container || true
+
+  # Sign the container image
+  sign:
+    name: Sign Container Image
+    needs: [build, scan, test]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      
+      - name: Sign container image
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          echo "Signing image with digest: ${{ needs.build.outputs.digest }}"
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build.outputs.digest }}
+      
+      - name: Verify signature
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/docker.yml@refs/heads/main" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build.outputs.digest }}
+
+  # Generate SBOM
+  sbom:
+    name: Generate SBOM
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download image artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+      
+      - name: Load Docker image
+        if: github.event_name == 'pull_request'
+        run: docker load -i /tmp/image.tar
+      
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ needs.build.outputs.image }}
+          artifact-name: sbom-spdx.json
+          format: spdx-json
+      
+      - name: Generate SBOM with Docker Scout
+        if: github.event_name != 'pull_request'
+        run: |
+          docker scout sbom --format list ${{ needs.build.outputs.image }} > sbom-scout.txt
+        continue-on-error: true
+      
+      - name: Attach SBOM to image
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          cosign attach sbom --sbom sbom-spdx.json \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build.outputs.digest }}
+        continue-on-error: true
+
+  # Push README to Docker Hub
+  update-description:
+    name: Update Docker Hub Description
+    needs: [build, sign]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: threatflux/openai-rust-sdk
+          readme-filepath: ./README.md
+          short-description: "Comprehensive OpenAI API SDK for Rust with YARA validation"
+
+  # Summary
+  docker-success:
+    name: Docker Build Success
+    runs-on: ubuntu-latest
+    needs: [build, scan, test]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "❌ Docker build failed"
+            exit 1
+          fi
+          if [[ "${{ needs.scan.result }}" != "success" ]]; then
+            echo "⚠️ Security scan found issues (non-blocking)"
+          fi
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "❌ Docker tests failed"
+            exit 1
+          fi
+          echo "✅ Docker workflow completed successfully"

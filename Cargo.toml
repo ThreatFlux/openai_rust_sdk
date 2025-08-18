@@ -1,0 +1,110 @@
+[package]
+name = "openai_rust_sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Comprehensive OpenAI API SDK for Rust with YARA rule validation"
+license = "MIT"
+repository = "https://github.com/threatflux/openai_rust_sdk"
+keywords = ["openai", "api", "sdk", "rust", "ai"]
+categories = ["development-tools", "api-bindings"]
+authors = ["Wyatt Roersma", "Claude Code"]
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+yara-x = { git = "https://github.com/VirusTotal/yara-x" }
+reqwest = { version = "0.11", features = ["json", "stream", "multipart"] }
+clap = { version = "4.0", features = ["derive"] }
+uuid = { version = "1.0", features = ["v4"] }
+tokio-stream = "0.1"
+eventsource-stream = "0.2"
+futures = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+indexmap = { version = "2.0", features = ["serde"] }
+jsonschema = "0.17"
+async-stream = "0.3"
+bytes = "1.0"
+base64 = "0.21"
+const_format = "0.2"
+# WebRTC dependencies for real-time audio
+webrtc = "0.11"
+# Audio processing
+audiopus = { version = "0.3.0-rc.0" }
+cpal = "0.15"
+# WebRTC signaling and peer connection
+tokio-tungstenite = "0.21"
+url = "2.5"
+rand = "0.8"
+log = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+pretty_assertions = "1.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+mockito = "1.0"
+wiremock = "0.5"
+
+[[bin]]
+name = "openai_rust_sdk"
+path = "src/main.rs"
+
+[[example]]
+name = "full_integration"
+path = "examples/full_integration.rs"
+
+[[example]]
+name = "chat_completion"
+path = "examples/chat_completion.rs"
+
+[[example]]
+name = "batch_processing_demo"
+path = "examples/batch_processing_demo.rs"
+
+[[example]]
+name = "batch_file_processing"
+path = "examples/batch_file_processing.rs"
+
+[[example]]
+name = "enhanced_tools_demo"
+path = "examples/enhanced_tools_demo.rs"
+
+[[example]]
+name = "code_interpreter_demo"
+path = "examples/code_interpreter_demo.rs"
+
+[[example]]
+name = "prompt_caching_demo"
+path = "examples/prompt_caching_demo.rs"
+
+[[example]]
+name = "prompt_engineering_demo"
+path = "examples/prompt_engineering_demo.rs"
+
+[[example]]
+name = "embeddings_demo"
+path = "examples/embeddings_demo.rs"
+
+[[example]]
+name = "audio_demo"
+path = "examples/audio_demo.rs"
+
+[[example]]
+name = "images_demo"
+path = "examples/images_demo.rs"
+
+[[example]]
+name = "files_demo"
+path = "examples/files_demo.rs"
+
+[[example]]
+name = "vision_demo"
+path = "examples/vision_demo.rs"
+
+[[example]]
+name = "response_format_demo"
+path = "examples/response_format_demo.rs"
+
