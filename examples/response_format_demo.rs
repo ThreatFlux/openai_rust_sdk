@@ -315,7 +315,9 @@ async fn demo_strict_mode_enforcement(
     Ok(())
 }
 
-async fn demo_type_safe_responses(_client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
+async fn demo_type_safe_responses(
+    _client: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("Demonstrating type-safe response parsing...");
 
     // Create schema for Person struct
