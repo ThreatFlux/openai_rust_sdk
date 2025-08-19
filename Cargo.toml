@@ -33,7 +33,7 @@ const_format = "0.2"
 webrtc = "0.11"
 # Audio processing
 audiopus = { version = "0.3.0-rc.0" }
-cpal = "0.15"
+# cpal = "0.15"  # Removed: unused dependency that causes CI failures
 # WebRTC signaling and peer connection
 tokio-tungstenite = "0.21"
 url = "2.5"
