@@ -167,8 +167,7 @@ async fn main() -> Result<()> {
 
 /// Helper function to format Unix timestamps
 fn format_timestamp(timestamp: u64) -> String {
-    let datetime =
-        DateTime::<Utc>::from_timestamp(timestamp as i64, 0).unwrap_or_else(|| Utc::now());
+    let datetime = DateTime::<Utc>::from_timestamp(timestamp as i64, 0).unwrap_or_else(Utc::now);
     datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string()
 }
 

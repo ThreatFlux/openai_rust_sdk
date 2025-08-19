@@ -336,7 +336,7 @@ fn attempt_individual_validation() -> Result<()> {
     println!("  Attempting basic individual validations...");
     let validator = YaraValidator::new();
 
-    let basic_rules = vec![
+    let basic_rules = [
         "rule test1 { condition: true }",
         "rule test2 { strings: $s = \"test\" condition: $s }",
     ];

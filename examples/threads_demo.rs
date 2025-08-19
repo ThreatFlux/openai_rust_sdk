@@ -27,7 +27,6 @@ use openai_rust_sdk::models::threads::{
     Annotation, FileCitation, FilePathInfo, ListMessagesParams, MessageContent, MessageRequest,
     MessageRole, SortOrder, TextContent, ThreadRequest,
 };
-use std::collections::HashMap;
 use std::env;
 
 #[tokio::main]

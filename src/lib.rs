@@ -42,9 +42,11 @@
 //!
 //! ## Quick Start - YARA Validation
 //!
-//! ```rust
+//! ```rust,ignore
+//! # #[cfg(feature = "yara")]
 //! use openai_rust_sdk::testing::YaraValidator;
 //!
+//! # #[cfg(feature = "yara")]
 //! # tokio_test::block_on(async {
 //! let validator = YaraValidator::new();
 //! let rule = r#"

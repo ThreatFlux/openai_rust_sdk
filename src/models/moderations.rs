@@ -360,6 +360,7 @@ impl ModerationModels {
 
 /// Builder for creating moderation requests
 pub struct ModerationBuilder {
+    /// The underlying moderation request being built
     request: ModerationRequest,
 }
 

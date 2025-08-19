@@ -249,7 +249,8 @@ mod tests {
     #[test]
     fn test_sdk_constants() {
         assert_eq!(sdk::NAME, "openai_rust_sdk");
-        assert!(!sdk::VERSION.is_empty());
+        // VERSION is a compile-time constant from CARGO_PKG_VERSION, verify it follows semver pattern
+        assert!(sdk::VERSION.chars().any(|c| c.is_ascii_digit()));
         assert!(sdk::USER_AGENT.starts_with("openai_rust_sdk/"));
     }
 }

@@ -38,6 +38,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 /// Purpose for which a file is being uploaded
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,6 +78,24 @@ impl fmt::Display for FilePurpose {
     }
 }
 
+impl FromStr for FilePurpose {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fine-tune" => Ok(FilePurpose::FineTune),
+            "assistants" => Ok(FilePurpose::Assistants),
+            "batch" => Ok(FilePurpose::Batch),
+            "user_data" => Ok(FilePurpose::UserData),
+            "responses" => Ok(FilePurpose::Responses),
+            "vision" => Ok(FilePurpose::Vision),
+            "fine-tune-results" => Ok(FilePurpose::FineTuneResults),
+            "assistants_output" => Ok(FilePurpose::AssistantsOutput),
+            _ => Err(format!("Unknown file purpose: {}", s)),
+        }
+    }
+}
+
 impl FilePurpose {
     /// Returns all valid file purposes
     #[must_use]
@@ -93,21 +112,6 @@ impl FilePurpose {
         ]
     }
 
-    /// Parse a string into a `FilePurpose`
-    #[must_use]
-    pub fn from_str(s: &str) -> Option<FilePurpose> {
-        match s {
-            "fine-tune" => Some(FilePurpose::FineTune),
-            "assistants" => Some(FilePurpose::Assistants),
-            "batch" => Some(FilePurpose::Batch),
-            "user_data" => Some(FilePurpose::UserData),
-            "responses" => Some(FilePurpose::Responses),
-            "vision" => Some(FilePurpose::Vision),
-            "fine-tune-results" => Some(FilePurpose::FineTuneResults),
-            "assistants_output" => Some(FilePurpose::AssistantsOutput),
-            _ => None,
-        }
-    }
 
     /// Check if this purpose supports text files
     #[must_use]
@@ -186,7 +190,7 @@ impl File {
     /// Get the file purpose as a typed enum
     #[must_use]
     pub fn purpose_enum(&self) -> Option<FilePurpose> {
-        FilePurpose::from_str(&self.purpose)
+        FilePurpose::from_str(&self.purpose).ok()
     }
 
     /// Check if this file can be used for fine-tuning
@@ -563,13 +567,13 @@ mod tests {
     fn test_file_purpose_from_str() {
         assert_eq!(
             FilePurpose::from_str("fine-tune"),
-            Some(FilePurpose::FineTune)
+            Ok(FilePurpose::FineTune)
         );
         assert_eq!(
             FilePurpose::from_str("assistants"),
-            Some(FilePurpose::Assistants)
+            Ok(FilePurpose::Assistants)
         );
-        assert_eq!(FilePurpose::from_str("invalid"), None);
+        assert!(FilePurpose::from_str("invalid").is_err());
     }
 
     #[test]

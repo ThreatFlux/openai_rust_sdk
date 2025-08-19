@@ -242,15 +242,10 @@ impl ImageGenerationRequest {
                 }
             }
 
-            if let Some(size) = &self.size {
-                match size {
-                    ImageSize::Size256x256 | ImageSize::Size512x512 => {
-                        return Err(
-                            "DALL-E 3 does not support 256x256 or 512x512 sizes".to_string()
-                        );
-                    }
-                    _ => {}
-                }
+            if let Some(ImageSize::Size256x256 | ImageSize::Size512x512) = &self.size {
+                return Err(
+                    "DALL-E 3 does not support 256x256 or 512x512 sizes".to_string()
+                );
             }
         }
 
@@ -264,15 +259,10 @@ impl ImageGenerationRequest {
                 return Err("Style parameter is only available for DALL-E 3".to_string());
             }
 
-            if let Some(size) = &self.size {
-                match size {
-                    ImageSize::Size1792x1024 | ImageSize::Size1024x1792 => {
-                        return Err(
-                            "DALL-E 2 does not support 1792x1024 or 1024x1792 sizes".to_string()
-                        );
-                    }
-                    _ => {}
-                }
+            if let Some(ImageSize::Size1792x1024 | ImageSize::Size1024x1792) = &self.size {
+                return Err(
+                    "DALL-E 2 does not support 1792x1024 or 1024x1792 sizes".to_string()
+                );
             }
         }
 
@@ -481,6 +471,7 @@ impl ImageModels {
 
 /// Builder for creating image generation requests
 pub struct ImageGenerationBuilder {
+    /// The underlying image generation request being built
     request: ImageGenerationRequest,
 }
 
@@ -601,6 +592,7 @@ impl ImageGenerationBuilder {
 
 /// Builder for creating image edit requests
 pub struct ImageEditBuilder {
+    /// The underlying image edit request being built
     request: ImageEditRequest,
 }
 
@@ -670,6 +662,7 @@ impl ImageEditBuilder {
 
 /// Builder for creating image variation requests
 pub struct ImageVariationBuilder {
+    /// The underlying image variation request being built
     request: ImageVariationRequest,
 }
 

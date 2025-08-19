@@ -138,7 +138,7 @@ async fn test_live_openai_apis() -> Result<(), Box<dyn std::error::Error>> {
     match embeddings_api.create_embeddings(&embedding_request).await {
         Ok(response) => {
             println!("✅ Embeddings created successfully!");
-            if let Some(embedding) = response.data.first() {
+            if let Some(_embedding) = response.data.first() {
                 // EmbeddingVector is an enum that wraps the actual vector
                 println!("   Embedding created successfully");
             }
@@ -222,7 +222,7 @@ async fn test_live_openai_apis() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", "-".repeat(50));
 
     use openai_rust_sdk::api::streaming::StreamingApi;
-    let streaming_api = StreamingApi::new(&api_key)?;
+    let _streaming_api = StreamingApi::new(&api_key)?;
     println!("✅ Streaming API initialized successfully");
     println!("   Note: Actual streaming requires WebSocket connection");
 

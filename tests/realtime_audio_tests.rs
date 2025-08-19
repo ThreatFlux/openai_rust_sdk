@@ -7,8 +7,6 @@ use openai_rust_sdk::api::realtime_audio::{
     VoiceActivityDetector,
 };
 use openai_rust_sdk::models::realtime_audio::*;
-use std::sync::Arc;
-use std::time::Duration;
 
 #[tokio::test]
 async fn test_realtime_audio_api_creation() {

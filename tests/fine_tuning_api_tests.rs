@@ -244,7 +244,6 @@ mod model_tests {
 #[cfg(test)]
 mod serialization_tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_fine_tuning_job_request_serialization() {

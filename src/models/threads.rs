@@ -128,7 +128,9 @@ impl Default for ThreadRequest {
 /// Builder for creating thread requests
 #[derive(Debug, Clone, Default)]
 pub struct ThreadRequestBuilder {
+    /// The messages to include in the thread
     messages: Vec<MessageRequest>,
+    /// Set of key-value pairs to attach to this thread
     metadata: HashMap<String, String>,
 }
 
@@ -406,9 +408,13 @@ impl MessageRequest {
 /// Builder for creating message requests
 #[derive(Debug, Clone)]
 pub struct MessageRequestBuilder {
+    /// The role of the entity that is creating the message
     role: Option<MessageRole>,
+    /// The content of the message
     content: Option<String>,
+    /// A list of file IDs to attach to this message
     file_ids: Vec<String>,
+    /// Set of key-value pairs to attach to this message
     metadata: HashMap<String, String>,
 }
 

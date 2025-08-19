@@ -163,7 +163,7 @@ fn test_sdk_integration_basics() {
 
     // Test 1: All APIs can be instantiated
     let api_key = "test-key-123";
-    let apis_ok = vec![
+    let apis_ok = [
         AssistantsApi::new(api_key).is_ok(),
         AudioApi::new(api_key).is_ok(),
         BatchApi::new(api_key).is_ok(),
@@ -187,7 +187,7 @@ fn test_sdk_integration_basics() {
 
     // Test 2: Custom base URLs work
     let custom_url = "https://custom.openai.com";
-    let custom_apis_ok = vec![
+    let custom_apis_ok = [
         AssistantsApi::new_with_base_url(api_key, custom_url).is_ok(),
         AudioApi::new_with_base_url(api_key, custom_url).is_ok(),
         BatchApi::new_with_base_url(api_key, custom_url).is_ok(),
@@ -210,7 +210,7 @@ fn test_sdk_integration_basics() {
     println!("✅ Custom Base URLs: All APIs support custom endpoints");
 
     // Test 3: Error handling for invalid API keys
-    let empty_key_errors = vec![
+    let empty_key_errors = [
         AssistantsApi::new("").is_err(),
         AudioApi::new("").is_err(),
         BatchApi::new("").is_err(),
@@ -233,7 +233,7 @@ fn test_sdk_integration_basics() {
     println!("✅ Error Handling: Proper error handling for invalid API keys");
 
     // Test 4: Whitespace API key handling
-    let whitespace_key_errors = vec![
+    let whitespace_key_errors = [
         AssistantsApi::new("   ").is_err(),
         AudioApi::new("   ").is_err(),
         BatchApi::new("   ").is_err(),

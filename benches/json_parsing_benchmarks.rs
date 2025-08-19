@@ -4,11 +4,14 @@
 //! the SDK for API communication and data storage.
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
 use std::time::Duration;
 use tempfile::NamedTempFile;
 
+#[cfg(feature = "yara")]
 fn benchmark_validation_result_serialization(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let rule = r#"
@@ -49,6 +52,7 @@ fn benchmark_validation_result_serialization(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_test_suite_result_serialization(c: &mut Criterion) {
     let test_cases = YaraTestCases::new();
     let suite_result = test_cases.run_all_tests().unwrap();
@@ -71,6 +75,7 @@ fn benchmark_test_suite_result_serialization(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_batch_job_serialization(c: &mut Criterion) {
     let generator = BatchJobGenerator::new(None);
     let temp_file = NamedTempFile::new().unwrap();
@@ -97,6 +102,7 @@ fn benchmark_batch_job_serialization(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_large_json_processing(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("large_json_processing");
@@ -135,6 +141,7 @@ fn benchmark_large_json_processing(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_json_parsing_by_size(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("json_parsing_by_size");
@@ -172,6 +179,7 @@ fn benchmark_json_parsing_by_size(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_streaming_json_processing(c: &mut Criterion) {
     let generator = BatchJobGenerator::new(None);
     let temp_file = NamedTempFile::new().unwrap();
@@ -211,6 +219,7 @@ fn benchmark_streaming_json_processing(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_complex_structure_serialization(c: &mut Criterion) {
     let validator = YaraValidator::new();
 
@@ -266,6 +275,7 @@ fn benchmark_complex_structure_serialization(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_error_serialization(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let invalid_rule = "rule invalid { condition: nonexistent_function() }";
@@ -289,6 +299,7 @@ fn benchmark_error_serialization(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 fn benchmark_memory_efficiency(c: &mut Criterion) {
     let mut group = c.benchmark_group("memory_efficiency");
     group.measurement_time(Duration::from_secs(15));
@@ -311,6 +322,7 @@ fn benchmark_memory_efficiency(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "yara")]
 criterion_group!(
     benches,
     benchmark_validation_result_serialization,
@@ -323,5 +335,13 @@ criterion_group!(
     benchmark_error_serialization,
     benchmark_memory_efficiency
 );
+
+#[cfg(not(feature = "yara"))]
+fn dummy_benchmark(c: &mut Criterion) {
+    c.bench_function("dummy", |b| b.iter(|| 1 + 1));
+}
+
+#[cfg(not(feature = "yara"))]
+criterion_group!(benches, dummy_benchmark);
 
 criterion_main!(benches);

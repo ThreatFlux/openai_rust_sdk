@@ -21,7 +21,6 @@ use openai_rust_sdk::{
 };
 use std::collections::HashMap;
 use std::env;
-use std::path::Path;
 use tokio::fs;
 
 #[tokio::main]

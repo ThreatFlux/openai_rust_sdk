@@ -9,6 +9,7 @@ use std::fmt::Write;
 
 /// Builder for constructing well-structured prompts
 pub struct PromptBuilder {
+    /// The sections that make up the prompt
     sections: Vec<PromptSection>,
 }
 
@@ -236,8 +237,11 @@ impl Example {
 
 /// Builder for XML-structured content
 pub struct XmlContentBuilder {
+    /// The XML tag name
     tag: String,
+    /// The XML tag attributes as key-value pairs
     attributes: HashMap<String, String>,
+    /// The content inside the XML tag
     content: String,
 }
 
@@ -287,8 +291,11 @@ impl XmlContentBuilder {
 
 /// Helper for creating prompt templates with variables
 pub struct PromptTemplateBuilder {
+    /// The unique identifier for this template
     id: String,
+    /// The version of this template (optional)
     version: Option<String>,
+    /// The variables used in this template
     variables: HashMap<String, PromptVariable>,
 }
 

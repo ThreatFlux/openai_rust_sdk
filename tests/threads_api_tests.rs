@@ -376,7 +376,7 @@ fn test_threads_api_with_custom_url() {
 #[test]
 fn test_thread_workflow_validation() {
     // Test the complete workflow validation without actual API calls
-    let api = ThreadsApi::new("test-api-key").unwrap();
+    let _api = ThreadsApi::new("test-api-key").unwrap();
 
     // Create thread request
     let thread_request = create_test_thread_request();

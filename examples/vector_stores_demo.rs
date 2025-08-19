@@ -139,7 +139,7 @@ async fn main() -> Result<()> {
     println!("🔗 Demo 4: Adding Files to Vector Store (Individual)");
     println!("----------------------------------------------------");
 
-    if let Some(first_file_id) = uploaded_file_ids.get(0) {
+    if let Some(first_file_id) = uploaded_file_ids.first() {
         let file_request = VectorStoreFileRequest::new(first_file_id)
             .with_chunking_strategy(ChunkingStrategy::static_chunking(256, 25));
 
@@ -248,7 +248,7 @@ async fn main() -> Result<()> {
     // Update vector store metadata
     let update_request = VectorStoreRequest::builder()
         .name("Updated Demo Knowledge Base")
-        .add_metadata("updated_at", &chrono::Utc::now().to_rfc3339())
+        .add_metadata("updated_at", chrono::Utc::now().to_rfc3339())
         .add_metadata("status", "production")
         .build();
 

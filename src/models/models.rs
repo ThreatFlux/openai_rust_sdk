@@ -408,9 +408,7 @@ impl ModelCapabilities {
     pub fn classify_tier(model_id: &str) -> ModelTier {
         match model_id {
             // Legacy/deprecated models
-            id if matches!(
-                id,
-                "text-davinci-003"
+            "text-davinci-003"
                     | "text-davinci-002"
                     | "text-curie-001"
                     | "text-babbage-001"
@@ -420,8 +418,7 @@ impl ModelCapabilities {
                     | "babbage"
                     | "ada"
                     | "gpt-3.5-turbo-0301"
-                    | "gpt-4-0314"
-            ) =>
+                    | "gpt-4-0314" =>
             {
                 ModelTier::Legacy
             }

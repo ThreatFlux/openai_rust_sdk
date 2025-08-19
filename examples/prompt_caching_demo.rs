@@ -417,7 +417,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Add response to conversation
-    conversation.push(Message::assistant(&response.output_text()));
+    conversation.push(Message::assistant(response.output_text()));
     conversation.push(Message::user("What about unsupervised learning?"));
 
     // Second turn (should benefit from caching)
@@ -435,7 +435,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Add response and continue
-    conversation.push(Message::assistant(&response.output_text()));
+    conversation.push(Message::assistant(response.output_text()));
     conversation.push(Message::user(
         "Can you give examples of reinforcement learning?",
     ));

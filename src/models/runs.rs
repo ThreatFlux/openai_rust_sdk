@@ -493,11 +493,17 @@ impl RunRequest {
 /// Builder for `RunRequest`
 #[derive(Debug, Default)]
 pub struct RunRequestBuilder {
+    /// The ID of the assistant to use for this run
     assistant_id: Option<String>,
+    /// The model to use for this run, overriding the assistant's model
     model: Option<String>,
+    /// Override the default system message for the assistant
     instructions: Option<String>,
+    /// Override the tools available to the assistant for this run
     tools: Option<Vec<AssistantTool>>,
+    /// A list of file IDs to attach to this run
     file_ids: Option<Vec<String>>,
+    /// Set of key-value pairs to attach to this run
     metadata: Option<HashMap<String, String>>,
 }
 
@@ -590,12 +596,19 @@ impl CreateThreadAndRunRequest {
 /// Builder for `CreateThreadAndRunRequest`
 #[derive(Debug, Default)]
 pub struct CreateThreadAndRunRequestBuilder {
+    /// The ID of the assistant to use for this run
     assistant_id: Option<String>,
+    /// The thread to create and run with the assistant
     thread: Option<ThreadCreateRequest>,
+    /// The model to use for this run, overriding the assistant's model
     model: Option<String>,
+    /// Override the default system message for the assistant
     instructions: Option<String>,
+    /// Override the tools available to the assistant for this run
     tools: Option<Vec<AssistantTool>>,
+    /// A list of file IDs to attach to this run
     file_ids: Option<Vec<String>>,
+    /// Set of key-value pairs to attach to this run
     metadata: Option<HashMap<String, String>>,
 }
 

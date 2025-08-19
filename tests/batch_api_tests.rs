@@ -14,10 +14,7 @@ use openai_rust_sdk::api::batch::{
     Batch, BatchApi, BatchList, BatchReport, BatchRequestCounts, BatchStatus, CreateBatchRequest,
     FileUploadResponse,
 };
-use openai_rust_sdk::error::OpenAIError;
 use serde_json::json;
-use std::collections::HashMap;
-use std::path::Path;
 
 // Helper functions for creating test data
 fn create_sample_file_response() -> FileUploadResponse {
@@ -435,7 +432,6 @@ mod batch_validation_tests {
 
 #[cfg(test)]
 mod yara_extraction_tests {
-    use super::*;
 
     #[test]
     fn test_yara_rule_pattern_detection() {
@@ -729,14 +725,14 @@ mod edge_cases_tests {
 
     #[test]
     fn test_batch_status_transitions() {
-        let status_flow = vec![
+        let status_flow = [
             BatchStatus::Validating,
             BatchStatus::InProgress,
             BatchStatus::Finalizing,
             BatchStatus::Completed,
         ];
 
-        for (_i, status) in status_flow.iter().enumerate() {
+        for status in status_flow.iter() {
             let mut batch = create_sample_batch();
             batch.status = status.clone();
 

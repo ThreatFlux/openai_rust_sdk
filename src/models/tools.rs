@@ -312,6 +312,7 @@ impl ToolBuilder {
 
 /// Builder for web search configuration
 pub struct WebSearchBuilder {
+    /// The web search configuration being built
     config: WebSearchConfig,
 }
 
@@ -382,6 +383,7 @@ impl WebSearchBuilder {
 
 /// Builder for file search configuration
 pub struct FileSearchBuilder {
+    /// The file search configuration being built
     config: FileSearchConfig,
 }
 
@@ -421,6 +423,7 @@ impl FileSearchBuilder {
 
 /// Builder for function tools
 pub struct FunctionBuilder {
+    /// The function tool being built
     tool: FunctionTool,
 }
 
@@ -464,6 +467,7 @@ impl FunctionBuilder {
 
 /// Builder for MCP server tools
 pub struct McpBuilder {
+    /// The MCP tool being built
     tool: McpTool,
 }
 
@@ -511,6 +515,7 @@ impl McpBuilder {
 
 /// Builder for image generation tools
 pub struct ImageGenerationToolBuilder {
+    /// The image generation configuration being built
     config: ImageGenerationConfig,
 }
 
@@ -568,6 +573,7 @@ impl ImageGenerationToolBuilder {
 
 /// Builder for code interpreter tools
 pub struct CodeInterpreterBuilder {
+    /// The code interpreter configuration being built
     config: CodeInterpreterConfig,
 }
 
@@ -668,6 +674,7 @@ impl CodeInterpreterBuilder {
 
 /// Builder for computer use tools
 pub struct ComputerUseBuilder {
+    /// The computer use configuration being built
     config: ComputerUseConfig,
 }
 
@@ -732,7 +739,7 @@ mod tests {
     fn test_web_search_tool() {
         let tool = ToolBuilder::web_search();
         match tool {
-            EnhancedTool::WebSearchPreview => {},
+            EnhancedTool::WebSearchPreview => {}
             _ => panic!("Expected WebSearchPreview"),
         }
     }

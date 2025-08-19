@@ -386,6 +386,7 @@ impl VectorStoreRequest {
 /// Builder for creating vector store requests
 #[derive(Debug, Default)]
 pub struct VectorStoreRequestBuilder {
+    /// The underlying vector store request being built
     request: VectorStoreRequest,
 }
 

@@ -7,6 +7,7 @@ use openai_rust_sdk::models::files::{
     File, FileDeleteResponse, FilePurpose, FileStatus, FileUploadRequest, ListFilesParams,
     ListFilesResponse, SortOrder,
 };
+use std::str::FromStr;
 
 #[test]
 fn test_file_purpose_display() {
@@ -30,31 +31,31 @@ fn test_file_purpose_display() {
 fn test_file_purpose_from_str() {
     assert_eq!(
         FilePurpose::from_str("fine-tune"),
-        Some(FilePurpose::FineTune)
+        Ok(FilePurpose::FineTune)
     );
     assert_eq!(
         FilePurpose::from_str("assistants"),
-        Some(FilePurpose::Assistants)
+        Ok(FilePurpose::Assistants)
     );
-    assert_eq!(FilePurpose::from_str("batch"), Some(FilePurpose::Batch));
+    assert_eq!(FilePurpose::from_str("batch"), Ok(FilePurpose::Batch));
     assert_eq!(
         FilePurpose::from_str("user_data"),
-        Some(FilePurpose::UserData)
+        Ok(FilePurpose::UserData)
     );
     assert_eq!(
         FilePurpose::from_str("responses"),
-        Some(FilePurpose::Responses)
+        Ok(FilePurpose::Responses)
     );
-    assert_eq!(FilePurpose::from_str("vision"), Some(FilePurpose::Vision));
+    assert_eq!(FilePurpose::from_str("vision"), Ok(FilePurpose::Vision));
     assert_eq!(
         FilePurpose::from_str("fine-tune-results"),
-        Some(FilePurpose::FineTuneResults)
+        Ok(FilePurpose::FineTuneResults)
     );
     assert_eq!(
         FilePurpose::from_str("assistants_output"),
-        Some(FilePurpose::AssistantsOutput)
+        Ok(FilePurpose::AssistantsOutput)
     );
-    assert_eq!(FilePurpose::from_str("invalid"), None);
+    assert!(FilePurpose::from_str("invalid").is_err());
 }
 
 #[test]
@@ -535,7 +536,7 @@ fn test_all_file_purposes_covered() {
 
         // Ensure round-trip conversion works
         let parsed = FilePurpose::from_str(&display);
-        assert_eq!(parsed, Some(purpose.clone()));
+        assert_eq!(parsed, Ok(purpose.clone()));
     }
 }
 

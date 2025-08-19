@@ -234,7 +234,7 @@ rule demo_rule {
         }
         if let Some(properties) = schema_value.get("properties") {
             if let Some(obj) = properties.as_object() {
-                let keys: Vec<String> = obj.keys().map(|k| k.clone()).collect();
+                let keys: Vec<String> = obj.keys().cloned().collect();
                 println!("   Properties: {}", keys.join(", "));
             }
         }
