@@ -1,0 +1,16 @@
+# Security audit configuration
+# Ignore known vulnerabilities that can't be fixed directly
+
+[advisories]
+# Ignore vulnerabilities that are in dependencies we can't control
+ignore = [
+    # RSA timing vulnerability in yara-x dependency
+    "RUSTSEC-2023-0071",
+    # Instant is unmaintained - used by wiremock test dependency
+    "RUSTSEC-2024-0384",
+]
+
+# Set audit behavior
+[output]
+deny = ["unmaintained", "vulnerability"]
+warn = []
