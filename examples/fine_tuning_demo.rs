@@ -518,6 +518,7 @@ async fn demonstrate_model_usage(api: &FineTuningApi, job_id: &str) -> Result<()
 }
 
 /// Helper function to format duration
+#[allow(dead_code)]
 fn format_duration(seconds: i64) -> String {
     if seconds < 60 {
         format!("{seconds}s")
@@ -529,6 +530,7 @@ fn format_duration(seconds: i64) -> String {
 }
 
 /// Helper function to calculate training duration
+#[allow(dead_code)]
 fn calculate_training_duration(job: &FineTuningJob) -> Option<String> {
     if let (Some(finished), created) = (job.finished_at, job.created_at) {
         Some(format_duration(finished - created))

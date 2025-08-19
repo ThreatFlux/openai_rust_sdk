@@ -203,7 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Weighted mean (useful when parts have different importance)
     let weights = vec![0.5, 0.3, 0.2]; // First part is most important
-    let weighted_mean = EmbeddingUtils::weighted_mean_embedding(&part_embeddings, &weights);
+    let _weighted_mean = EmbeddingUtils::weighted_mean_embedding(&part_embeddings, &weights);
 
     println!("Weights: {weights:?}");
     println!("✅ Created weighted mean embedding");

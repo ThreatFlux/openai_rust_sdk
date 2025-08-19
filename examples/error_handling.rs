@@ -146,21 +146,18 @@ fn demo_file_operation_errors() -> Result<()> {
 
     // Test 1: Valid file operations
     println!("Testing valid file operations...");
-    match std::env::temp_dir().join("test_batch_valid.jsonl") {
-        temp_path => {
-            match generator.generate_test_suite(&temp_path, "basic") {
-                Ok(()) => {
-                    println!("  ✓ Successfully generated batch file");
+    let temp_path = std::env::temp_dir().join("test_batch_valid.jsonl");
+    match generator.generate_test_suite(&temp_path, "basic") {
+        Ok(()) => {
+            println!("  ✓ Successfully generated batch file");
 
-                    // Clean up
-                    if let Err(e) = std::fs::remove_file(&temp_path) {
-                        println!("  ⚠️  Warning: Could not clean up file: {}", e);
-                    }
-                }
-                Err(e) => {
-                    println!("  ❌ Failed to generate batch file: {}", e);
-                }
+            // Clean up
+            if let Err(e) = std::fs::remove_file(&temp_path) {
+                println!("  ⚠️  Warning: Could not clean up file: {}", e);
             }
+        }
+        Err(e) => {
+            println!("  ❌ Failed to generate batch file: {}", e);
         }
     }
 

@@ -38,23 +38,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dummy_key = "dummy-key-for-demo";
 
     println!("✅ Creating OpenAI Client...");
-    let client = OpenAIClient::new(dummy_key)?;
+    let _client = OpenAIClient::new(dummy_key)?;
     println!("   Client created successfully");
 
     println!("✅ Creating Responses API...");
-    let responses_api = ResponsesApi::new(dummy_key.to_string())?;
+    let _responses_api = ResponsesApi::new(dummy_key.to_string())?;
     println!("   Responses API created successfully");
 
     println!("✅ Creating GPT-5 API...");
-    let gpt5_api = GPT5Api::new(dummy_key.to_string())?;
+    let _gpt5_api = GPT5Api::new(dummy_key.to_string())?;
     println!("   GPT-5 API created successfully");
 
     println!("✅ Creating Functions API...");
-    let functions_api = FunctionsApi::new(dummy_key)?;
+    let _functions_api = FunctionsApi::new(dummy_key)?;
     println!("   Functions API created successfully");
 
     println!("✅ Creating Streaming API...");
-    let streaming_api = StreamingApi::new(dummy_key.to_string())?;
+    let _streaming_api = StreamingApi::new(dummy_key.to_string())?;
     println!("   Streaming API created successfully");
 
     // Demo 2: Request Building

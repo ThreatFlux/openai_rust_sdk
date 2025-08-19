@@ -30,7 +30,7 @@ fn test_runs_api_client_creation() {
     let _api = create_test_client();
     // Test that the client was created successfully
     // Note: fields are private, so we just test successful creation
-    assert!(true); // Client creation succeeded if we get here
+    // Test passes if no panic occurs during client creation
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn test_runs_api_client_with_custom_url() {
     let _api = create_test_client_with_url(custom_url);
     // Test that the client was created successfully with custom URL
     // Note: fields are private, so we just test successful creation
-    assert!(true); // Client creation succeeded if we get here
+    // Test passes if no panic occurs during client creation
 }
 
 #[test]

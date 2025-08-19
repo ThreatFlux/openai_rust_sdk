@@ -195,7 +195,7 @@ async fn demo_multiple_images(api: &ImagesApi) -> Result<()> {
 }
 
 /// Demo 4: Image Editing (requires sample image)
-async fn demo_image_editing(api: &ImagesApi) -> Result<()> {
+async fn demo_image_editing(_api: &ImagesApi) -> Result<()> {
     println!("✂️ Demo 4: Image Editing");
     println!("------------------------");
 
@@ -233,7 +233,7 @@ async fn demo_image_editing(api: &ImagesApi) -> Result<()> {
 }
 
 /// Demo 5: Image Variations (requires sample image)
-async fn demo_image_variations(api: &ImagesApi) -> Result<()> {
+async fn demo_image_variations(_api: &ImagesApi) -> Result<()> {
     println!("🔄 Demo 5: Image Variations");
     println!("---------------------------");
 
@@ -267,7 +267,7 @@ async fn demo_image_variations(api: &ImagesApi) -> Result<()> {
 }
 
 /// Demo 6: Utility Functions
-async fn demo_utilities(api: &ImagesApi) -> Result<()> {
+async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
     println!("🛠️ Demo 6: Utility Functions");
     println!("----------------------------");
 
@@ -515,7 +515,7 @@ async fn demo_builder_patterns(api: &ImagesApi) -> Result<()> {
 }
 
 /// Demo 10: File Operations
-async fn demo_file_operations(api: &ImagesApi) -> Result<()> {
+async fn demo_file_operations(_api: &ImagesApi) -> Result<()> {
     println!("📁 Demo 10: File Operations");
     println!("---------------------------");
 

@@ -287,11 +287,14 @@ fn test_error_structure() {
 fn test_feature_flags_structure() {
     let validator = YaraValidator::new();
 
-    // Test different feature combinations
-    let test_cases: Vec<(
-        &str,
+    // Type alias to simplify complex type
+    type TestCase = (
+        &'static str,
         Box<dyn Fn(&openai_rust_sdk::testing::yara_validator::RuleFeatures) -> bool>,
-    )> = vec![
+    );
+
+    // Test different feature combinations
+    let test_cases: Vec<TestCase> = vec![
         (
             r#"rule simple { condition: true }"#,
             Box::new(

@@ -121,7 +121,7 @@ async fn demo_json_object_mode(_client: &ResponsesApi) -> Result<(), Box<dyn std
 }
 
 async fn demo_simple_schema_validation(
-    client: &ResponsesApi,
+    _client: &ResponsesApi,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Creating a simple person schema...");
 
@@ -154,7 +154,7 @@ async fn demo_simple_schema_validation(
 }
 
 async fn demo_complex_schema_builder(
-    client: &ResponsesApi,
+    _client: &ResponsesApi,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Building complex task list schema...");
 
@@ -239,7 +239,7 @@ async fn demo_complex_schema_builder(
 }
 
 async fn demo_strict_mode_enforcement(
-    client: &ResponsesApi,
+    _client: &ResponsesApi,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Demonstrating strict mode schema enforcement...");
 
@@ -268,7 +268,7 @@ async fn demo_strict_mode_enforcement(
         "additionalProperties": false
     });
 
-    let request = ResponseRequest::new_text(
+    let _request = ResponseRequest::new_text(
         "gpt-4",
         "Generate an API response with status, data, and timestamp",
     )

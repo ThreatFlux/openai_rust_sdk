@@ -222,7 +222,7 @@ async fn prompt_template_usage(client: &OpenAIClient) -> Result<(), Box<dyn std:
         PromptVariable::String("beginner".to_string()),
     );
 
-    let template = PromptTemplate {
+    let _template = PromptTemplate {
         id: "programming_tutor".to_string(),
         version: Some("1.0".to_string()),
         variables: Some(variables),

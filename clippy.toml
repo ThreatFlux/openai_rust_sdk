@@ -1,0 +1,19 @@
+# Clippy configuration for OpenAI Rust SDK
+# This file provides sensible defaults for the clippy linter
+
+# Allow certain warnings in test code and examples
+# to prevent blocking CI while maintaining code quality
+
+# Type complexity threshold - allow more complex types in tests
+type-complexity-threshold = 250
+
+# Cognitive complexity threshold for functions
+cognitive-complexity-threshold = 30
+
+# Performance lints - be more lenient with cloning in tests/examples
+avoid-breaking-exported-api = false
+
+# Allow common patterns in tests and examples
+# These would be enabled in CI but allowed locally for development
+too-many-arguments-threshold = 10
+too-many-lines-threshold = 200

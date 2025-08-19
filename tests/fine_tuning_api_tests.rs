@@ -35,6 +35,7 @@ fn create_test_job_request() -> FineTuningJobRequest {
 }
 
 /// Helper function to create a minimal job request
+#[allow(dead_code)]
 fn create_minimal_job_request() -> FineTuningJobRequest {
     FineTuningJobRequest::new("file-def456", "gpt-3.5-turbo")
 }

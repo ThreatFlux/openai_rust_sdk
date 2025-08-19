@@ -180,7 +180,7 @@ async fn test_image_detail_levels() {
     // Test serialization behavior
     let low_detail = ImageDetail::Low;
     let high_detail = ImageDetail::High;
-    let auto_detail = ImageDetail::Auto;
+    let _auto_detail = ImageDetail::Auto;
 
     // These should have different token estimates
     assert_ne!(

@@ -23,7 +23,7 @@ use openai_rust_sdk::{
 #[test]
 fn test_audio_api_structure() {
     // Test API can be created
-    let api = AudioApi::new("test-key").unwrap();
+    let _api = AudioApi::new("test-key").unwrap();
 
     // Test request models can be created
     let speech_request = AudioSpeechRequest::new("tts-1", "Test text", Voice::Alloy);
@@ -67,7 +67,7 @@ fn test_audio_api_structure() {
 #[test]
 fn test_images_api_structure() {
     // Test API can be created
-    let api = ImagesApi::new("test-key").unwrap();
+    let _api = ImagesApi::new("test-key").unwrap();
 
     // Test request models
     let generation_request = ImageGenerationRequest::new("dall-e-3", "A beautiful sunset");
@@ -91,7 +91,7 @@ fn test_images_api_structure() {
 #[test]
 fn test_files_api_structure() {
     // Test API can be created
-    let api = FilesApi::new("test-key").unwrap();
+    let _api = FilesApi::new("test-key").unwrap();
 
     // Test request models
     let upload_request = FileUploadRequest::new(
@@ -119,7 +119,7 @@ fn test_files_api_structure() {
 #[test]
 fn test_embeddings_api_structure() {
     // Test API can be created
-    let api = EmbeddingsApi::new("test-key").unwrap();
+    let _api = EmbeddingsApi::new("test-key").unwrap();
 
     // Test request models
     let request = EmbeddingRequest::new("text-embedding-3-small", "test text");
@@ -133,9 +133,9 @@ fn test_embeddings_api_structure() {
     assert_eq!(request.dimensions, Some(512));
 
     // Test different input types
-    let single_input = EmbeddingInput::String("text".to_string());
-    let batch_input = EmbeddingInput::StringArray(vec!["text1".to_string(), "text2".to_string()]);
-    let token_input = EmbeddingInput::TokenArray(vec![vec![1, 2, 3]]);
+    let _single_input = EmbeddingInput::String("text".to_string());
+    let _batch_input = EmbeddingInput::StringArray(vec!["text1".to_string(), "text2".to_string()]);
+    let _token_input = EmbeddingInput::TokenArray(vec![vec![1, 2, 3]]);
 
     // Test serialization
     let json = serde_json::to_string(&request).unwrap();
@@ -145,16 +145,16 @@ fn test_embeddings_api_structure() {
 #[test]
 fn test_models_api_structure() {
     // Test API can be created
-    let api = ModelsApi::new("test-key").unwrap();
+    let _api = ModelsApi::new("test-key").unwrap();
 
     // API exists and can be instantiated
-    assert!(true);
+    // Test passes if no panic occurs during API creation
 }
 
 #[test]
 fn test_moderations_api_structure() {
     // Test API can be created
-    let api = ModerationsApi::new("test-key").unwrap();
+    let _api = ModerationsApi::new("test-key").unwrap();
 
     // Test request models
     let request = ModerationRequest::new("Test content");
@@ -258,5 +258,5 @@ fn test_all_apis_compile() {
     let _moderations = ModerationsApi::new("key").unwrap();
 
     // If this compiles, all APIs are properly integrated
-    assert!(true);
+    // Test passes if no panic occurs during API creation
 }

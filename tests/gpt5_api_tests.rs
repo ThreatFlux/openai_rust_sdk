@@ -87,8 +87,8 @@ mod reasoning_config_tests {
     fn test_reasoning_config_creation() {
         // Test different reasoning efforts
         let minimal = ReasoningConfig::minimal();
-        let low = ReasoningConfig::low();
-        let medium = ReasoningConfig::medium();
+        let _low = ReasoningConfig::low();
+        let _medium = ReasoningConfig::medium();
         let high = ReasoningConfig::high();
 
         // Verify they create distinct configs
@@ -129,7 +129,7 @@ mod text_config_tests {
     #[test]
     fn test_text_config_creation() {
         let low = TextConfig::low();
-        let medium = TextConfig::medium();
+        let _medium = TextConfig::medium();
         let high = TextConfig::high();
 
         // Verify they create distinct configs
