@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn demo_json_object_mode(client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
+async fn demo_json_object_mode(_client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("Requesting JSON object response without strict schema...");
 
     let request = ResponseRequest::new_text(
@@ -315,7 +315,7 @@ async fn demo_strict_mode_enforcement(
     Ok(())
 }
 
-async fn demo_type_safe_responses(client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
+async fn demo_type_safe_responses(_client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("Demonstrating type-safe response parsing...");
 
     // Create schema for Person struct
@@ -366,7 +366,7 @@ async fn demo_type_safe_responses(client: &ResponsesApi) -> Result<(), Box<dyn s
     Ok(())
 }
 
-async fn demo_error_handling(client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
+async fn demo_error_handling(_client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("Demonstrating error handling and validation failures...");
 
     let schema = json!({

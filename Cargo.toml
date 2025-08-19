@@ -32,7 +32,7 @@ const_format = "0.2"
 # WebRTC dependencies for real-time audio
 webrtc = "0.11"
 # Audio processing
-audiopus = { version = "0.3.0-rc.0" }
+# audiopus = { version = "0.3.0-rc.0" }  # Removed: unused dependency that causes Docker build failures
 # cpal = "0.15"  # Removed: unused dependency that causes CI failures
 # WebRTC signaling and peer connection
 tokio-tungstenite = "0.21"
