@@ -13,7 +13,7 @@
 
 ## Issues Resolved
 
-### 1. Clippy Warnings Fixed (23 total)
+### 1. Clippy Warnings Fixed (30 total)
 
 #### Test Files (7 files, 18 warnings)
 - **tests/vision_api_tests.rs**: Fixed 1 unused variable
@@ -32,6 +32,11 @@
 - **examples/fine_tuning_demo.rs**: Fixed 2 dead code functions
 - **examples/error_handling.rs**: Fixed 1 match single binding
 
+#### Core Library Files (3 files, 7 warnings)
+- **src/api/functions.rs**: Fixed enum variant names warning
+- **src/models/models.rs**: Fixed 2 upper case acronym warnings (DALLE, TTS)
+- **src/schema/builder.rs**: Fixed 4 wrong self convention warnings
+
 ### 2. Configuration Improvements
 
 #### Created clippy.toml
@@ -46,7 +51,7 @@
 
 #### Make All Results
 ```
-Total Tests Run: 528+ tests across 15 test suites
+Total Tests Run: 670+ tests across 24 test suites
 - 258 tests passed (main library)
 - 47 tests passed (integration)
 - 45 tests passed (API tests)
