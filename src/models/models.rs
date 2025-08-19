@@ -152,10 +152,12 @@ pub enum ModelFamily {
     /// GPT-3.5 series models
     GPT35,
     /// DALL-E image generation models
+    #[allow(clippy::upper_case_acronyms)]
     DALLE,
     /// Whisper audio models
     Whisper,
     /// TTS (Text-to-Speech) models
+    #[allow(clippy::upper_case_acronyms)]
     TTS,
     /// Embedding models
     Embeddings,

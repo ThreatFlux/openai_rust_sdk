@@ -34,6 +34,7 @@ pub struct ConversationState {
 
 /// Events in the function calling lifecycle
 #[derive(Debug, Clone)]
+#[allow(clippy::enum_variant_names)]
 pub enum FunctionCallEvent {
     /// A function call was initiated
     CallInitiated {

@@ -419,6 +419,7 @@ impl SchemaBuilder {
     }
 
     /// Convert this schema builder to a response format
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_response_format(self, name: impl Into<String>) -> ResponseFormat {
         match self.build() {
             Ok(schema) => ResponseFormat::json_schema(name, schema),
@@ -427,6 +428,7 @@ impl SchemaBuilder {
     }
 
     /// Convert this schema builder to a strict response format
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_strict_response_format(self, name: impl Into<String>) -> ResponseFormat {
         match self.build() {
             Ok(schema) => ResponseFormat::strict_json_schema(name, schema),
@@ -435,6 +437,7 @@ impl SchemaBuilder {
     }
 
     /// Convert this schema builder to a `JsonSchemaSpec`
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_json_schema_spec(
         self,
         name: impl Into<String>,
@@ -450,6 +453,7 @@ impl SchemaBuilder {
     }
 
     /// Convert this schema builder to a strict `JsonSchemaSpec`
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_strict_json_schema_spec(
         self,
         name: impl Into<String>,
