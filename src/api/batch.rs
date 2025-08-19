@@ -788,7 +788,7 @@ impl BatchApi {
         // Look for content between ```yara and next ```
         if let Some(start) = content.find("```yara") {
             let rule_start = start + 7; // Skip "```yara"
-            // Skip to the next line after ```yara
+                                        // Skip to the next line after ```yara
             let rule_start = if let Some(newline) = content[rule_start..].find('\n') {
                 rule_start + newline + 1
             } else {

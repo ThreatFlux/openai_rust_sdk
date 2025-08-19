@@ -9,7 +9,7 @@
 
 use openai_rust_sdk::{
     api::{GPT5Api, GPT5RequestBuilder},
-    models::gpt5::{GPT5ModelSelector, ReasoningEffort, Verbosity, models},
+    models::gpt5::{models, GPT5ModelSelector, ReasoningEffort, Verbosity},
 };
 use std::env;
 

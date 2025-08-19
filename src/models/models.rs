@@ -408,20 +408,9 @@ impl ModelCapabilities {
     pub fn classify_tier(model_id: &str) -> ModelTier {
         match model_id {
             // Legacy/deprecated models
-            "text-davinci-003"
-                    | "text-davinci-002"
-                    | "text-curie-001"
-                    | "text-babbage-001"
-                    | "text-ada-001"
-                    | "davinci"
-                    | "curie"
-                    | "babbage"
-                    | "ada"
-                    | "gpt-3.5-turbo-0301"
-                    | "gpt-4-0314" =>
-            {
-                ModelTier::Legacy
-            }
+            "text-davinci-003" | "text-davinci-002" | "text-curie-001" | "text-babbage-001"
+            | "text-ada-001" | "davinci" | "curie" | "babbage" | "ada" | "gpt-3.5-turbo-0301"
+            | "gpt-4-0314" => ModelTier::Legacy,
 
             // Experimental/preview models
             id if id.contains("preview") || id.contains("alpha") || id.contains("beta") => {

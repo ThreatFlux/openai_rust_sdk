@@ -73,39 +73,36 @@ impl ResponsesApi {
                     let content = match &msg.content {
                         crate::models::responses::MessageContentInput::Text(text) => json!(text),
                         crate::models::responses::MessageContentInput::Array(contents) => {
-                            json!(
-                                contents
-                                    .iter()
-                                    .map(|c| match c {
-                                        crate::models::responses::MessageContent::Text { text } =>
-                                            json!({
-                                                "type": "text",
-                                                "text": text
-                                            }),
-                                        crate::models::responses::MessageContent::Image {
-                                            image_url,
-                                        } => {
-                                            let mut img = json!({
-                                                "type": "image_url",
-                                                "image_url": {
-                                                    "url": image_url.url
-                                                }
-                                            });
-                                            if let Some(detail) = &image_url.detail {
-                                                img["image_url"]["detail"] = json!(match detail {
-                                                    crate::models::responses::ImageDetail::Auto =>
-                                                        "auto",
-                                                    crate::models::responses::ImageDetail::Low =>
-                                                        "low",
-                                                    crate::models::responses::ImageDetail::High =>
-                                                        "high",
-                                                });
+                            json!(contents
+                                .iter()
+                                .map(|c| match c {
+                                    crate::models::responses::MessageContent::Text { text } =>
+                                        json!({
+                                            "type": "text",
+                                            "text": text
+                                        }),
+                                    crate::models::responses::MessageContent::Image {
+                                        image_url,
+                                    } => {
+                                        let mut img = json!({
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": image_url.url
                                             }
-                                            img
+                                        });
+                                        if let Some(detail) = &image_url.detail {
+                                            img["image_url"]["detail"] = json!(match detail {
+                                                crate::models::responses::ImageDetail::Auto =>
+                                                    "auto",
+                                                crate::models::responses::ImageDetail::Low => "low",
+                                                crate::models::responses::ImageDetail::High =>
+                                                    "high",
+                                            });
                                         }
-                                    })
-                                    .collect::<Vec<_>>()
-                            )
+                                        img
+                                    }
+                                })
+                                .collect::<Vec<_>>())
                         }
                     };
 
@@ -298,7 +295,7 @@ impl ResponsesApi {
                                         Some(SchemaValidationResult {
                                             is_valid: false,
                                             errors: vec![
-                                                "Response is not a JSON object".to_string(),
+                                                "Response is not a JSON object".to_string()
                                             ],
                                             data: Some(json_value),
                                         });

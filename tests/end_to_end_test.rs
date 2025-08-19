@@ -112,12 +112,10 @@ fn test_error_handling() {
     // Test empty API key handling
     let result = AssistantsApi::new("");
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .to_string()
-            .contains("API key cannot be empty")
-    );
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("API key cannot be empty"));
 
     let result = AudioApi::new("   ");
     assert!(result.is_err());

@@ -8,10 +8,10 @@
 //! - Complete conversation flow with function results
 
 use openai_rust_sdk::{
-    ChatBuilder, Message, OpenAIClient,
     api::functions::FunctionConfig,
     builders::FunctionBuilder,
     models::functions::{CustomTool, FunctionCallOutput, Tool, ToolChoice},
+    ChatBuilder, Message, OpenAIClient,
 };
 use serde_json::json;
 

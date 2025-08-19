@@ -7,7 +7,7 @@ use crate::{
     error::{OpenAIError, Result},
     models::{
         functions::{Tool, ToolChoice},
-        gpt5::{ReasoningConfig, ReasoningEffort, TextConfig, Verbosity, models},
+        gpt5::{models, ReasoningConfig, ReasoningEffort, TextConfig, Verbosity},
         responses::{ResponseInput, ResponseRequest, ResponseResult},
     },
 };

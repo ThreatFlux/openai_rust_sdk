@@ -6,8 +6,8 @@
 
 use futures::StreamExt;
 use openai_rust_sdk::{
-    ChatBuilder, OpenAIClient, PromptTemplate, PromptVariable, ResponseInput, ResponseRequest,
-    from_env,
+    from_env, ChatBuilder, OpenAIClient, PromptTemplate, PromptVariable, ResponseInput,
+    ResponseRequest,
 };
 use std::collections::HashMap;
 

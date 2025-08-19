@@ -113,7 +113,7 @@ pub use api::{
     ResponsesApi, RunsApi, StreamingApi, ThreadsApi, VectorStoresApi,
 };
 pub use builders::{FunctionBuilder, ObjectSchemaBuilder};
-pub use client::{ChatBuilder, OpenAIClient, from_env, from_env_with_base_url};
+pub use client::{from_env, from_env_with_base_url, ChatBuilder, OpenAIClient};
 pub use error::{OpenAIError, Result};
 pub use models::{assistants::*, functions::*, responses::*};
 pub use prompt_engineering::{

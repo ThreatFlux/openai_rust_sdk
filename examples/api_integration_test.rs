@@ -6,7 +6,6 @@ fn main() {
 
 #[cfg(feature = "yara")]
 use openai_rust_sdk::{
-    OpenAIClient,
     api::{
         batch::BatchApi,
         functions::{FunctionConfig, FunctionsApi},
@@ -20,7 +19,8 @@ use openai_rust_sdk::{
         responses::{Message, ResponseRequest},
     },
     schema::builder::SchemaBuilder,
-    testing::{BatchJobGenerator, yara_validator::YaraValidator},
+    testing::{yara_validator::YaraValidator, BatchJobGenerator},
+    OpenAIClient,
 };
 #[cfg(feature = "yara")]
 use std::env;

@@ -10,7 +10,7 @@ fn main() {
 }
 
 #[cfg(feature = "yara")]
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]

@@ -261,7 +261,7 @@ impl ImagesApi {
                 let filename = format!("generated_image_{}.png", i + 1);
                 let file_path = output_dir.join(&filename);
 
-                use base64::{Engine as _, engine::general_purpose};
+                use base64::{engine::general_purpose, Engine as _};
                 let decoded_data = general_purpose::STANDARD.decode(b64_data).map_err(|e| {
                     OpenAIError::ParseError(format!("Failed to decode base64: {e}"))
                 })?;

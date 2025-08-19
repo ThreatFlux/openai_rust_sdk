@@ -18,7 +18,7 @@ use openai_rust_sdk::{
     testing::BatchJobGenerator,
 };
 use std::env;
-use tokio::time::{Duration, sleep};
+use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

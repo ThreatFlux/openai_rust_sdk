@@ -3,7 +3,7 @@ use crate::error::{OpenAIError, Result};
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice};
 use crate::models::responses::ResponseRequest;
 use reqwest::Client;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 /// Core function calling API for `OpenAI`

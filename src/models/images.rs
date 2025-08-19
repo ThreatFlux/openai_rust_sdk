@@ -243,9 +243,7 @@ impl ImageGenerationRequest {
             }
 
             if let Some(ImageSize::Size256x256 | ImageSize::Size512x512) = &self.size {
-                return Err(
-                    "DALL-E 3 does not support 256x256 or 512x512 sizes".to_string()
-                );
+                return Err("DALL-E 3 does not support 256x256 or 512x512 sizes".to_string());
             }
         }
 
@@ -260,9 +258,7 @@ impl ImageGenerationRequest {
             }
 
             if let Some(ImageSize::Size1792x1024 | ImageSize::Size1024x1792) = &self.size {
-                return Err(
-                    "DALL-E 2 does not support 1792x1024 or 1024x1792 sizes".to_string()
-                );
+                return Err("DALL-E 2 does not support 1792x1024 or 1024x1792 sizes".to_string());
             }
         }
 
@@ -399,7 +395,7 @@ impl ImageData {
     pub fn decode_b64_json(&self) -> Result<Vec<u8>, String> {
         match &self.b64_json {
             Some(b64_data) => {
-                use base64::{Engine as _, engine::general_purpose};
+                use base64::{engine::general_purpose, Engine as _};
                 general_purpose::STANDARD
                     .decode(b64_data)
                     .map_err(|e| format!("Failed to decode base64: {e}"))

@@ -8,7 +8,7 @@
 //! - Header management
 
 use crate::error::{OpenAIError, Result};
-use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::multipart::Form;
 use serde::de::DeserializeOwned;
 

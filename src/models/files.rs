@@ -112,7 +112,6 @@ impl FilePurpose {
         ]
     }
 
-
     /// Check if this purpose supports text files
     #[must_use]
     pub fn supports_text(&self) -> bool {

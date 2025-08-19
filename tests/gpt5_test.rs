@@ -1,7 +1,7 @@
 use openai_rust_sdk::{
     api::gpt5::{GPT5Api, GPT5RequestBuilder},
     models::{
-        gpt5::{ReasoningEffort, Verbosity, models},
+        gpt5::{models, ReasoningEffort, Verbosity},
         responses::{Message, ResponseInput},
     },
 };

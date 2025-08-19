@@ -5,7 +5,7 @@
 //! and various detail levels.
 
 use openai_rust_sdk::{
-    ImageDetail, ImageFormat, ImageUtils, Message, OpenAIClient, ResponseRequest, from_env,
+    from_env, ImageDetail, ImageFormat, ImageUtils, Message, OpenAIClient, ResponseRequest,
 };
 
 #[tokio::main]

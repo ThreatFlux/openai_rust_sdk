@@ -220,12 +220,10 @@ fn test_file_upload_request_validation_invalid() {
         FilePurpose::FineTune,
     );
     assert!(large.validate().is_err());
-    assert!(
-        large
-            .validate()
-            .unwrap_err()
-            .contains("exceeds maximum limit")
-    );
+    assert!(large
+        .validate()
+        .unwrap_err()
+        .contains("exceeds maximum limit"));
 }
 
 #[test]

@@ -49,12 +49,10 @@ async fn test_streaming_response_simulation() {
     for (i, result) in results {
         assert!(result.is_valid);
         assert!(result.rule_name.is_some());
-        assert!(
-            result
-                .rule_name
-                .unwrap()
-                .contains(&format!("stream_test_{}", i + 1))
-        );
+        assert!(result
+            .rule_name
+            .unwrap()
+            .contains(&format!("stream_test_{}", i + 1)));
     }
 }
 

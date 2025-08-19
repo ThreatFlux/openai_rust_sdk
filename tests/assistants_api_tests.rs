@@ -138,11 +138,9 @@ fn test_assistant_request_validation_name_length() {
         .build();
 
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("name cannot exceed 256 characters")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("name cannot exceed 256 characters"));
 }
 
 #[test]
@@ -154,11 +152,9 @@ fn test_assistant_request_validation_description_length() {
         .build();
 
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("description cannot exceed 512 characters")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("description cannot exceed 512 characters"));
 }
 
 #[test]
@@ -170,11 +166,9 @@ fn test_assistant_request_validation_instructions_length() {
         .build();
 
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("instructions cannot exceed 32768 characters")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("instructions cannot exceed 32768 characters"));
 }
 
 #[test]
@@ -188,11 +182,9 @@ fn test_assistant_request_validation_too_many_file_ids() {
 
     let result = builder.build();
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("cannot have more than 20 file IDs")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("cannot have more than 20 file IDs"));
 }
 
 #[test]
@@ -206,11 +198,9 @@ fn test_assistant_request_validation_too_many_metadata_pairs() {
 
     let result = builder.build();
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("cannot have more than 16 metadata pairs")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("cannot have more than 16 metadata pairs"));
 }
 
 #[test]
@@ -222,11 +212,9 @@ fn test_assistant_request_validation_metadata_key_length() {
         .build();
 
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("Metadata key cannot exceed 64 characters")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("Metadata key cannot exceed 64 characters"));
 }
 
 #[test]
@@ -238,11 +226,9 @@ fn test_assistant_request_validation_metadata_value_length() {
         .build();
 
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .contains("Metadata value cannot exceed 512 characters")
-    );
+    assert!(result
+        .unwrap_err()
+        .contains("Metadata value cannot exceed 512 characters"));
 }
 
 #[test]

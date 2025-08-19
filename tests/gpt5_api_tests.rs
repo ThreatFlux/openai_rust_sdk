@@ -14,7 +14,7 @@ use openai_rust_sdk::api::gpt5::{GPT5Api, GPT5RequestBuilder};
 use openai_rust_sdk::error::OpenAIError;
 use openai_rust_sdk::models::functions::{FunctionTool, Tool, ToolChoice};
 use openai_rust_sdk::models::gpt5::{
-    ReasoningConfig, ReasoningEffort, TextConfig, Verbosity, models,
+    models, ReasoningConfig, ReasoningEffort, TextConfig, Verbosity,
 };
 use openai_rust_sdk::models::responses::{
     Message, MessageContentInput, MessageRole, ResponseInput, ResponseRequest, ResponseResult,
