@@ -8,8 +8,7 @@ test_validation
 **/test_validation
 
 # Cargo
-Cargo.lock
-# Keep Cargo.lock for binary crates, remove this line if this is a library
+# Cargo.lock is tracked for reproducible builds and binary crate
 # Cargo.lock
 
 # IDE and editor files
