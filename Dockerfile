@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.89.0-slim AS builder
+FROM rust:1.85.0-slim AS builder
 
 # Build arguments
 ARG VERSION=unknown
@@ -106,5 +106,5 @@ LABEL org.opencontainers.image.documentation="https://github.com/threatflux/open
 # Additional ThreatFlux-specific labels
 LABEL com.threatflux.category="AI/ML SDK"
 LABEL com.threatflux.capabilities="openai,batch-processing,yara-validation"
-LABEL com.threatflux.rust.version="1.89.0"
-LABEL com.threatflux.rust.edition="2021"
+LABEL com.threatflux.rust.version="1.85.0"
+LABEL com.threatflux.rust.edition="2024"

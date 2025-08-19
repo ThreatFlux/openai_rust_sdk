@@ -108,7 +108,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3.27.9
+        uses: github/codeql-action/init@v3
         with:
           languages: 'rust'
           queries: security-and-quality
@@ -125,7 +125,7 @@ jobs:
         run: cargo build --all-features
       
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3.27.9
+        uses: github/codeql-action/analyze@v3
 
   # Semgrep scanning
   semgrep:
@@ -199,10 +199,10 @@ jobs:
           extra_args: --debug --only-verified --format=sarif --output=trufflehog.sarif
       
       - name: Upload TruffleHog results
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog.sarif
-        if: always()
+        if: always() && hashFiles('trufflehog.sarif') != ''
       
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
@@ -234,10 +234,10 @@ jobs:
           retention-days: 30
       
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/dependency-check-report.sarif
-        if: always()
+        if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
 
   # Container scanning (if Docker image exists)
   container-scan:
@@ -264,9 +264,10 @@ jobs:
           severity: 'CRITICAL,HIGH'
       
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
+        if: always() && hashFiles('trivy-results.sarif') != ''
       
       - name: Run Grype scanner
         uses: anchore/scan-action@v4
@@ -276,10 +277,10 @@ jobs:
           severity-cutoff: high
       
       - name: Upload Grype results
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
-        if: always()
+        if: always() && hashFiles('results.sarif') != ''
 
   # Security scorecard
   scorecard:
@@ -304,6 +305,6 @@ jobs:
           publish_results: true
       
       - name: Upload results to code scanning
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: scorecard.sarif

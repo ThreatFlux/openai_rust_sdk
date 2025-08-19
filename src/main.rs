@@ -4,6 +4,7 @@ mod testing;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::fs;
 use std::path::PathBuf;
 use testing::BatchJobGenerator;
 

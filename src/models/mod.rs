@@ -20,6 +20,7 @@ pub mod gpt5;
 /// Images models for DALL-E image generation, editing, and variations
 pub mod images;
 /// Models API for listing and retrieving model information
+#[allow(clippy::module_inception)]
 pub mod models;
 /// Moderations models for content policy classification
 pub mod moderations;

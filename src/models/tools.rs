@@ -732,7 +732,7 @@ mod tests {
     fn test_web_search_tool() {
         let tool = ToolBuilder::web_search();
         match tool {
-            EnhancedTool::WebSearchPreview => assert!(true),
+            EnhancedTool::WebSearchPreview => {},
             _ => panic!("Expected WebSearchPreview"),
         }
     }
