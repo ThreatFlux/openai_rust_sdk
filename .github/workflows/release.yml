@@ -29,7 +29,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       
@@ -111,7 +111,7 @@ jobs:
             artifact_name: openai-rust-sdk-windows-amd64.exe
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -191,7 +191,7 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -221,7 +221,7 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -259,7 +259,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
       
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -279,7 +279,7 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
@@ -299,7 +299,7 @@ jobs:
     needs: [prepare, publish-crate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
       
@@ -312,7 +312,7 @@ jobs:
           echo "<meta http-equiv=refresh content=0;url=openai_rust_sdk/index.html>" > target/doc/index.html
       
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./target/doc

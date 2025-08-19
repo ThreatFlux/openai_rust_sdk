@@ -36,7 +36,7 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -94,7 +94,7 @@ jobs:
       
       - name: Build Docker image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -111,7 +111,7 @@ jobs:
       
       - name: Export image for scanning
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
@@ -149,11 +149,11 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Download image artifact
         if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: docker-image
           path: /tmp
@@ -177,7 +177,7 @@ jobs:
           sarif_file: 'trivy-results.sarif'
       
       - name: Run Grype scanner
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v6
         with:
           image: ${{ needs.build.outputs.image }}
           fail-build: false
@@ -209,14 +209,14 @@ jobs:
         platform: [linux/amd64, linux/arm64]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       
       - name: Download image artifact
         if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: docker-image
           path: /tmp
@@ -304,11 +304,11 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Download image artifact
         if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: docker-image
           path: /tmp
@@ -347,7 +347,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Update Docker Hub description
         uses: peter-evans/dockerhub-description@v4

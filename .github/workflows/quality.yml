@@ -18,7 +18,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -61,7 +61,7 @@ jobs:
     name: Code Complexity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -96,7 +96,7 @@ jobs:
     name: Documentation Quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
@@ -134,7 +134,7 @@ jobs:
     name: Test Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -173,7 +173,7 @@ jobs:
           path: coverage/
       
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: lcov.info
           fail_ci_if_error: false
@@ -187,7 +187,7 @@ jobs:
     if: github.event_name == 'pull_request'
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -216,7 +216,7 @@ jobs:
     name: Benchmark Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -253,7 +253,7 @@ jobs:
     name: Dependency Analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -289,7 +289,7 @@ jobs:
     name: Code Duplication
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Check for code duplication
         uses: platisd/duplicate-code-detection-tool@master
@@ -306,7 +306,7 @@ jobs:
     name: Spell Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install codespell
         run: pip install codespell
