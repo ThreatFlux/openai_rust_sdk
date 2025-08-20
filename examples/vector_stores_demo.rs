@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Vector Stores API Demo
 //!
 //! This example demonstrates the complete OpenAI Vector Stores API functionality,

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Integration tests for streaming functionality
 //!
 //! These tests verify the streaming API integration with mock HTTP responses.

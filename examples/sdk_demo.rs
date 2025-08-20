@@ -1,3 +1,9 @@
+#![allow(
+    clippy::too_many_lines,
+    clippy::uninlined_format_args,
+    clippy::cast_precision_loss,
+    clippy::ignored_unit_patterns
+)]
 #[cfg(not(feature = "yara"))]
 #[tokio::main]
 async fn main() {

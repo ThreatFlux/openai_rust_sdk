@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Embeddings Demo
 //!
 //! This example demonstrates how to use `OpenAI`'s embeddings API to:

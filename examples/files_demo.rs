@@ -1,7 +1,15 @@
+#![allow(
+    clippy::too_many_lines,
+    clippy::uninlined_format_args,
+    clippy::cast_precision_loss,
+    clippy::ignored_unit_patterns,
+    clippy::missing_const_for_fn,
+    clippy::inefficient_to_string
+)]
 //! # Files API Demo
 //!
-//! This example demonstrates how to use the OpenAI Files API for managing files
-//! that can be used with various OpenAI services including fine-tuning, assistants,
+//! This example demonstrates how to use the `OpenAI` Files API for managing files
+//! that can be used with various `OpenAI` services including fine-tuning, assistants,
 //! batch processing, and more.
 //!
 //! ## Features Demonstrated

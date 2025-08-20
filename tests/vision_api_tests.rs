@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Tests for OpenAI Vision API functionality
 
 use openai_rust_sdk::{

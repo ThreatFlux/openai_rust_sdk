@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Tests for response format enforcement and JSON schema validation
 
 use openai_rust_sdk::models::responses::{

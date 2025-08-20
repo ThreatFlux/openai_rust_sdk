@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Real-time Audio API Tests
 //!
 //! Comprehensive tests for the WebRTC-based real-time audio API

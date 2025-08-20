@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Test GPT-5 API capabilities
 //!
 //! This example demonstrates all GPT-5 features including:

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Error handling patterns demonstration
 //!
 //! This example showcases comprehensive error handling patterns and best practices

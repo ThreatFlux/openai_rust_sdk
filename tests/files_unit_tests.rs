@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Unit tests for the Files API models and validation
 //!
 //! This test suite focuses on testing the Files API models, validation,

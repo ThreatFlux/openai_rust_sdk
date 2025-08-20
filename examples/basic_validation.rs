@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Basic YARA rule validation example
 //!
 //! This example demonstrates the fundamental usage of the YARA validator

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Smoke tests to verify all APIs compile and are accessible
 //!
 //! This minimal test suite just ensures that:
@@ -14,7 +15,7 @@ fn test_audio_api_exists() {
     let _api = AudioApi::new("test-key").unwrap();
 
     // Basic types exist
-    let _voice = Voice::Alloy;
+    let _ = Voice::Alloy;
 }
 
 #[test]
@@ -34,7 +35,7 @@ fn test_files_api_exists() {
     let _api = FilesApi::new("test-key").unwrap();
 
     // Core types exist
-    let _purpose = FilePurpose::FineTune;
+    let _ = FilePurpose::FineTune;
 }
 
 #[test]

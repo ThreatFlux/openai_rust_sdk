@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive test of all OpenAI APIs
 //!
 //! Tests every API that requires authentication

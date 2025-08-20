@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Batch File Processing Example
 //!
 //! This example demonstrates how to download and process completed batch files:

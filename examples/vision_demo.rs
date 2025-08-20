@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! `OpenAI` Vision API Examples
 //!
 //! This example demonstrates the vision capabilities of the `OpenAI` SDK,

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # OpenAI Batch API Processing Demo
 //!
 //! This example demonstrates the complete Batch API workflow:

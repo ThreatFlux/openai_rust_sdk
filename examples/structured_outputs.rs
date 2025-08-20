@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Structured output examples for YARA validation
 //!
 //! This example demonstrates:

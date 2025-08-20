@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive tests for the Streaming API
 //!
 //! This test suite covers core functionality of the Streaming API including:

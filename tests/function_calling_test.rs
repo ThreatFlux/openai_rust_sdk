@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 use openai_rust_sdk::{
     builders::function_builder::FunctionBuilder,
     models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice},

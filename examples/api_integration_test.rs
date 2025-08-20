@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 #[cfg(not(feature = "yara"))]
 fn main() {
     println!("This example requires the 'yara' feature to be enabled.");

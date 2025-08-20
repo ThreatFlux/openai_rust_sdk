@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Real-time Audio API Demo
 //!
 //! This example demonstrates how to use the `OpenAI` Real-time Audio API with WebRTC for:

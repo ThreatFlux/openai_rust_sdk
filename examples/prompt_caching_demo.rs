@@ -1,3 +1,11 @@
+#![allow(
+    clippy::too_many_lines,
+    clippy::uninlined_format_args,
+    clippy::cast_precision_loss,
+    clippy::ignored_unit_patterns,
+    clippy::cast_lossless,
+    clippy::cast_sign_loss
+)]
 //! # Prompt Caching Demo
 //!
 //! This example demonstrates how to optimize prompts for caching to reduce

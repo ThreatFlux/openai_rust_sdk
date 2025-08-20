@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive examples of function calling with the `OpenAI` SDK
 //!
 //! This example demonstrates:

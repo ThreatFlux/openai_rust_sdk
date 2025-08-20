@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # `OpenAI` Assistants API Demo
 //!
 //! This example demonstrates the complete usage of the `OpenAI` Assistants API,

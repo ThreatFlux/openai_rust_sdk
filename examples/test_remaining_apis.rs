@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Test remaining untested APIs
 
 use openai_rust_sdk::api::{

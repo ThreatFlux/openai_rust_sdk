@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Example: List and analyze all recent batch jobs
 //!
 //! This example demonstrates how to:

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Integration tests validating all major `OpenAI` APIs compile and have proper structure
 //!
 //! This test suite ensures that all implemented APIs:

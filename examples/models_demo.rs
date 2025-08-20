@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Models API Demo
 //!
 //! This example demonstrates how to use OpenAI's Models API to:

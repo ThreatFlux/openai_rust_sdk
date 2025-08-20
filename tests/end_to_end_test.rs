@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! End-to-End Integration Test Suite
 //!
 //! This test validates that all major OpenAI SDK APIs work together correctly.

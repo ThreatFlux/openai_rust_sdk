@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! OpenAI Chat Completion Examples
 //!
 //! This example demonstrates various ways to use the OpenAI client for chat completions,

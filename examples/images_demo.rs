@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Images API Demo
 //!
 //! This example demonstrates the comprehensive usage of the Images API,

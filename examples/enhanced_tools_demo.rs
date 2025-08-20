@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Enhanced Tools Demo
 //!
 //! This example demonstrates how to use the comprehensive tools support including:

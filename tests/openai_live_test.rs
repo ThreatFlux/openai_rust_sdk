@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Live integration tests for `OpenAI` API
 //!
 //! Run with: OPENAI_API_KEY=your-key cargo test --test `openai_live_test` -- --nocapture
@@ -5,14 +6,14 @@
 use openai_rust_sdk::{
     api::{
         audio::AudioApi, embeddings::EmbeddingsApi, images::ImagesApi, models::ModelsApi,
-        moderations::ModerationsApi, responses::ResponsesApi,
+        moderations::ModerationsApi, responses::ResponsesApi, streaming::StreamingApi,
     },
     models::{
         audio::{AudioSpeechRequest, Voice},
         embeddings::{EmbeddingInput, EmbeddingRequest},
         images::{ImageGenerationRequest, ImageSize},
         moderations::ModerationRequest,
-        responses::{Message, MessageContentInput, MessageRole},
+        responses::{Message, MessageContentInput, MessageRole, ResponseInput, ResponseRequest},
     },
 };
 use std::env;
@@ -27,6 +28,7 @@ fn get_api_key() -> Result<String, String> {
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn test_live_openai_apis() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = match get_api_key() {
         Ok(key) => key,
@@ -80,7 +82,6 @@ async fn test_live_openai_apis() -> Result<(), Box<dyn std::error::Error>> {
         },
     ];
 
-    use openai_rust_sdk::models::responses::{ResponseInput, ResponseRequest};
     let request = ResponseRequest {
         model: "gpt-3.5-turbo".to_string(),
         input: ResponseInput::Messages(messages),
@@ -221,7 +222,6 @@ async fn test_live_openai_apis() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🌊 Test 6: Streaming API");
     println!("{}", "-".repeat(50));
 
-    use openai_rust_sdk::api::streaming::StreamingApi;
     let _streaming_api = StreamingApi::new(&api_key)?;
     println!("✅ Streaming API initialized successfully");
     println!("   Note: Actual streaming requires WebSocket connection");

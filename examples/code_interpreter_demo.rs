@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Code Interpreter Demo
 //!
 //! This example demonstrates how to use the Code Interpreter tool with container management

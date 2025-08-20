@@ -1,4 +1,5 @@
-//! Comprehensive tests for the OpenAI Fine-tuning API
+#![allow(clippy::uninlined_format_args)]
+//! Comprehensive tests for the `OpenAI` Fine-tuning API
 //!
 //! This test suite covers all functionality of the Fine-tuning API including:
 //! - Fine-tuning job creation with various configurations
@@ -560,7 +561,7 @@ mod edge_case_tests {
             .unwrap();
 
         let metadata = request.metadata.unwrap();
-        assert_eq!(metadata.get("empty"), Some(&"".to_string()));
+        assert_eq!(metadata.get("empty"), Some(&String::new()));
     }
 }
 

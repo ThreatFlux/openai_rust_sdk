@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive tests for the Batch API
 //!
 //! This test suite covers all functionality of the Batch API including:

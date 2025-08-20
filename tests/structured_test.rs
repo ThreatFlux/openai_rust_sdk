@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Integration tests for structured output functionality
 //!
 //! These tests verify structured data handling, serialization, and validation result processing.

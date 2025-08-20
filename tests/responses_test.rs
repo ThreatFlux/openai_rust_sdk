@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Integration tests for chat completion responses and API interaction
 //!
 //! These tests verify the response handling, API integration patterns, and data flow

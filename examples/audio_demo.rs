@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Audio API Demo
 //!
 //! This example demonstrates how to use the OpenAI Audio API for:

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive tests for the OpenAI Threads & Messages API
 //!
 //! This test suite covers all functionality of the Threads API including:

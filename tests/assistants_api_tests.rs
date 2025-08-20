@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive tests for the `OpenAI` Assistants API
 //!
 //! This test suite covers all functionality of the Assistants API including:

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive tests for the Vector Stores API
 //!
 //! This module contains unit tests and integration tests for the Vector Stores API,

@@ -1,6 +1,12 @@
-//! # OpenAI Threads & Messages API Demo
+#![allow(
+    clippy::too_many_lines,
+    clippy::uninlined_format_args,
+    clippy::cast_precision_loss,
+    clippy::ignored_unit_patterns
+)]
+//! # `OpenAI` Threads & Messages API Demo
 //!
-//! This example demonstrates the complete usage of the OpenAI Threads API,
+//! This example demonstrates the complete usage of the `OpenAI` Threads API,
 //! including creating threads, managing messages, handling file attachments,
 //! and demonstrating various content types and annotations.
 //!

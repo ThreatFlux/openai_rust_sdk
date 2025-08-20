@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Moderations API Demo
 //!
 //! This example demonstrates how to use the `OpenAI` Moderations API to classify

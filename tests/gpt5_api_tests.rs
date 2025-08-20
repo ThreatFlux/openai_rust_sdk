@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Comprehensive tests for the GPT-5 API
 //!
 //! This test suite covers all functionality of the GPT-5 API including:

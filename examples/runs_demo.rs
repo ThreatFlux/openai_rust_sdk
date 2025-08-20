@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # OpenAI Runs API Demo
 //!
 //! This example demonstrates the complete OpenAI Runs API functionality including:

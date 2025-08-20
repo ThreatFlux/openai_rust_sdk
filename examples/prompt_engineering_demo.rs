@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # Prompt Engineering Demo
 //!
 //! This example demonstrates advanced prompt engineering techniques including:

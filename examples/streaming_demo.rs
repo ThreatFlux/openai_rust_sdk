@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Streaming validation demonstration
 //!
 //! This example shows how to process YARA rules in a streaming fashion,

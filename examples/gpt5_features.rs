@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! GPT-5 feature demonstration
 //!
 //! This example showcases the advanced features of GPT-5 models including:

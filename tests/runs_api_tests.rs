@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! # `OpenAI` Runs API Tests
 //!
 //! Comprehensive test suite for the `OpenAI` Runs API implementation.

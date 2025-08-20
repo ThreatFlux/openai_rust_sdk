@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 //! Response Format Enforcement Demo
 //!
 //! This example demonstrates the new response format enforcement features:

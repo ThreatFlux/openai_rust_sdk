@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic)]
 //! Performance benchmarks for YARA rule validation
 //!
 //! These benchmarks measure the performance of various validation operations

@@ -1,3 +1,4 @@
+#![allow(clippy::pedantic, clippy::nursery)]
 use openai_rust_sdk::{
     api::gpt5::{GPT5Api, GPT5RequestBuilder},
     models::{
