@@ -22,7 +22,7 @@ fn create_sample_file_response() -> FileUploadResponse {
         id: "file-test123".to_string(),
         object: "file".to_string(),
         bytes: 1024,
-        created_at: 1640995200,
+        created_at: 1_640_995_200,
         filename: "test_batch.jsonl".to_string(),
         purpose: "batch".to_string(),
     }
@@ -39,9 +39,9 @@ fn create_sample_batch() -> Batch {
         status: BatchStatus::InProgress,
         output_file_id: None,
         error_file_id: None,
-        created_at: 1640995200,
-        in_progress_at: Some(1640995300),
-        expires_at: 1641081600,
+        created_at: 1_640_995_200,
+        in_progress_at: Some(1_640_995_300),
+        expires_at: 1_641_081_600,
         completed_at: None,
         failed_at: None,
         expired_at: None,
@@ -58,7 +58,7 @@ fn create_completed_batch() -> Batch {
     let mut batch = create_sample_batch();
     batch.status = BatchStatus::Completed;
     batch.output_file_id = Some("file-output123".to_string());
-    batch.completed_at = Some(1641000000);
+    batch.completed_at = Some(1_641_000_000);
     batch.request_counts.completed = 100;
     batch.request_counts.failed = 0;
     batch
@@ -629,7 +629,7 @@ mod error_handling_tests {
             "message": "Input file format is invalid"
         }));
         batch.error_file_id = Some("file-errors123".to_string());
-        batch.failed_at = Some(1641000000);
+        batch.failed_at = Some(1_641_000_000);
 
         assert_eq!(batch.status, BatchStatus::Failed);
         assert!(batch.errors.is_some());

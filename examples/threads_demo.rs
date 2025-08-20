@@ -396,7 +396,7 @@ async fn demo_error_handling(api: &ThreadsApi) -> Result<()> {
 
     for i in 0..15 {
         // More than the 10 file limit
-        builder = builder.file_id(format!("file-{}", i));
+        builder = builder.file_id(format!("file-{i}"));
     }
 
     match builder.build() {
@@ -410,11 +410,11 @@ async fn demo_error_handling(api: &ThreadsApi) -> Result<()> {
         // More than the 16 metadata limit
         thread_request
             .metadata
-            .insert(format!("key{}", i), "value".to_string());
+            .insert(format!("key{i}"), "value".to_string());
     }
 
     match thread_request.validate() {
-        Ok(_) => println!("   ❌ Expected validation error but got success"),
+        Ok(()) => println!("   ❌ Expected validation error but got success"),
         Err(e) => println!("   ✅ Correctly caught metadata limit validation: {}", e),
     }
 

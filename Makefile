@@ -22,17 +22,17 @@ WHITE = \033[0;37m
 NC = \033[0m # No Color
 
 .PHONY: help all all-coverage all-docker all-docker-coverage clean docker-build docker-clean
-.PHONY: fmt fmt-check fmt-docker lint lint-docker audit audit-docker deny deny-docker codedup
+.PHONY: fmt fmt-check fmt-docker lint lint-strict lint-ultra-strict lint-docker audit audit-docker deny deny-docker codedup
 .PHONY: test test-docker test-doc test-doc-docker test-features feature-check build build-docker build-all build-all-docker
-.PHONY: docs doc-check docs-docker examples examples-docker bench bench-docker
+.PHONY: docs doc-check docs-strict docs-docker examples examples-docker bench bench-check bench-docker
 .PHONY: coverage coverage-open coverage-lcov coverage-html coverage-summary coverage-json coverage-docker
 .PHONY: dev-setup setup-dev ci-local ci-local-coverage
 
-# Default target
-all: fmt-check lint audit test docs doc-check build examples ## Run all checks and builds locally
+# Default target - matches CI/CD security workflow
+all: fmt-check lint-strict audit deny feature-check test test-doc bench-check docs-strict build-all examples ## Run all CI/CD checks and builds locally
 
 # Extended target with coverage
-all-coverage: fmt-check lint audit test coverage docs build examples ## Run all checks including coverage locally
+all-coverage: fmt-check lint-strict audit deny feature-check test test-doc coverage docs-strict build-all examples ## Run all checks including coverage locally
 
 # Docker all-in-one target
 all-docker: docker-build ## Run all checks and builds in Docker container
@@ -102,8 +102,12 @@ dev-setup: ## Install development tools required for `make all`
 	@rustup component add clippy 2>/dev/null || echo "clippy already installed"
 	@echo "$(BLUE)Checking for cargo-audit...$(NC)"
 	@cargo install cargo-audit 2>/dev/null || echo "cargo-audit already installed"
+	@echo "$(BLUE)Checking for cargo-deny...$(NC)"
+	@cargo install cargo-deny 2>/dev/null || echo "cargo-deny already installed"
 	@echo "$(BLUE)Checking for cargo-llvm-cov...$(NC)"
 	@cargo install cargo-llvm-cov 2>/dev/null || echo "cargo-llvm-cov already installed"
+	@echo "$(BLUE)Checking for jq (for feature checks)...$(NC)"
+	@command -v jq >/dev/null 2>&1 || echo "$(YELLOW)jq not installed. Install with: apt-get install jq (or brew install jq)$(NC)"
 	@echo "$(GREEN)✅ Development tools installed!$(NC)"
 
 setup-dev: dev-setup ## (Deprecated) Use `make dev-setup` instead
@@ -133,11 +137,11 @@ docker-clean: ## Clean Docker images and containers
 # Formatting Commands
 # =============================================================================
 
-fmt: ## Format code using rustfmt
+fmt: ## Format code using rustfmt (includes examples)
 	@echo "$(CYAN)Formatting code...$(NC)"
 	@cargo fmt --all
 
-fmt-check: ## Check code formatting without modifying files
+fmt-check: ## Check code formatting without modifying files (includes examples)
 	@echo "$(CYAN)Checking code formatting...$(NC)"
 	@cargo fmt --all -- --check
 
@@ -155,6 +159,43 @@ lint: ## Run clippy linting
 	@cargo clippy --all-targets --all-features -- -W warnings
 	@echo "$(BLUE)  With default features...$(NC)"
 	@cargo clippy --all-targets -- -W warnings
+
+lint-strict: ## Run clippy with strict settings (matches CI/CD)
+	@echo "$(CYAN)Running strict clippy linting (CI/CD mode)...$(NC)"
+	@echo "$(BLUE)  With all features and all targets...$(NC)"
+	@cargo clippy --all-features --all-targets -- \
+		-D warnings \
+		-D clippy::all \
+		-A clippy::needless_pass_by_value \
+		-A clippy::derive_partial_eq_without_eq \
+		-A clippy::use_self \
+		-A clippy::unused_self \
+		-A clippy::module_name_repetitions \
+		-A clippy::missing_errors_doc \
+		-A clippy::missing_panics_doc
+	@echo "$(BLUE)  With no default features...$(NC)"
+	@cargo clippy --no-default-features --all-targets -- \
+		-D warnings \
+		-D clippy::all
+	@echo "$(BLUE)  With default features...$(NC)"
+	@cargo clippy --all-targets -- \
+		-D warnings \
+		-D clippy::all
+
+lint-ultra-strict: ## Run clippy with ULTRA strict settings (as requested)
+	@echo "$(CYAN)Running ULTRA strict clippy linting...$(NC)"
+	@echo "$(YELLOW)WARNING: This may produce many warnings due to very strict settings$(NC)"
+	@cargo clippy --all-features --all-targets -- \
+		-D warnings \
+		-D clippy::all \
+		-D clippy::pedantic \
+		-D clippy::nursery \
+		-D clippy::cargo \
+		-A clippy::module_name_repetitions \
+		-A clippy::missing_errors_doc \
+		-A clippy::missing_panics_doc \
+		-A clippy::must_use_candidate || \
+		echo "$(YELLOW)Ultra-strict linting found issues. Consider using 'make lint-strict' for CI/CD$(NC)"
 
 lint-docker: docker-build ## Run clippy linting in Docker
 	@echo "$(CYAN)Running clippy linting in Docker...$(NC)"
@@ -178,7 +219,10 @@ audit-docker: docker-build ## Run security audit in Docker
 
 deny: ## Run dependency validation (requires cargo-deny)
 	@echo "$(CYAN)Running dependency validation...$(NC)"
-	@command -v cargo-deny >/dev/null 2>&1 && cargo deny check || echo "$(YELLOW)cargo-deny not installed. Install with: cargo install cargo-deny$(NC)"
+	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny
+	@cargo deny check licenses || echo "$(YELLOW)⚠️  License issues found$(NC)"
+	@cargo deny check advisories || echo "$(YELLOW)⚠️  Security advisories found$(NC)"
+	@cargo deny check bans || echo "$(YELLOW)⚠️  Banned dependencies found$(NC)"
 
 deny-docker: docker-build ## Run dependency validation in Docker
 	@echo "$(CYAN)Running dependency validation in Docker...$(NC)"
@@ -220,6 +264,20 @@ test-features: ## Test with different feature combinations
 	@echo "$(BLUE)Testing with default features only...$(NC)"
 	@cargo test --verbose
 	@echo "$(GREEN)✅ Feature combinations tested!$(NC)"
+
+feature-check: ## Check each feature individually (matches CI/CD)
+	@echo "$(CYAN)Checking feature combinations...$(NC)"
+	@echo "$(BLUE)Checking no default features...$(NC)"
+	@cargo check --no-default-features
+	@echo "$(BLUE)Checking all features...$(NC)"
+	@cargo check --all-features
+	@echo "$(BLUE)Checking each feature individually...$(NC)"
+	@cargo metadata --no-deps --format-version 1 | \
+	jq -r '.packages[0].features | keys[]' 2>/dev/null | \
+	while read feature; do \
+		echo "  Checking feature: $$feature"; \
+		cargo check --no-default-features --features "$$feature" || exit 1; \
+	done || echo "$(YELLOW)⚠️  jq not installed, skipping individual feature checks$(NC)"
 
 test-api: ## Test specific API modules
 	@echo "$(CYAN)Testing API modules...$(NC)"
@@ -277,6 +335,12 @@ doc-check: ## Check for missing documentation
 		(echo "$(RED)❌ Missing documentation found!$(NC)" && exit 1) || \
 		echo "$(GREEN)✅ All documentation present!$(NC)"
 
+docs-strict: ## Generate documentation with strict checks (matches CI/CD)
+	@echo "$(CYAN)Generating documentation with strict checks...$(NC)"
+	@RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps
+	@echo "$(BLUE)Checking for broken links...$(NC)"
+	@! grep -r "unresolved link" target/doc/*.html 2>/dev/null || echo "$(GREEN)✅ No broken links found$(NC)"
+
 docs-docker: docker-build ## Generate documentation in Docker
 	@echo "$(CYAN)Generating documentation in Docker...$(NC)"
 	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
@@ -306,6 +370,10 @@ run-example: ## Run a specific example (use EXAMPLE=name)
 bench: ## Run benchmarks
 	@echo "$(CYAN)Running benchmarks...$(NC)"
 	@cargo bench --all-features
+
+bench-check: ## Check that benchmarks compile (matches CI/CD)
+	@echo "$(CYAN)Checking benchmark compilation...$(NC)"
+	@cargo bench --no-run --all-features
 
 bench-docker: docker-build ## Run benchmarks in Docker
 	@echo "$(CYAN)Running benchmarks in Docker...$(NC)"
@@ -358,21 +426,31 @@ coverage-docker: docker-build ## Generate test coverage report in Docker
 # CI/Local Integration
 # =============================================================================
 
-ci-local: ## Run CI-like checks locally
-	@echo "$(CYAN)Running CI checks locally...$(NC)"
-	@echo "$(BLUE)=== Formatting ===$(NC)"
+ci-local: ## Run CI-like checks locally (full CI/CD simulation)
+	@echo "$(CYAN)Running full CI/CD checks locally...$(NC)"
+	@echo "$(BLUE)=== Formatting Check ===$(NC)"
 	@$(MAKE) fmt-check
-	@echo "$(BLUE)=== Linting ===$(NC)"
-	@$(MAKE) lint
+	@echo "$(BLUE)=== Strict Linting ===$(NC)"
+	@$(MAKE) lint-strict
 	@echo "$(BLUE)=== Security Audit ===$(NC)"
 	@$(MAKE) audit
+	@echo "$(BLUE)=== Dependency Check ===$(NC)"
+	@$(MAKE) deny
+	@echo "$(BLUE)=== Feature Checks ===$(NC)"
+	@$(MAKE) feature-check
 	@echo "$(BLUE)=== Tests ===$(NC)"
 	@$(MAKE) test
+	@echo "$(BLUE)=== Doc Tests ===$(NC)"
+	@$(MAKE) test-doc
+	@echo "$(BLUE)=== Benchmark Compilation ===$(NC)"
+	@$(MAKE) bench-check
 	@echo "$(BLUE)=== Documentation ===$(NC)"
-	@$(MAKE) docs
-	@echo "$(BLUE)=== Build ===$(NC)"
+	@$(MAKE) docs-strict
+	@echo "$(BLUE)=== Build All Features ===$(NC)"
 	@$(MAKE) build-all
-	@echo "$(GREEN)✅ All CI checks passed locally!$(NC)"
+	@echo "$(BLUE)=== Examples ===$(NC)"
+	@$(MAKE) examples
+	@echo "$(GREEN)✅ All CI/CD checks passed locally!$(NC)"
 
 ci-local-coverage: ## Run CI-like checks locally with coverage
 	@echo "$(CYAN)Running CI checks with coverage locally...$(NC)"
