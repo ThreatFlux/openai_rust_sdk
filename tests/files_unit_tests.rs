@@ -562,6 +562,7 @@ fn test_file_created_at_formatted() {
         formatted.contains("1640995200") || // Unix-like systems may show the raw timestamp
         formatted.contains("2022") || // Some systems might format as a date
         formatted.len() > 10, // At minimum, it should have some content
-        "Formatted time string: {}", formatted
+        "Formatted time string: {}",
+        formatted
     );
 }
