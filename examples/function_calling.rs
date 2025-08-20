@@ -232,9 +232,7 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
                 call_id,
                 function_name,
             } => {
-                println!(
-                    "\n🔧 Function call started: {function_name} ({call_id})"
-                );
+                println!("\n🔧 Function call started: {function_name} ({call_id})");
             }
             FunctionStreamEvent::FunctionCallArgumentsDelta {
                 call_id,

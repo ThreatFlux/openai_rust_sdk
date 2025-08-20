@@ -124,9 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let chunk_len = chunk.len();
         total_bytes += chunk_len;
         chunks.push(chunk);
-        println!(
-            "📦 Received chunk: {chunk_len} bytes (total: {total_bytes} bytes)"
-        );
+        println!("📦 Received chunk: {chunk_len} bytes (total: {total_bytes} bytes)");
     }
 
     // Combine chunks and save
@@ -156,9 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for use_case in use_cases {
         let recommended_voice = AudioUtils::recommend_voice(use_case);
-        println!(
-            "📋 For '{use_case}' use case: {recommended_voice:?} voice recommended"
-        );
+        println!("📋 For '{use_case}' use case: {recommended_voice:?} voice recommended");
 
         let demo_text = format!("This is a {use_case} voice demonstration.");
 

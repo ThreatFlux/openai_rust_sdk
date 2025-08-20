@@ -247,11 +247,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Data extraction pattern
     let extraction_prompt = PromptPatterns::extraction(
-        &["name".to_string(),
+        &[
+            "name".to_string(),
             "email".to_string(),
             "phone".to_string(),
             "company".to_string(),
-            "message".to_string()],
+            "message".to_string(),
+        ],
         "JSON",
     )
     .build_developer_message();

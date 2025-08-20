@@ -177,12 +177,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let latency_reduction = ((avg_first_latency - avg_cached_latency) / avg_first_latency) * 100.0;
 
     println!("\n📈 Caching Statistics:");
-    println!(
-        "  • Average first request latency: {avg_first_latency:.0}ms"
-    );
-    println!(
-        "  • Average cached request latency: {avg_cached_latency:.0}ms"
-    );
+    println!("  • Average first request latency: {avg_first_latency:.0}ms");
+    println!("  • Average cached request latency: {avg_cached_latency:.0}ms");
     println!("  • Latency reduction: {latency_reduction:.1}%");
     println!(
         "  • Total tokens cached: {}/{} ({:.1}%)",
