@@ -49,7 +49,7 @@ tempfile = "3.0"
 pretty_assertions = "1.0"
 criterion = { version = "0.5", features = ["html_reports"] }
 mockito = "1.0"
-wiremock = "0.5"
+wiremock = "0.6"
 
 [features]
 default = []

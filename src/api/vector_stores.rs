@@ -130,7 +130,7 @@ impl VectorStoresApi {
     ///     .expires_after(ExpirationPolicy::new_days(30))
     ///     .build();
     /// let vector_store = api.create_vector_store(request).await?;
-    /// println!("Created vector store: {vector_store.id}");
+    /// println!("Created vector store: {}", vector_store.id);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -164,7 +164,7 @@ impl VectorStoresApi {
     /// let params = ListVectorStoresParams::new().with_limit(10);
     /// let limited_stores = api.list_vector_stores(Some(params)).await?;
     ///
-    /// println!("Found {all_stores.data.len(} total stores"));
+    /// println!("Found {} total stores", all_stores.data.len());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -202,7 +202,7 @@ impl VectorStoresApi {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let vector_store = api.retrieve_vector_store("vs-abc123").await?;
     /// let name = vector_store.name.clone().unwrap_or_default();
-    /// println!("Vector store: {} ({name, vector_store.usage_human_readable(})"));
+    /// println!("Vector store: {} ({})", name, vector_store.usage_human_readable());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -239,7 +239,7 @@ impl VectorStoresApi {
     ///     .add_metadata("version", "2.0")
     ///     .build();
     /// let updated_store = api.modify_vector_store("vs-abc123", request).await?;
-    /// println!("Updated vector store: {updated_store.name.unwrap_or_default(}"));
+    /// println!("Updated vector store: {}", updated_store.name.unwrap_or_default());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -272,7 +272,7 @@ impl VectorStoresApi {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let result = api.delete_vector_store("vs-abc123").await?;
     /// if result.deleted {
-    ///     println!("Vector store {result.id} was successfully deleted");
+    ///     println!("Vector store {} was successfully deleted", result.id);
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -308,7 +308,7 @@ impl VectorStoresApi {
     /// let request = VectorStoreFileRequest::new("file-abc123")
     ///     .with_chunking_strategy(ChunkingStrategy::static_chunking(512, 50));
     /// let file_attachment = api.create_vector_store_file("vs-abc123", request).await?;
-    /// println!("Attached file: {file_attachment.id}");
+    /// println!("Attached file: {}", file_attachment.id);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -427,7 +427,7 @@ impl VectorStoresApi {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let result = api.delete_vector_store_file("vs-abc123", "file-def456").await?;
     /// if result.deleted {
-    ///     println!("File {result.id} was successfully removed");
+    ///     println!("File {} was successfully removed", result.id);
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -463,7 +463,7 @@ impl VectorStoresApi {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let file_ids = vec!["file-123".to_string(), "file-456".to_string(), "file-789".to_string()];
     /// let batch = api.create_vector_store_file_batch("vs-abc123", file_ids).await?;
-    /// println!("Created batch: {} with {batch.id, batch.file_counts.total} files");
+    /// println!("Created batch: {} with {} files", batch.id, batch.file_counts.total);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -501,7 +501,7 @@ impl VectorStoresApi {
     /// let request = VectorStoreFileBatchRequest::new(file_ids)
     ///     .with_chunking_strategy(ChunkingStrategy::static_chunking(1024, 100));
     /// let batch = api.create_vector_store_file_batch_with_request("vs-abc123", request).await?;
-    /// println!("Created batch: {batch.id}");
+    /// println!("Created batch: {}", batch.id);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -535,7 +535,7 @@ impl VectorStoresApi {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let batch = api.retrieve_vector_store_file_batch("vs-abc123", "batch-def456").await?;
     /// println!("Batch status: {:?}", batch.status);
-    /// println!("Files processed: {}/{batch.file_counts.completed, batch.file_counts.total}");
+    /// println!("Files processed: {}/{}", batch.file_counts.completed, batch.file_counts.total);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -662,7 +662,7 @@ impl VectorStoresApi {
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let vector_store = api.wait_for_vector_store_ready("vs-abc123", Some(600), Some(10)).await?;
-    /// println!("Vector store is ready: {vector_store.is_ready(}"));
+    /// println!("Vector store is ready: {}", vector_store.is_ready());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -780,7 +780,7 @@ impl VectorStoresApi {
     /// let api = VectorStoresApi::new("your-api-key")?;
     /// let stats = api.get_usage_statistics().await?;
     /// for (key, value) in stats {
-    ///     println!("{}: {key, value}");
+    ///     println!("{}: {}", key, value);
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });

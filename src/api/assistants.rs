@@ -37,7 +37,7 @@
 //!     .build()?;
 //!
 //! let assistant = api.create_assistant(assistant_request).await?;
-//! println!("Created assistant: {assistant.id}");
+//! println!("Created assistant: {}", assistant.id);
 //!
 //! // Retrieve the assistant
 //! let retrieved = api.retrieve_assistant(&assistant.id).await?;
@@ -45,11 +45,11 @@
 //!
 //! // List all assistants
 //! let assistants = api.list_assistants(None).await?;
-//! println!("Found {assistants.data.len(} assistants"));
+//! println!("Found {} assistants", assistants.data.len());
 //!
 //! // Delete the assistant
 //! let deleted = api.delete_assistant(&assistant.id).await?;
-//! println!("Deleted: {deleted.deleted}");
+//! println!("Deleted: {}", deleted.deleted);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! # });
 //! ```

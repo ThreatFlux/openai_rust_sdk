@@ -36,7 +36,7 @@
 //!     .build();
 //!
 //! let thread = api.create_thread(thread_request).await?;
-//! println!("Created thread: {thread.id}");
+//! println!("Created thread: {}", thread.id);
 //!
 //! // Add a message to the thread
 //! let message_request = MessageRequest::builder()
@@ -45,15 +45,15 @@
 //!     .build()?;
 //!
 //! let message = api.create_message(&thread.id, message_request).await?;
-//! println!("Created message: {message.id}");
+//! println!("Created message: {}", message.id);
 //!
 //! // List messages in the thread
 //! let messages = api.list_messages(&thread.id, None).await?;
-//! println!("Found {messages.data.len(} messages"));
+//! println!("Found {} messages", messages.data.len());
 //!
 //! // Delete the thread
 //! let deleted = api.delete_thread(&thread.id).await?;
-//! println!("Deleted: {deleted.deleted}");
+//! println!("Deleted: {}", deleted.deleted);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! # });
 //! ```
@@ -139,7 +139,7 @@ impl ThreadsApi {
     ///     .build();
     ///
     /// let thread = api.create_thread(thread_request).await?;
-    /// println!("Created thread: {thread.id}");
+    /// println!("Created thread: {}", thread.id);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -203,7 +203,7 @@ impl ThreadsApi {
     ///     .build();
     ///
     /// let thread = api.modify_thread("thread_abc123", thread_request).await?;
-    /// println!("Modified thread: {thread.id}");
+    /// println!("Modified thread: {}", thread.id);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -238,7 +238,7 @@ impl ThreadsApi {
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
     /// let deleted = api.delete_thread("thread_abc123").await?;
-    /// println!("Deleted: {deleted.deleted}");
+    /// println!("Deleted: {}", deleted.deleted);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -275,7 +275,7 @@ impl ThreadsApi {
     ///     .build()?;
     ///
     /// let message = api.create_message("thread_abc123", message_request).await?;
-    /// println!("Created message: {message.id}");
+    /// println!("Created message: {}", message.id);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -353,7 +353,7 @@ impl ThreadsApi {
     ///     .build()?;
     ///
     /// let message = api.modify_message("thread_abc123", "msg_abc123", message_request).await?;
-    /// println!("Modified message: {message.id}");
+    /// println!("Modified message: {}", message.id);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -396,7 +396,7 @@ impl ThreadsApi {
     ///     .order(SortOrder::Desc);
     ///
     /// let messages = api.list_messages("thread_abc123", Some(params)).await?;
-    /// println!("Found {messages.data.len(} messages"));
+    /// println!("Found {} messages", messages.data.len());
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -456,7 +456,7 @@ impl ThreadsApi {
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
     /// let files = api.list_message_files("thread_abc123", "msg_abc123").await?;
-    /// println!("Found {files.data.len(} files"));
+    /// println!("Found {} files", files.data.len());
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -491,7 +491,7 @@ impl ThreadsApi {
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
     /// let file = api.retrieve_message_file("thread_abc123", "msg_abc123", "file_abc123").await?;
-    /// println!("File created at: {file.created_at}");
+    /// println!("File created at: {}", file.created_at);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```

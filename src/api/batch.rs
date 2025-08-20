@@ -28,7 +28,7 @@
 //!
 //! // Monitor status
 //! let status = api.get_batch_status(&batch.id).await?;
-//! println!("Batch status: {status.status}");
+//! println!("Batch status: {}", status.status);
 //!
 //! // Retrieve results when complete
 //! if status.status == BatchStatus::Completed {
@@ -390,7 +390,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let file = api.upload_batch_file(Path::new("batch_input.jsonl")).await?;
-    /// println!("Uploaded file ID: {file.id}");
+    /// println!("Uploaded file ID: {}", file.id);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -443,7 +443,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let batch = api.create_batch("file-abc123", "/v1/chat/completions").await?;
-    /// println!("Created batch: {batch.id}");
+    /// println!("Created batch: {}", batch.id);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -493,7 +493,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let status = api.get_batch_status("batch_abc123").await?;
-    /// println!("Batch status: {status.status}");
+    /// println!("Batch status: {}", status.status);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -660,7 +660,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let (results, errors) = api.download_all_batch_files("batch_abc123", Path::new("./batch_output")).await?;
-    /// println!("Downloaded {} results and {results, errors} errors");
+    /// println!("Downloaded {} results and {} errors", results, errors);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -1005,7 +1005,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let cancelled_batch = api.cancel_batch("batch_abc123").await?;
-    /// println!("Batch status: {cancelled_batch.status}");
+    /// println!("Batch status: {}", cancelled_batch.status);
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -1037,7 +1037,7 @@ impl BatchApi {
     /// let api = BatchApi::new("your-api-key")?;
     /// let batches = api.list_batches(Some(10), None).await?;
     /// for batch in batches.data {
-    ///     println!("Batch {}: {batch.id, batch.status}");
+    ///     println!("Batch {}: {}", batch.id, batch.status);
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -1088,7 +1088,7 @@ impl BatchApi {
     ///         let results = api.get_batch_results(&final_batch.id).await?;
     ///         println!("Results: {results}");
     ///     }
-    ///     _ => println!("Batch finished with status: {final_batch.status}"),
+    ///     _ => println!("Batch finished with status: {}", final_batch.status),
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });

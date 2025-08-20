@@ -36,19 +36,19 @@
 //!     FilePurpose::FineTune
 //! ).await?;
 //! let file = api.upload_file(upload_request).await?;
-//! println!("Uploaded file: {file.id}");
+//! println!("Uploaded file: {}", file.id);
 //!
 //! // List all files
 //! let files = api.list_files(None).await?;
-//! println!("Found {files.data.len(} files"));
+//! println!("Found {} files", files.data.len());
 //!
 //! // Download file content
 //! let content = api.retrieve_file_content(&file.id).await?;
-//! println!("File content: {content}");
+//! println!("File content: {}", content);
 //!
 //! // Delete the file
 //! let deleted = api.delete_file(&file.id).await?;
-//! println!("File deleted: {deleted.deleted}");
+//! println!("File deleted: {}", deleted.deleted);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! # });
 //! ```
@@ -128,7 +128,7 @@ impl FilesApi {
     ///     FilePurpose::FineTune
     /// ).await?;
     /// let file = api.upload_file(request).await?;
-    /// println!("Uploaded file: {file.id}");
+    /// println!("Uploaded file: {}", file.id);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -214,7 +214,7 @@ impl FilesApi {
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
     /// let file = api.retrieve_file("file-abc123").await?;
-    /// println!("File: {} ({file.filename, file.size_human_readable(})"));
+    /// println!("File: {} ({})", file.filename, file.size_human_readable());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -240,7 +240,7 @@ impl FilesApi {
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
     /// let content = api.retrieve_file_content("file-abc123").await?;
-    /// println!("File content length: {content.len(} characters"));
+    /// println!("File content length: {} characters", content.len());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -270,7 +270,7 @@ impl FilesApi {
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
     /// let bytes = api.retrieve_file_bytes("file-abc123").await?;
-    /// println!("File size: {bytes.len(} bytes"));
+    /// println!("File size: {} bytes", bytes.len());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -300,7 +300,7 @@ impl FilesApi {
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
     /// let bytes_written = api.download_file("file-abc123", Path::new("downloaded_file.jsonl")).await?;
-    /// println!("Downloaded {bytes_written} bytes");
+    /// println!("Downloaded {} bytes", bytes_written);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -343,7 +343,7 @@ impl FilesApi {
     /// let api = FilesApi::new("your-api-key")?;
     /// let result = api.delete_file("file-abc123").await?;
     /// if result.deleted {
-    ///     println!("File {result.id} was successfully deleted");
+    ///     println!("File {} was successfully deleted", result.id);
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -376,7 +376,7 @@ impl FilesApi {
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
     /// let fine_tune_files = api.list_files_by_purpose(FilePurpose::FineTune, Some(10)).await?;
-    /// println!("Found {fine_tune_files.data.len(} fine-tuning files"));
+    /// println!("Found {} fine-tuning files", fine_tune_files.data.len());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -409,7 +409,7 @@ impl FilesApi {
     /// let api = FilesApi::new("your-api-key")?;
     /// let stats = api.get_file_usage_stats().await?;
     /// for (purpose, (count, size)) in stats {
-    ///     println!("{}: {} files, {purpose, count, size} bytes");
+    ///     println!("{}: {} files, {} bytes", purpose, count, size);
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -449,7 +449,7 @@ impl FilesApi {
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
     /// let deleted_ids = api.bulk_delete_files_by_purpose(FilePurpose::UserData, Some(5)).await?;
-    /// println!("Deleted {deleted_ids.len(} files"));
+    /// println!("Deleted {} files", deleted_ids.len());
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```

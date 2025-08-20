@@ -92,7 +92,7 @@
 //! "#;
 //!
 //! let result = validator.validate_rule(rule)?;
-//! println!("Rule is valid: {result.is_valid}");
+//! println!("Rule is valid: {}", result.is_valid);
 //! # Ok::<(), anyhow::Error>(())
 //! # }).unwrap();
 //! ```

@@ -18,7 +18,7 @@
 //! let test_cases = YaraTestCases::new();
 //! let results = test_cases.run_all_tests()?;
 //!
-//! println!("Passed: {}/{results.passed_tests, results.total_tests}");
+//! println!("Passed: {}/{}", results.passed_tests, results.total_tests);
 //! println!("Success rate: {:.1}%", results.success_rate);
 //! # Ok::<(), anyhow::Error>(())
 //! ```
