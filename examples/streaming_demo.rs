@@ -253,6 +253,7 @@ async fn await_backpressure_demo() -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn generate_sample_rules() -> Vec<(String, String)> {
     vec![
         (

@@ -69,6 +69,7 @@ pub struct ChatMessage {
 ///
 /// The generator creates properly formatted batch job files that can be
 /// submitted to `OpenAI`'s Batch API for automated YARA rule generation.
+#[allow(dead_code)]
 pub struct BatchJobGenerator {
     /// System prompt used for all generated jobs
     system_prompt: String,
@@ -95,6 +96,7 @@ impl BatchJobGenerator {
     /// let generator = BatchJobGenerator::new(Some("gpt-3.5-turbo".to_string()));
     /// ```
     #[must_use]
+    #[allow(dead_code)]
     pub fn new(model: Option<String>) -> Self {
         let system_prompt = "You are an expert YARA rule developer. Create syntactically correct YARA rules. Return only the YARA rule code.";
 
@@ -138,6 +140,7 @@ impl BatchJobGenerator {
     /// )?;
     /// # Ok::<(), anyhow::Error>(())
     /// ```
+    #[allow(dead_code)]
     pub fn generate_test_suite(&self, output_path: &Path, suite_name: &str) -> Result<()> {
         let prompts = match suite_name {
             "basic" => vec![

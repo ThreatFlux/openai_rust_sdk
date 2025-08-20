@@ -12,5 +12,5 @@ ignore = [
 
 # Set audit behavior
 [output]
-deny = ["unmaintained", "vulnerability"]
+deny = ["unmaintained", "vulnerabilities"]
 warn = []

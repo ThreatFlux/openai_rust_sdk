@@ -4,8 +4,10 @@ mod testing;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+#[cfg(feature = "yara")]
 use std::fs;
 use std::path::PathBuf;
+#[cfg(feature = "yara")]
 use testing::BatchJobGenerator;
 
 #[cfg(feature = "yara")]

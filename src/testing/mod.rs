@@ -24,6 +24,7 @@ mod validator_helpers;
 #[cfg(feature = "yara")]
 pub mod yara_validator;
 
+#[allow(unused_imports)]
 pub use batch_generator::BatchJobGenerator;
 
 #[cfg(feature = "yara")]
