@@ -102,10 +102,9 @@ rule DetectPE_UPX {
 
         // Read the generated batch file
         let batch_content = fs::read_to_string(batch_file).unwrap();
-        let lines: Vec<&str> = batch_content.lines().collect();
         println!(
             "\n✓ Generated {} batch requests for yara-x testing",
-            lines.len()
+            batch_content.lines().count()
         );
     }
 

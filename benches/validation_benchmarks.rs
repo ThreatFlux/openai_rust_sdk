@@ -147,7 +147,7 @@ fn benchmark_pattern_testing(c: &mut Criterion) {
         ),
         (
             "regex_pattern",
-            r"rule test { strings: $r = /test[0-9]+/ condition: $r },
+            r"rule test { strings: $r = /test[0-9]+/ condition: $r }",
         ),
         (
             "multiple_patterns",
@@ -265,7 +265,7 @@ fn benchmark_error_handling(c: &mut Criterion) {
         ("syntax_error", "rule invalid { condition invalid_syntax }"),
         (
             "missing_condition",
-            "rule incomplete { strings: $s = "test" }",
+            r#"rule incomplete { strings: $s = "test" }"#,
         ),
         ("empty_rule", ""),
         ("malformed", "this is not a YARA rule "),
@@ -283,13 +283,25 @@ fn benchmark_error_handling(c: &mut Criterion) {
 // Helper function to generate rules with varying numbers of strings
 #[cfg(feature = "yara")]
 fn generate_rule_with_strings(string_count: usize) -> String {
-    let mut rule = String::from("rule generated_rule {\n    strings:\n");
+    let mut rule = String::from(
+        r"rule generated_rule {
+    strings:
+",
+    );
 
     for i in 0..string_count {
-        rule.push_str(&format!("        $str{} = \"test_string_{}\"\n", i, i));
+        rule.push_str(&format!(
+            r#"        $str{} = "test_string_{}"
+"#,
+            i, i
+        ));
     }
 
-    rule.push_str("    condition:\n        any of them\n}");
+    rule.push_str(
+        r"    condition:
+        any of them
+}",
+    );
     rule
 }
 

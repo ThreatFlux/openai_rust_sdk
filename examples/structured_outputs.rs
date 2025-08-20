@@ -76,7 +76,7 @@ async fn example_structured_validation() -> Result<(), Box<dyn std::error::Error
         ),
         (
             "Hex Rule",
-            r"rule with_hex { strings: $h = { FF FE } condition: $h },
+            r"rule with_hex { strings: $h = { FF FE } condition: $h }",
         ),
         (
             "Invalid Rule ",

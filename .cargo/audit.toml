@@ -9,8 +9,3 @@ ignore = [
     # Instant is unmaintained - used by wiremock test dependency
     "RUSTSEC-2024-0384",
 ]
-
-# Set audit behavior
-[output]
-deny = ["unmaintained", "vulnerabilities"]
-warn = []

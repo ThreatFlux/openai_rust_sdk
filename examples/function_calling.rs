@@ -1,7 +1,7 @@
-//! Comprehensive examples of function calling with the OpenAI SDK
+//! Comprehensive examples of function calling with the `OpenAI` SDK
 //!
 //! This example demonstrates:
-//! - Basic function calling (get_weather example)
+//! - Basic function calling (`get_weather` example)
 //! - Multiple function calls in parallel
 //! - Custom tools with grammar
 //! - Streaming function calls
