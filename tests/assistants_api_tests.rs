@@ -286,7 +286,7 @@ fn test_assistant_serialization() {
     let assistant = Assistant {
         id: "asst_123".to_string(),
         object: "assistant".to_string(),
-        created_at: 1234567890,
+        created_at: 1_234_567_890,
         name: Some("Test Assistant".to_string()),
         description: Some("A test assistant".to_string()),
         model: "gpt-4".to_string(),
@@ -355,7 +355,7 @@ fn test_list_assistants_response() {
             Assistant {
                 id: "asst_1".to_string(),
                 object: "assistant".to_string(),
-                created_at: 1234567890,
+                created_at: 1_234_567_890,
                 name: Some("Assistant 1".to_string()),
                 description: None,
                 model: "gpt-4".to_string(),
@@ -367,7 +367,7 @@ fn test_list_assistants_response() {
             Assistant {
                 id: "asst_2".to_string(),
                 object: "assistant".to_string(),
-                created_at: 1234567891,
+                created_at: 1_234_567_891,
                 name: Some("Assistant 2".to_string()),
                 description: None,
                 model: "gpt-3.5-turbo".to_string(),

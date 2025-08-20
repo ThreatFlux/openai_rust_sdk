@@ -201,7 +201,7 @@ fn test_json_serialization_roundtrip() {
 #[test]
 fn test_pretty_json_output() {
     let validator = YaraValidator::new();
-    let rule = r#"rule pretty_test { condition: true }"#;
+    let rule = r"rule pretty_test { condition: true }";
 
     let result = validator.validate_rule(rule).unwrap();
 
@@ -296,7 +296,7 @@ fn test_feature_flags_structure() {
     // Test different feature combinations
     let test_cases: Vec<TestCase> = vec![
         (
-            r#"rule simple { condition: true }"#,
+            r"rule simple { condition: true }",
             Box::new(
                 |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
                     !f.has_strings
@@ -315,7 +315,7 @@ fn test_feature_flags_structure() {
             ),
         ),
         (
-            r#"rule with_hex { strings: $h = { FF FE } condition: $h }"#,
+            r"rule with_hex { strings: $h = { FF FE } condition: $h }",
             Box::new(
                 |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
                     f.has_strings && f.has_hex_patterns && !f.has_regex_patterns
@@ -323,7 +323,7 @@ fn test_feature_flags_structure() {
             ),
         ),
         (
-            r#"rule with_regex { strings: $r = /test[0-9]+/ condition: $r }"#,
+            r"rule with_regex { strings: $r = /test[0-9]+/ condition: $r }",
             Box::new(
                 |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
                     f.has_strings && !f.has_hex_patterns && f.has_regex_patterns
@@ -347,7 +347,7 @@ fn test_metrics_consistency() {
     let validator = YaraValidator::new();
 
     let rules = vec![
-        r#"rule small { condition: true }"#,
+        r"rule small { condition: true }",
         r#"rule medium { 
             strings: $s = "test" 
             condition: $s 
@@ -425,7 +425,9 @@ fn test_structured_data_aggregation() {
     assert!(total_size > 0);
 
     // Calculate averages
+    #[allow(clippy::cast_precision_loss)]
     let avg_compilation_time = total_compilation_time as f64 / suite_result.total_tests as f64;
+    #[allow(clippy::cast_precision_loss)]
     let avg_size = total_size as f64 / suite_result.total_tests as f64;
 
     assert!(avg_compilation_time >= 0.0);

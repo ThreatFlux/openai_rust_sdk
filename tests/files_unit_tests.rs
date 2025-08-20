@@ -254,8 +254,7 @@ fn test_file_upload_request_mime_types() {
         assert_eq!(
             request.mime_type(),
             expected_mime,
-            "Wrong MIME type for {}",
-            filename
+            "Wrong MIME type for {filename}",
         );
     }
 }
@@ -266,7 +265,7 @@ fn test_file_object_methods() {
         id: "file-123".to_string(),
         object: "file".to_string(),
         bytes: 2048,
-        created_at: 1640995200,
+        created_at: 1_640_995_200,
         filename: "train.jsonl".to_string(),
         purpose: "fine-tune".to_string(),
         status: "uploaded".to_string(),
@@ -289,7 +288,7 @@ fn test_file_object_methods() {
         id: "file-456".to_string(),
         object: "file".to_string(),
         bytes: 1024 * 1024 * 5,
-        created_at: 1640995200,
+        created_at: 1_640_995_200,
         filename: "knowledge.txt".to_string(),
         purpose: "assistants".to_string(),
         status: "uploaded".to_string(),
@@ -305,7 +304,7 @@ fn test_file_object_methods() {
         id: "file-789".to_string(),
         object: "file".to_string(),
         bytes: 1024 * 1024 * 1024 * 2,
-        created_at: 1640995200,
+        created_at: 1_640_995_200,
         filename: "batch.jsonl".to_string(),
         purpose: "batch".to_string(),
         status: "processed".to_string(),
@@ -346,8 +345,7 @@ fn test_file_size_human_readable() {
         assert_eq!(
             file.size_human_readable(),
             expected,
-            "Wrong formatting for {} bytes",
-            bytes
+            "Wrong formatting for {bytes} bytes",
         );
     }
 }
@@ -359,7 +357,7 @@ fn test_list_files_response_methods() {
             id: "file-1".to_string(),
             object: "file".to_string(),
             bytes: 1024,
-            created_at: 1640995200,
+            created_at: 1_640_995_200,
             filename: "train1.jsonl".to_string(),
             purpose: "fine-tune".to_string(),
             status: "uploaded".to_string(),
@@ -369,7 +367,7 @@ fn test_list_files_response_methods() {
             id: "file-2".to_string(),
             object: "file".to_string(),
             bytes: 2048,
-            created_at: 1640995300,
+            created_at: 1_640_995_300,
             filename: "train2.jsonl".to_string(),
             purpose: "fine-tune".to_string(),
             status: "uploaded".to_string(),
@@ -379,7 +377,7 @@ fn test_list_files_response_methods() {
             id: "file-3".to_string(),
             object: "file".to_string(),
             bytes: 4096,
-            created_at: 1640995400,
+            created_at: 1_640_995_400,
             filename: "knowledge.txt".to_string(),
             purpose: "assistants".to_string(),
             status: "uploaded".to_string(),
@@ -389,7 +387,7 @@ fn test_list_files_response_methods() {
             id: "file-4".to_string(),
             object: "file".to_string(),
             bytes: 8192,
-            created_at: 1640995500,
+            created_at: 1_640_995_500,
             filename: "batch.jsonl".to_string(),
             purpose: "batch".to_string(),
             status: "processed".to_string(),
@@ -544,7 +542,7 @@ fn test_file_created_at_formatted() {
         id: "file-123".to_string(),
         object: "file".to_string(),
         bytes: 1024,
-        created_at: 1640995200, // 2022-01-01 00:00:00 UTC
+        created_at: 1_640_995_200, // 2022-01-01 00:00:00 UTC
         filename: "test.txt".to_string(),
         purpose: "user_data".to_string(),
         status: "uploaded".to_string(),
@@ -562,7 +560,6 @@ fn test_file_created_at_formatted() {
         formatted.contains("1640995200") || // Unix-like systems may show the raw timestamp
         formatted.contains("2022") || // Some systems might format as a date
         formatted.len() > 10, // At minimum, it should have some content
-        "Formatted time string: {}",
-        formatted
+        "Formatted time string: {formatted}",
     );
 }

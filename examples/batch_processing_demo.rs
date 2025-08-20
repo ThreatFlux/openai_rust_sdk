@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Total requests: {}", batch.request_counts.total);
 
     let expires_at = format!("Unix timestamp: {}", batch.expires_at);
-    println!("   Expires at: {}", expires_at);
+    println!("   Expires at: {expires_at}");
 
     // Step 4: Monitor batch progress
     println!("\n⏳ Step 4: Monitoring batch progress...");
@@ -94,14 +94,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("✅ Files downloaded successfully:");
                 println!("   📁 Output directory: {}", output_dir.display());
-                println!("   📄 Result lines: {}", result_count);
-                println!("   ❌ Error lines: {}", error_count);
+                println!("   📄 Result lines: {result_count}");
+                println!("   ❌ Error lines: {error_count}");
 
                 // Step 6: Process YARA rules and generate report
                 println!("\n🔧 Step 6: Processing YARA rules and generating report...");
 
-                let results_file = output_dir.join(format!("{}_results.jsonl", batch_id));
-                let errors_file = output_dir.join(format!("{}_errors.jsonl", batch_id));
+                let results_file = output_dir.join(format!("{batch_id}_results.jsonl"));
+                let errors_file = output_dir.join(format!("{batch_id}_errors.jsonl"));
                 let yara_dir = output_dir.join("yara_rules");
                 let report_file = output_dir.join("batch_report.md");
 
@@ -166,7 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             BatchStatus::Failed => {
                 println!("❌ Batch failed!");
                 if let Ok(Some(errors)) = batch_api.get_batch_errors(&batch_id).await {
-                    println!("Error details: {}", errors);
+                    println!("Error details: {errors}");
                 }
                 break;
             }
@@ -187,8 +187,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         status.status
                     );
                     println!(
-                        "   You can continue monitoring with: get_batch_status(\"{}\")",
-                        batch_id
+                        "   You can continue monitoring with: get_batch_status(\"{batch_id}\")"
                     );
                     break;
                 }

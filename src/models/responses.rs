@@ -1024,7 +1024,7 @@ pub struct ImageUtils;
 impl ImageUtils {
     /// Encode image bytes to base64 data URL
     #[must_use]
-    pub fn encode_to_data_url(image_data: &[u8], format: ImageFormat) -> String {
+    pub fn encode_to_data_url(image_data: &[u8], format: &ImageFormat) -> String {
         let base64_data = general_purpose::STANDARD.encode(image_data);
         format!("data:{};base64,{}", format.mime_type(), base64_data)
     }
@@ -1094,7 +1094,7 @@ impl MessageContent {
 
     /// Create image content from bytes and format
     #[must_use]
-    pub fn image_from_bytes(image_data: &[u8], format: ImageFormat) -> Self {
+    pub fn image_from_bytes(image_data: &[u8], format: &ImageFormat) -> Self {
         let data_url = ImageUtils::encode_to_data_url(image_data, format);
         MessageContent::Image {
             image_url: ImageUrl {
@@ -1108,7 +1108,7 @@ impl MessageContent {
     #[must_use]
     pub fn image_from_bytes_with_detail(
         image_data: &[u8],
-        format: ImageFormat,
+        format: &ImageFormat,
         detail: ImageDetail,
     ) -> Self {
         let data_url = ImageUtils::encode_to_data_url(image_data, format);
@@ -1214,7 +1214,7 @@ impl Message {
     pub fn user_with_image_bytes(
         text: impl Into<String>,
         image_data: &[u8],
-        format: ImageFormat,
+        format: &ImageFormat,
     ) -> Self {
         Self {
             role: MessageRole::User,

@@ -76,7 +76,7 @@ impl CustomToolsApi {
 
         // Create validator if grammar is provided
         if let Some(grammar) = &tool.grammar {
-            let validator = self.create_validator(grammar)?;
+            let validator = Self::create_validator(grammar)?;
             self.validators.insert(name.clone(), validator);
         }
 
@@ -98,26 +98,21 @@ impl CustomToolsApi {
 
     /// Validate input for a tool with grammar
     pub fn validate_input(&self, tool_name: &str, input: &str) -> Result<bool> {
-        if let Some(validator) = self.validators.get(tool_name) {
-            validator.validate(input)
-        } else {
-            // If no validator, accept all input
-            Ok(true)
-        }
+        self.validators
+            .get(tool_name)
+            .map_or_else(|| Ok(true), |validator| validator.validate(input))
     }
 
     /// Parse input for a tool with grammar
     pub fn parse_input(&self, tool_name: &str, input: &str) -> Result<Value> {
-        if let Some(validator) = self.validators.get(tool_name) {
-            validator.parse(input)
-        } else {
-            // Return input as string value if no parser
-            Ok(Value::String(input.to_string()))
-        }
+        self.validators.get(tool_name).map_or_else(
+            || Ok(Value::String(input.to_string())),
+            |validator| validator.parse(input),
+        )
     }
 
     /// Create a validator from grammar specification
-    fn create_validator(&self, grammar: &Grammar) -> Result<Box<dyn GrammarValidator>> {
+    fn create_validator(grammar: &Grammar) -> Result<Box<dyn GrammarValidator>> {
         match grammar {
             Grammar::Lark { definition } => Ok(Box::new(LarkValidator::new(definition.clone())?)),
             Grammar::Regex { pattern, flags } => Ok(Box::new(RegexValidator::new(
@@ -218,7 +213,7 @@ impl RegexValidator {
 
     /// Get the regex flags
     #[must_use]
-    pub fn flags(&self) -> Option<&Vec<String>> {
+    pub const fn flags(&self) -> Option<&Vec<String>> {
         self.flags.as_ref()
     }
 }
@@ -273,7 +268,7 @@ impl CfgValidator {
 
     /// Get the CFG rules
     #[must_use]
-    pub fn rules(&self) -> &HashMap<String, Vec<String>> {
+    pub const fn rules(&self) -> &HashMap<String, Vec<String>> {
         &self.rules
     }
 
@@ -331,24 +326,28 @@ impl CustomToolBuilder {
     }
 
     /// Set the tool name
+    #[must_use]
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
     }
 
     /// Set the tool description
+    #[must_use]
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = Some(description.into());
         self
     }
 
     /// Add a Lark grammar
+    #[must_use]
     pub fn lark_grammar(mut self, definition: impl Into<String>) -> Self {
         self.grammar = Some(Grammar::lark(definition));
         self
     }
 
     /// Add a regex grammar
+    #[must_use]
     pub fn regex_grammar(mut self, pattern: impl Into<String>, flags: Option<Vec<String>>) -> Self {
         self.grammar = Some(Grammar::regex(pattern, flags));
         self

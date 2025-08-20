@@ -49,12 +49,12 @@ async fn main() -> Result<()> {
 
                 // Display output file if completed
                 if let Some(output_file) = &batch.output_file_id {
-                    println!("   Output File: {}", output_file);
+                    println!("   Output File: {output_file}");
                 }
 
                 // Display error file if present
                 if let Some(error_file) = &batch.error_file_id {
-                    println!("   ⚠️  Error File: {}", error_file);
+                    println!("   ⚠️  Error File: {error_file}");
                 }
 
                 // Parse and display timestamps
@@ -70,7 +70,7 @@ async fn main() -> Result<()> {
                     // Calculate duration if both timestamps exist
                     if let Some(started) = batch.in_progress_at {
                         let duration = completed_at - started;
-                        println!("   Duration: {} seconds", duration);
+                        println!("   Duration: {duration} seconds");
                     }
                 }
 
@@ -90,7 +90,7 @@ async fn main() -> Result<()> {
 
                 if counts.total > 0 {
                     let success_rate = (counts.completed as f64 / counts.total as f64) * 100.0;
-                    println!("      Success Rate: {:.1}%", success_rate);
+                    println!("      Success Rate: {success_rate:.1}%");
                 }
 
                 // Display metadata if present
@@ -100,7 +100,7 @@ async fn main() -> Result<()> {
                             if !obj.is_empty() {
                                 println!("\n   📎 Metadata:");
                                 for (key, value) in obj {
-                                    println!("      {}: {}", key, value);
+                                    println!("      {key}: {value}");
                                 }
                             }
                         }
@@ -127,8 +127,9 @@ async fn main() -> Result<()> {
             println!("  🚫 Cancelled: {}", stats.cancelled);
 
             if stats.total > 0 {
+                #[allow(clippy::cast_precision_loss)]
                 let success_rate = (stats.completed as f64 / stats.total as f64) * 100.0;
-                println!("\nOverall Success Rate: {:.1}%", success_rate);
+                println!("\nOverall Success Rate: {success_rate:.1}%");
             }
 
             // Note about pagination
@@ -142,7 +143,7 @@ async fn main() -> Result<()> {
             }
         }
         Err(e) => {
-            eprintln!("❌ Error fetching batch jobs: {}", e);
+            eprintln!("❌ Error fetching batch jobs: {e}");
             eprintln!("\nPossible causes:");
             eprintln!("  - Invalid API key");
             eprintln!("  - Network connectivity issues");

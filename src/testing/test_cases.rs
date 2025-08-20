@@ -18,7 +18,7 @@
 //! let test_cases = YaraTestCases::new();
 //! let results = test_cases.run_all_tests()?;
 //!
-//! println!("Passed: {}/{}", results.passed_tests, results.total_tests);
+//! println!("Passed: {}/{results.passed_tests, results.total_tests}");
 //! println!("Success rate: {:.1}%", results.success_rate);
 //! # Ok::<(), anyhow::Error>(())
 //! ```
@@ -186,7 +186,10 @@ impl YaraTestCases {
         let total_tests = test_results.len();
         let failed_tests = total_tests - passed_tests;
         let success_rate = if total_tests > 0 {
-            (passed_tests as f64 / total_tests as f64) * 100.0
+            #[allow(clippy::cast_precision_loss)]
+            {
+                (passed_tests as f64 / total_tests as f64) * 100.0
+            }
         } else {
             0.0
         };
@@ -236,7 +239,10 @@ mod tests {
 
         // Success rate should be calculated correctly
         let expected_rate = if result.total_tests > 0 {
-            (result.passed_tests as f64 / result.total_tests as f64) * 100.0
+            #[allow(clippy::cast_precision_loss)]
+            {
+                (result.passed_tests as f64 / result.total_tests as f64) * 100.0
+            }
         } else {
             0.0
         };
@@ -358,7 +364,10 @@ mod tests {
         assert_eq!(result.passed_tests, manual_passed);
 
         let manual_rate = if result.total_tests > 0 {
-            (manual_passed as f64 / result.total_tests as f64) * 100.0
+            #[allow(clippy::cast_precision_loss)]
+            {
+                (manual_passed as f64 / result.total_tests as f64) * 100.0
+            }
         } else {
             0.0
         };

@@ -18,7 +18,7 @@ use tokio::fs;
 pub struct ContainersApi {
     /// HTTP client for making requests
     client: Client,
-    /// OpenAI API key for authentication
+    /// `OpenAI` API key for authentication
     api_key: String,
     /// Base URL for API requests
     base_url: String,
@@ -26,6 +26,7 @@ pub struct ContainersApi {
 
 impl ContainersApi {
     /// Create a new Containers API client
+    #[allow(clippy::unnecessary_wraps)]
     pub fn new(api_key: String) -> Result<Self, OpenAIError> {
         Ok(Self {
             client: Client::new(),

@@ -1090,7 +1090,7 @@ mod tests {
         let mut store = VectorStore {
             id: "vs-123".to_string(),
             object: "vector_store".to_string(),
-            created_at: 1640995200,
+            created_at: 1_640_995_200,
             name: Some("Test Store".to_string()),
             usage_bytes: 1024,
             file_counts: FileCounts::new(),
@@ -1125,7 +1125,7 @@ mod tests {
             VectorStore {
                 id: "vs-1".to_string(),
                 object: "vector_store".to_string(),
-                created_at: 1640995200,
+                created_at: 1_640_995_200,
                 name: Some("Store 1".to_string()),
                 usage_bytes: 500,
                 file_counts: FileCounts::new(),
@@ -1138,7 +1138,7 @@ mod tests {
             VectorStore {
                 id: "vs-2".to_string(),
                 object: "vector_store".to_string(),
-                created_at: 1640995300,
+                created_at: 1_640_995_300,
                 name: Some("Store 2".to_string()),
                 usage_bytes: 1500,
                 file_counts: FileCounts::new(),

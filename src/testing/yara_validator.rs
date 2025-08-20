@@ -2,6 +2,9 @@
 //!
 //! This module provides comprehensive YARA rule validation using the yara-x engine.
 //! It includes compilation testing, feature analysis, and pattern matching validation.
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::missing_const_for_fn)]
 //!
 //! ## Features
 //!
@@ -238,6 +241,7 @@ impl YaraValidator {
     /// # Returns
     ///
     /// Returns compiled `Rules` on success or an error if compilation fails
+    #[allow(clippy::unused_self)]
     fn compile_rule(&self, rule_source: &str) -> Result<Rules> {
         let mut compiler = Compiler::new();
         compiler
@@ -259,6 +263,7 @@ impl YaraValidator {
     /// # Returns
     ///
     /// Returns the rule name if found, None otherwise
+    #[allow(clippy::unused_self)]
     fn extract_rule_name(&self, rule_source: &str) -> Option<String> {
         for line in rule_source.lines() {
             let line = line.trim();
@@ -288,6 +293,7 @@ impl YaraValidator {
     /// # Returns
     ///
     /// Returns a `RuleFeatures` struct with detailed feature analysis
+    #[allow(clippy::unused_self)]
     fn analyze_features(&self, rule_source: &str) -> RuleFeatures {
         let mut features = RuleFeatures::default();
         let source_lower = rule_source.to_lowercase();
@@ -347,6 +353,7 @@ impl YaraValidator {
     ///
     /// Returns a vector of `PatternTestResult` with match results
     /// for each test sample
+    #[allow(clippy::unnecessary_wraps)]
     fn test_patterns(&self, rules: &Rules) -> Result<Vec<PatternTestResult>> {
         let mut results = Vec::new();
         let mut scanner = Scanner::new(rules);
@@ -426,14 +433,14 @@ mod tests {
     #[test]
     fn test_valid_hex_pattern_rule() {
         let validator = YaraValidator::new();
-        let rule = r#"
+        let rule = r"
             rule hex_rule {
                 strings:
                     $hex = { 4D 5A }
                 condition:
                     $hex
             }
-        "#;
+        ";
 
         let result = validator.validate_rule(rule).unwrap();
 
@@ -489,14 +496,14 @@ mod tests {
     #[test]
     fn test_rule_with_regex() {
         let validator = YaraValidator::new();
-        let rule = r#"
+        let rule = r"
             rule regex_rule {
                 strings:
                     $regex = /test[0-9]+/
                 condition:
                     $regex
             }
-        "#;
+        ";
 
         let result = validator.validate_rule(rule).unwrap();
 
@@ -603,14 +610,14 @@ mod tests {
     #[test]
     fn test_pattern_testing() {
         let validator = YaraValidator::new();
-        let rule = r#"
+        let rule = r"
             rule pe_detector {
                 strings:
                     $mz = { 4D 5A }
                 condition:
                     $mz at 0
             }
-        "#;
+        ";
 
         let result = validator.validate_rule(rule).unwrap();
 
@@ -632,11 +639,11 @@ mod tests {
     #[test]
     fn test_validation_metrics() {
         let validator = YaraValidator::new();
-        let rule = r#"
+        let rule = r"
             rule metric_test {
                 condition: true
             }
-        "#;
+        ";
 
         let result = validator.validate_rule(rule).unwrap();
 
@@ -662,14 +669,14 @@ mod tests {
     #[test]
     fn test_serialization() {
         let validator = YaraValidator::new();
-        let rule = r#"
+        let rule = "
             rule serialization_test {
                 strings:
-                    $test = "hello"
+                    $test = \"hello\"
                 condition:
                     $test
             }
-        "#;
+        ";
 
         let result = validator.validate_rule(rule).unwrap();
 

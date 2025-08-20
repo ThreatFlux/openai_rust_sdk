@@ -125,7 +125,7 @@ mod batch_status_tests {
             assert!(!serialized.is_empty());
 
             let deserialized: BatchStatus = serde_json::from_str(&serialized).unwrap();
-            assert_eq!(format!("{:?}", status), format!("{:?}", deserialized));
+            assert_eq!(format!("{status:?}"), format!("{:?}", deserialized));
         }
     }
 

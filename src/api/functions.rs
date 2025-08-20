@@ -239,7 +239,7 @@ impl FunctionsApi {
                     "description": "Sunny"
                 });
 
-                Ok(FunctionCallOutput::from_json(&call.call_id, result)?)
+                Ok(FunctionCallOutput::from_json(&call.call_id, &result)?)
             }
             "get_time" => {
                 let result = json!({
@@ -247,7 +247,7 @@ impl FunctionsApi {
                     "timezone": "UTC"
                 });
 
-                Ok(FunctionCallOutput::from_json(&call.call_id, result)?)
+                Ok(FunctionCallOutput::from_json(&call.call_id, &result)?)
             }
             _ => Err(OpenAIError::invalid_request(format!(
                 "Unknown function: {}",
@@ -294,6 +294,8 @@ impl FunctionsApi {
     }
 
     /// Convert tools to API format
+    #[allow(clippy::unused_self)]
+    #[allow(clippy::unnecessary_wraps)]
     fn serialize_tools(&self, tools: &[Tool]) -> Result<Vec<Value>> {
         let mut serialized = Vec::new();
 
@@ -332,6 +334,9 @@ impl FunctionsApi {
     }
 
     /// Convert input to messages format
+    #[allow(clippy::unused_self)]
+    #[allow(clippy::unnecessary_wraps)]
+    #[allow(clippy::match_same_arms)]
     fn convert_input_to_messages(
         &self,
         input: &crate::models::responses::ResponseInput,
@@ -424,6 +429,7 @@ impl FunctionsApi {
     }
 
     /// Parse tool calls from the API response
+    #[allow(clippy::unused_self)]
     fn parse_tool_calls(&self, tool_calls: &[Value]) -> Result<Vec<FunctionCall>> {
         let mut calls = Vec::new();
 
@@ -472,6 +478,7 @@ impl FunctionsApi {
     }
 
     /// Add function results to a request for continuation
+    #[allow(clippy::match_same_arms)]
     fn add_function_results_to_request(
         &self,
         request: &mut ResponseRequest,
@@ -514,6 +521,7 @@ impl FunctionsApi {
     }
 
     /// Get current timestamp
+    #[allow(clippy::unused_self)]
     fn current_timestamp(&self) -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -562,21 +570,21 @@ impl FunctionConfig {
 
     /// Enable/disable parallel function calls
     #[must_use]
-    pub fn with_parallel_calls(mut self, enabled: bool) -> Self {
+    pub const fn with_parallel_calls(mut self, enabled: bool) -> Self {
         self.parallel_function_calls = Some(enabled);
         self
     }
 
     /// Enable/disable strict mode
     #[must_use]
-    pub fn with_strict_mode(mut self, enabled: bool) -> Self {
+    pub const fn with_strict_mode(mut self, enabled: bool) -> Self {
         self.strict_mode = Some(enabled);
         self
     }
 
     /// Set maximum function calls per response
     #[must_use]
-    pub fn with_max_calls(mut self, max: u32) -> Self {
+    pub const fn with_max_calls(mut self, max: u32) -> Self {
         self.max_function_calls = Some(max);
         self
     }

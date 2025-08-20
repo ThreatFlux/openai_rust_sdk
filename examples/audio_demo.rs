@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sample_text = "Hello! Welcome to the OpenAI Audio API demonstration. This showcases the text-to-speech capabilities with different voice options.";
 
     for voice in AudioApi::available_voices() {
-        println!("🎤 Generating speech with {:?} voice...", voice);
+        println!("🎤 Generating speech with {voice:?} voice...");
 
         let request = SpeechBuilder::tts_1(sample_text, voice.clone())
             .mp3()
@@ -46,14 +46,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let response = audio_api.create_speech(&request).await?;
 
-        let filename = format!("output_voice_{:?}.mp3", voice).to_lowercase();
+        let filename = format!("output_voice_{voice:?}.mp3").to_lowercase();
         response.save_to_file(&filename).await?;
 
         println!("✅ Saved {} ({} bytes)", filename, response.data().len());
 
         // Calculate estimated cost
         let cost = AudioUtils::estimate_tts_cost(sample_text, AudioModels::TTS_1);
-        println!("💰 Estimated cost: ${:.6}", cost);
+        println!("💰 Estimated cost: ${cost:.6}");
     }
 
     println!();
@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hq_text = "This is a high-quality audio sample demonstrating different output formats available in the OpenAI TTS API.";
 
     for format in formats {
-        println!("🔧 Generating {:?} format...", format);
+        println!("🔧 Generating {format:?} format...");
 
         let request = SpeechBuilder::tts_1_hd(hq_text, Voice::Nova)
             .format(format.clone())
@@ -89,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             _ => "audio",
         };
 
-        let filename = format!("hq_output.{}", extension);
+        let filename = format!("hq_output.{extension}");
         response.save_to_file(&filename).await?;
 
         println!("✅ Saved {} ({} bytes)", filename, response.data().len());
@@ -97,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Estimate duration
         let duration =
             AudioUtils::estimate_duration_from_size(response.data().len() as u64, &format);
-        println!("⏱️  Estimated duration: {:.1} seconds", duration);
+        println!("⏱️  Estimated duration: {duration:.1} seconds");
     }
 
     println!();
@@ -125,8 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         total_bytes += chunk_len;
         chunks.push(chunk);
         println!(
-            "📦 Received chunk: {} bytes (total: {} bytes)",
-            chunk_len, total_bytes
+            "📦 Received chunk: {chunk_len} bytes (total: {total_bytes} bytes)"
         );
     }
 
@@ -158,20 +157,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for use_case in use_cases {
         let recommended_voice = AudioUtils::recommend_voice(use_case);
         println!(
-            "📋 For '{}' use case: {:?} voice recommended",
-            use_case, recommended_voice
+            "📋 For '{use_case}' use case: {recommended_voice:?} voice recommended"
         );
 
-        let demo_text = format!("This is a {} voice demonstration.", use_case);
+        let demo_text = format!("This is a {use_case} voice demonstration.");
 
         // Generate a short sample
         let response = audio_api
             .generate_speech(demo_text, recommended_voice, Some(AudioModels::TTS_1))
             .await?;
 
-        let filename = format!("usecase_{}.mp3", use_case);
+        let filename = format!("usecase_{use_case}.mp3");
         response.save_to_file(&filename).await?;
-        println!("✅ Generated sample: {}", filename);
+        println!("✅ Generated sample: {filename}");
     }
 
     println!();
@@ -185,7 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for file_path in test_files {
         if Path::new(file_path).exists() {
-            println!("🔍 Transcribing {}...", file_path);
+            println!("🔍 Transcribing {file_path}...");
 
             // Validate format
             if AudioApi::is_supported_format(file_path) {
@@ -194,10 +192,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Simple transcription
                 match audio_api.transcribe(file_path, Some("en")).await {
                     Ok(transcription) => {
-                        println!("📝 Transcription: \"{}\"", transcription);
+                        println!("📝 Transcription: \"{transcription}\"");
                     }
                     Err(e) => {
-                        println!("❌ Transcription failed: {}", e);
+                        println!("❌ Transcription failed: {e}");
                     }
                 }
 
@@ -217,7 +215,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("📊 Detailed transcription results:");
                         println!("   Text: \"{}\"", response.text);
                         if let Some(duration) = response.duration() {
-                            println!("   Duration: {:.2} seconds", duration);
+                            println!("   Duration: {duration:.2} seconds");
                         }
                         if let Some(words) = response.words() {
                             println!("   Word count: {}", words.len());
@@ -233,18 +231,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         // Calculate transcription cost
                         if let Some(duration) = response.duration() {
                             let cost = AudioUtils::estimate_whisper_cost(duration);
-                            println!("   💰 Estimated cost: ${:.6}", cost);
+                            println!("   💰 Estimated cost: ${cost:.6}");
                         }
                     }
                     Err(e) => {
-                        println!("❌ Detailed transcription failed: {}", e);
+                        println!("❌ Detailed transcription failed: {e}");
                     }
                 }
             } else {
                 println!("❌ File format not supported");
             }
         } else {
-            println!("⚠️  File {} not found, skipping transcription", file_path);
+            println!("⚠️  File {file_path} not found, skipping transcription");
         }
         println!();
     }
@@ -282,7 +280,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ];
 
         for (name, builder) in test_cases {
-            println!("📝 Testing {} format...", name);
+            println!("📝 Testing {name} format...");
 
             let request = builder.build();
 
@@ -301,7 +299,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Err(e) => {
-                    println!("❌ {} format failed: {}", name, e);
+                    println!("❌ {name} format failed: {e}");
                 }
             }
         }
@@ -315,17 +313,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("📋 Supported input formats:");
     for format in AudioApi::supported_input_formats() {
-        println!("   • {}", format);
+        println!("   • {format}");
     }
 
     println!("\n🎵 Supported output formats:");
     for format in AudioApi::supported_output_formats() {
-        println!("   • {:?}", format);
+        println!("   • {format:?}");
     }
 
     println!("\n🎤 Available voices:");
     for voice in AudioApi::available_voices() {
-        println!("   • {:?}", voice);
+        println!("   • {voice:?}");
     }
 
     // Cost estimates
@@ -356,7 +354,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🔍 Testing with non-existent file...");
     match audio_api.transcribe("nonexistent.mp3", None).await {
         Ok(_) => println!("😱 Unexpected success!"),
-        Err(e) => println!("✅ Expected error: {}", e),
+        Err(e) => println!("✅ Expected error: {e}"),
     }
 
     // Test with unsupported format
@@ -397,7 +395,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for file in possible_files {
         if Path::new(file).exists() {
-            println!("   📁 {}", file);
+            println!("   📁 {file}");
         }
     }
 

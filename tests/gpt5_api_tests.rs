@@ -26,7 +26,7 @@ fn mock_gpt5_response() -> ResponseResult {
     ResponseResult {
         id: Some("resp_gpt5_test".to_string()),
         object: "response".to_string(),
-        created: 1640995200,
+        created: 1_640_995_200,
         model: models::GPT_5.to_string(),
         choices: vec![],
         usage: None,

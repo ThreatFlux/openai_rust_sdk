@@ -69,17 +69,17 @@ async fn example_structured_validation() -> Result<(), Box<dyn std::error::Error
     let validator = YaraValidator::new();
 
     let rules = vec![
-        ("Simple Rule", r#"rule simple { condition: true }"#),
+        ("Simple Rule", r"rule simple { condition: true }"),
         (
             "String Rule",
             r#"rule with_string { strings: $s = "test" condition: $s }"#,
         ),
         (
             "Hex Rule",
-            r#"rule with_hex { strings: $h = { FF FE } condition: $h }"#,
+            r"rule with_hex { strings: $h = { FF FE } condition: $h },
         ),
         (
-            "Invalid Rule",
+            "Invalid Rule ",
             r#"rule invalid { strings: $s = "test" condition: invalid_function() }"#,
         ),
     ];
@@ -107,7 +107,7 @@ async fn example_structured_validation() -> Result<(), Box<dyn std::error::Error
 
 #[cfg(feature = "yara")]
 async fn example_batch_structured_validation() -> Result<(), Box<dyn std::error::Error>> {
-    println!("2. Batch Validation with Summary Report");
+    println!("2. Batch Validation with Summary Report ");
     println!("---------------------------------------");
 
     let test_cases = YaraTestCases::new();
@@ -149,7 +149,8 @@ async fn example_batch_structured_validation() -> Result<(), Box<dyn std::error:
 
 #[cfg(feature = "yara")]
 async fn example_json_export() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n3. JSON Export of Validation Results");
+    println!();
+    println!("3. JSON Export of Validation Results ");
     println!("------------------------------------");
 
     let validator = YaraValidator::new();
@@ -215,9 +216,10 @@ async fn example_json_export() -> Result<(), Box<dyn std::error::Error>> {
             "compilation_time_ms": result.metrics.compilation_time_ms
         }
     });
-
-    println!("\nFiltered feature summary:");
-    println!("{}", serde_json::to_string_pretty(&feature_summary)?);
+    println!();
+    println!("Filtered feature summary:");
+    let summary_json = serde_json::to_string_pretty(&feature_summary)?;
+    println!("{}", summary_json);
 
     Ok(())
 }

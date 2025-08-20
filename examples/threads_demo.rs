@@ -218,7 +218,7 @@ async fn demo_metadata_management(api: &ThreadsApi, thread_id: &str) -> Result<(
     let thread = api.retrieve_thread(thread_id).await?;
     println!("   🏷️  Current thread metadata:");
     for (key, value) in &thread.metadata {
-        println!("      {} = {}", key, value);
+        println!("      {key} = {value}");
     }
 
     // Modify thread metadata
@@ -241,7 +241,7 @@ async fn demo_metadata_management(api: &ThreadsApi, thread_id: &str) -> Result<(
     if let Some(message) = messages.data.first() {
         println!("   💬 Message metadata for {}:", message.id);
         for (key, value) in &message.metadata {
-            println!("      {} = {}", key, value);
+            println!("      {key} = {value}");
         }
 
         // Modify message metadata (create a new message request with updated metadata)
@@ -302,7 +302,7 @@ async fn demo_content_types(api: &ThreadsApi) -> Result<()> {
     // Assistant response with structured content
     let structured_response = MessageRequest::builder()
         .role(MessageRole::Assistant)
-        .content(r#"## Analysis Results
+        .content(r"## Analysis Results
 
 ### Key Findings:
 1. **Revenue Growth**: 15% increase over last quarter
@@ -315,7 +315,7 @@ async fn demo_content_types(api: &ThreadsApi) -> Result<()> {
 - Increase customer support staff
 
 ### Supporting Data:
-The analysis is based on data from files referenced in your request. See citations [1] and [2] for detailed metrics."#)
+The analysis is based on data from files referenced in your request. See citations [1] and [2] for detailed metrics.")
         .metadata_pair("response_type", "structured_analysis")
         .metadata_pair("format", "markdown")
         .build()?;
@@ -375,7 +375,7 @@ async fn demo_error_handling(api: &ThreadsApi) -> Result<()> {
     // Test 1: Try to retrieve a non-existent thread
     match api.retrieve_thread("thread_nonexistent").await {
         Ok(_) => println!("   ❌ Expected error but got success"),
-        Err(e) => println!("   ✅ Correctly handled non-existent thread error: {}", e),
+        Err(e) => println!("   ✅ Correctly handled non-existent thread error: {e}"),
     }
 
     // Test 2: Try to create a message with invalid content
@@ -386,7 +386,7 @@ async fn demo_error_handling(api: &ThreadsApi) -> Result<()> {
         .build()
     {
         Ok(_) => println!("   ❌ Expected validation error but got success"),
-        Err(e) => println!("   ✅ Correctly caught content length validation: {}", e),
+        Err(e) => println!("   ✅ Correctly caught content length validation: {e}"),
     }
 
     // Test 3: Try to create a message with too many file IDs
@@ -401,7 +401,7 @@ async fn demo_error_handling(api: &ThreadsApi) -> Result<()> {
 
     match builder.build() {
         Ok(_) => println!("   ❌ Expected validation error but got success"),
-        Err(e) => println!("   ✅ Correctly caught file ID limit validation: {}", e),
+        Err(e) => println!("   ✅ Correctly caught file ID limit validation: {e}"),
     }
 
     // Test 4: Try to create a thread with too much metadata
@@ -415,7 +415,7 @@ async fn demo_error_handling(api: &ThreadsApi) -> Result<()> {
 
     match thread_request.validate() {
         Ok(()) => println!("   ❌ Expected validation error but got success"),
-        Err(e) => println!("   ✅ Correctly caught metadata limit validation: {}", e),
+        Err(e) => println!("   ✅ Correctly caught metadata limit validation: {e}"),
     }
 
     Ok(())
@@ -427,13 +427,13 @@ async fn cleanup_threads(api: &ThreadsApi, thread_ids: Vec<String>) -> Result<()
         match api.delete_thread(&thread_id).await {
             Ok(deletion_status) => {
                 if deletion_status.deleted {
-                    println!("   ✅ Successfully deleted thread: {}", thread_id);
+                    println!("   ✅ Successfully deleted thread: {thread_id}");
                 } else {
-                    println!("   ❌ Failed to delete thread: {}", thread_id);
+                    println!("   ❌ Failed to delete thread: {thread_id}");
                 }
             }
             Err(e) => {
-                println!("   ⚠️  Error deleting thread {}: {}", thread_id, e);
+                println!("   ⚠️  Error deleting thread {thread_id}: {e}");
             }
         }
     }

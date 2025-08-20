@@ -446,14 +446,14 @@ async fn error_handling_demo(api: &RunsApi) -> Result<(), Box<dyn std::error::Er
 
     match api.create_run("thread_invalid", run_request).await {
         Ok(_) => println!("    ⚠️ Unexpected success with invalid thread ID"),
-        Err(e) => println!("    ✅ Expected error with invalid thread ID: {}", e),
+        Err(e) => println!("    ✅ Expected error with invalid thread ID: {e}"),
     }
 
     // Test retrieving non-existent run
     println!("    Testing non-existent run retrieval...");
     match api.retrieve_run("thread_invalid", "run_invalid").await {
         Ok(_) => println!("    ⚠️ Unexpected success with invalid run ID"),
-        Err(e) => println!("    ✅ Expected error with invalid run ID: {}", e),
+        Err(e) => println!("    ✅ Expected error with invalid run ID: {e}"),
     }
 
     // Test submitting tool outputs to non-existent run
@@ -469,7 +469,7 @@ async fn error_handling_demo(api: &RunsApi) -> Result<(), Box<dyn std::error::Er
         .await
     {
         Ok(_) => println!("    ⚠️ Unexpected success with invalid run"),
-        Err(e) => println!("    ✅ Expected error with invalid run: {}", e),
+        Err(e) => println!("    ✅ Expected error with invalid run: {e}"),
     }
 
     Ok(())
@@ -578,20 +578,20 @@ async fn cleanup(
     match threads_api.delete_thread(thread_id).await {
         Ok(deleted) => {
             if deleted.deleted {
-                println!("  ✅ Deleted thread: {}", thread_id);
+                println!("  ✅ Deleted thread: {thread_id}");
             }
         }
-        Err(e) => println!("  ⚠️ Failed to delete thread: {}", e),
+        Err(e) => println!("  ⚠️ Failed to delete thread: {e}"),
     }
 
     // Delete assistant
     match assistants_api.delete_assistant(assistant_id).await {
         Ok(deleted) => {
             if deleted.deleted {
-                println!("  ✅ Deleted assistant: {}", assistant_id);
+                println!("  ✅ Deleted assistant: {assistant_id}");
             }
         }
-        Err(e) => println!("  ⚠️ Failed to delete assistant: {}", e),
+        Err(e) => println!("  ⚠️ Failed to delete assistant: {e}"),
     }
 
     Ok(())

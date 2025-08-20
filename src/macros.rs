@@ -48,7 +48,7 @@ macro_rules! impl_vec_setters {
     };
 }
 
-/// Macro to generate builder methods for HashMap fields
+/// Macro to generate builder methods for `HashMap` fields
 #[macro_export]
 macro_rules! impl_map_setters {
     ($($field:ident),* $(,)?) => {

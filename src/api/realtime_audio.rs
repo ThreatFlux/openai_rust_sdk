@@ -460,11 +460,11 @@ impl RealtimeAudioApi {
         // In a real implementation, you would exchange the SDP with OpenAI's servers
         // and handle the answer. For now, we'll mark the connection as connected.
 
-        let mut state = session.connection_state.lock().await;
-        *state = WebRtcConnectionState::Connected;
+        let mut connection_state = session.connection_state.lock().await;
+        *connection_state = WebRtcConnectionState::Connected;
 
-        let mut stats = session.stats.lock().await;
-        stats.connected_at = Some(Utc::now());
+        let mut session_stats = session.stats.lock().await;
+        session_stats.connected_at = Some(Utc::now());
 
         info!("WebRTC connection established for session: {}", session.id);
 
@@ -706,16 +706,16 @@ impl AudioProcessor {
     pub fn new(
         sample_rate: u32,
         channels: u16,
-        enable_aec: bool,
+        enable_echo_cancellation: bool,
         enable_noise_suppression: bool,
-        enable_agc: bool,
+        enable_automatic_gain_control: bool,
     ) -> Self {
         Self {
             _sample_rate: sample_rate,
             _channels: channels,
-            enable_aec,
+            enable_aec: enable_echo_cancellation,
             enable_noise_suppression,
-            enable_agc,
+            enable_agc: enable_automatic_gain_control,
         }
     }
 

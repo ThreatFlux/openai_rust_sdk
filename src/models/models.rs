@@ -727,7 +727,7 @@ mod tests {
         let model = Model {
             id: "text-davinci-003".to_string(),
             object: "model".to_string(),
-            created: 1234567890,
+            created: 1_234_567_890,
             owned_by: "openai".to_string(),
             root: None,
             parent: None,
@@ -743,7 +743,7 @@ mod tests {
         let model = Model {
             id: "gpt-4".to_string(),
             object: "model".to_string(),
-            created: 1234567890,
+            created: 1_234_567_890,
             owned_by: "openai".to_string(),
             root: None,
             parent: None,

@@ -245,6 +245,7 @@ fn test_response_metrics_aggregation() {
     assert!(metrics_summary.contains_key("rules_with_strings"));
 
     // Calculate success rate
+    #[allow(clippy::cast_precision_loss)]
     let calculated_success_rate = (total_passed as f64 / suite_result.total_tests as f64) * 100.0;
     assert!((calculated_success_rate - suite_result.success_rate).abs() < 0.01);
 }

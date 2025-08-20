@@ -20,7 +20,7 @@ pub const DEFAULT_BASE_URL: &str = "https://api.openai.com";
 pub struct HttpClient {
     /// The underlying reqwest HTTP client
     client: reqwest::Client,
-    /// OpenAI API key for authentication
+    /// `OpenAI` API key for authentication
     api_key: String,
     /// Base URL for API requests
     base_url: String,
@@ -71,7 +71,7 @@ impl HttpClient {
 
     /// Get the underlying reqwest client
     #[must_use]
-    pub fn client(&self) -> &reqwest::Client {
+    pub const fn client(&self) -> &reqwest::Client {
         &self.client
     }
 
@@ -129,16 +129,15 @@ impl HttpClient {
                 .unwrap_or_else(|_| "Unknown error".to_string());
 
             // Try to parse as API error response
-            if let Ok(api_error) =
-                serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text)
-            {
-                Err(OpenAIError::from_api_response(status.as_u16(), api_error))
-            } else {
-                Err(OpenAIError::ApiError {
-                    status: status.as_u16(),
-                    message: error_text,
-                })
-            }
+            serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
+                |_| {
+                    Err(OpenAIError::ApiError {
+                        status: status.as_u16(),
+                        message: error_text,
+                    })
+                },
+                |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
+            )
         }
     }
 
@@ -169,6 +168,7 @@ impl HttpClient {
     }
 
     /// Make a POST request with JSON body to the specified path
+    #[allow(clippy::future_not_send)]
     pub async fn post<T, B>(&self, path: &str, body: &B) -> Result<T>
     where
         T: DeserializeOwned,
@@ -189,6 +189,7 @@ impl HttpClient {
     }
 
     /// Make a POST request with JSON body and beta headers to the specified path
+    #[allow(clippy::future_not_send)]
     pub async fn post_with_beta<T, B>(&self, path: &str, body: &B) -> Result<T>
     where
         T: DeserializeOwned,
@@ -324,16 +325,15 @@ impl HttpClient {
                 .unwrap_or_else(|_| "Unknown error".to_string());
 
             // Try to parse as API error response
-            if let Ok(api_error) =
-                serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text)
-            {
-                Err(OpenAIError::from_api_response(status.as_u16(), api_error))
-            } else {
-                Err(OpenAIError::ApiError {
-                    status: status.as_u16(),
-                    message: error_text,
-                })
-            }
+            serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
+                |_| {
+                    Err(OpenAIError::ApiError {
+                        status: status.as_u16(),
+                        message: error_text,
+                    })
+                },
+                |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
+            )
         }
     }
 
@@ -357,29 +357,28 @@ impl HttpClient {
                 .unwrap_or_else(|_| "Unknown error".to_string());
 
             // Try to parse as API error response
-            if let Ok(api_error) =
-                serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text)
-            {
-                Err(OpenAIError::from_api_response(status.as_u16(), api_error))
-            } else {
-                Err(OpenAIError::ApiError {
-                    status: status.as_u16(),
-                    message: error_text,
-                })
-            }
+            serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
+                |_| {
+                    Err(OpenAIError::ApiError {
+                        status: status.as_u16(),
+                        message: error_text,
+                    })
+                },
+                |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
+            )
         }
     }
 }
 
 /// Request error utilities
 #[must_use]
-pub fn map_request_error(e: reqwest::Error, context: &str) -> OpenAIError {
+pub fn map_request_error(e: &reqwest::Error, context: &str) -> OpenAIError {
     OpenAIError::RequestError(format!("{context}: {e}"))
 }
 
 /// Create standard error mappers for common operations
 #[must_use]
-pub fn map_parse_error(e: serde_json::Error, context: &str) -> OpenAIError {
+pub fn map_parse_error(e: &serde_json::Error, context: &str) -> OpenAIError {
     OpenAIError::ParseError(format!("{context}: {e}"))
 }
 

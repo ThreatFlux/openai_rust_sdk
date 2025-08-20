@@ -227,7 +227,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     let classification_prompt = PromptPatterns::classification(
-        categories,
+        &categories,
         Some("Focus on the primary intent of the issue".to_string()),
     )
     .build_developer_message();
@@ -247,13 +247,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Data extraction pattern
     let extraction_prompt = PromptPatterns::extraction(
-        vec![
-            "name".to_string(),
+        &["name".to_string(),
             "email".to_string(),
             "phone".to_string(),
             "company".to_string(),
-            "message".to_string(),
-        ],
+            "message".to_string()],
         "JSON",
     )
     .build_developer_message();
@@ -329,7 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     let code_prompt =
-        PromptPatterns::code_generation("Rust", code_requirements).build_developer_message();
+        PromptPatterns::code_generation("Rust", &code_requirements).build_developer_message();
 
     let code_request = ResponseRequest::new_messages(
         "gpt-4o-mini",

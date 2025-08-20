@@ -123,7 +123,7 @@ async fn test_base64_encoding_decoding() {
     let test_data = vec![1, 2, 3, 4, 5];
 
     // Test encoding
-    let data_url = ImageUtils::encode_to_data_url(&test_data, ImageFormat::Png);
+    let data_url = ImageUtils::encode_to_data_url(&test_data, &ImageFormat::Png);
     assert!(data_url.starts_with("data:image/png;base64,"));
 
     // Test decoding
@@ -225,7 +225,7 @@ async fn test_message_content_input() {
 async fn test_base64_image_creation() {
     let test_data = vec![0x89, 0x50, 0x4E, 0x47]; // PNG header
 
-    let msg = Message::user_with_image_bytes("What is this?", &test_data, ImageFormat::Png);
+    let msg = Message::user_with_image_bytes("What is this?", &test_data, &ImageFormat::Png);
 
     assert!(msg.has_images());
     let urls = msg.image_urls();

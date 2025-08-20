@@ -273,7 +273,7 @@ fn test_thread_request_validation_metadata_count() {
     for i in 0..17 {
         request
             .metadata
-            .insert(format!("key{}", i), "value".to_string());
+            .insert(format!("key{i}"), "value".to_string());
     }
 
     let result = request.validate();
@@ -328,7 +328,7 @@ fn test_message_request_validation_file_ids_count() {
         .content("Test content");
 
     for i in 0..11 {
-        builder = builder.file_id(format!("file-{}", i));
+        builder = builder.file_id(format!("file-{i}"));
     }
 
     let result = builder.build();
@@ -343,7 +343,7 @@ fn test_message_request_validation_metadata_count() {
         .content("Test content");
 
     for i in 0..17 {
-        builder = builder.metadata_pair(format!("key{}", i), "value");
+        builder = builder.metadata_pair(format!("key{i}"), "value");
     }
 
     let result = builder.build();
@@ -476,7 +476,7 @@ fn test_default_object_types() {
     let thread = Thread {
         id: "thread_123".to_string(),
         object: "thread".to_string(),
-        created_at: 1234567890,
+        created_at: 1_234_567_890,
         metadata: HashMap::new(),
     };
     assert_eq!(thread.object, "thread");
@@ -484,7 +484,7 @@ fn test_default_object_types() {
     let message = Message {
         id: "msg_123".to_string(),
         object: "thread.message".to_string(),
-        created_at: 1234567890,
+        created_at: 1_234_567_890,
         thread_id: "thread_123".to_string(),
         role: MessageRole::User,
         content: vec![MessageContent::text("Hello")],
@@ -498,7 +498,7 @@ fn test_default_object_types() {
     let message_file = MessageFile {
         id: "file_123".to_string(),
         object: "thread.message.file".to_string(),
-        created_at: 1234567890,
+        created_at: 1_234_567_890,
         message_id: "msg_123".to_string(),
     };
     assert_eq!(message_file.object, "thread.message.file");

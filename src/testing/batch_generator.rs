@@ -344,7 +344,7 @@ mod tests {
         assert!(request.body.max_tokens.is_some());
         assert!(request.body.temperature.is_some());
         assert_eq!(request.body.max_tokens.unwrap(), 1000);
-        assert_eq!(request.body.temperature.unwrap(), 0.3);
+        assert!((request.body.temperature.unwrap() - 0.3).abs() < f64::EPSILON);
     }
 
     #[test]

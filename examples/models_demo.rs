@@ -80,10 +80,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("  Family: {:?}", capabilities.family);
             println!("  Tier: {:?}", capabilities.tier);
             if let Some(max_tokens) = capabilities.max_tokens {
-                println!("  Max Tokens: {}", max_tokens);
+                println!("  Max Tokens: {max_tokens}");
             }
             if let Some(cutoff) = &capabilities.training_cutoff {
-                println!("  Training Cutoff: {}", cutoff);
+                println!("  Training Cutoff: {cutoff}");
             }
             println!("  Completion Types: {:?}", capabilities.completion_types);
             println!(
@@ -100,11 +100,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 capabilities.input_cost_per_1m_tokens,
                 capabilities.output_cost_per_1m_tokens,
             ) {
-                println!("  Input Cost: ${:.2}/1M tokens", input_cost);
-                println!("  Output Cost: ${:.2}/1M tokens", output_cost);
+                println!("  Input Cost: ${input_cost:.2}/1M tokens");
+                println!("  Output Cost: ${output_cost:.2}/1M tokens");
             }
         }
-        Err(e) => println!("Error retrieving model {}: {}", model_id, e),
+        Err(e) => println!("Error retrieving model {model_id}: {e}"),
     }
 
     // Example 3: Group Models by Family
@@ -239,7 +239,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let caps = recommended.capabilities();
             println!("{}: {} ({:?} tier)", use_case, recommended.id, caps.tier);
         } else {
-            println!("{}: No suitable model found", use_case);
+            println!("{use_case}: No suitable model found");
         }
     }
 
@@ -264,8 +264,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for model_id in &chat_models {
         if let Some(cost_option) = costs.get(*model_id) {
             match cost_option {
-                Some(cost) => println!("  {}: ${:.2}/month", model_id, cost),
-                None => println!("  {}: Cost data not available", model_id),
+                Some(cost) => println!("  {model_id}: ${cost:.2}/month"),
+                None => println!("  {model_id}: Cost data not available"),
             }
         }
     }
@@ -305,21 +305,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Deprecation Rate: {:.1}%", stats.deprecation_rate());
 
     if let Some((family, count)) = stats.most_common_family() {
-        println!("  Most Common Family: {} ({} models)", family, count);
+        println!("  Most Common Family: {family} ({count} models)");
     }
 
     if let Some((tier, count)) = stats.most_common_tier() {
-        println!("  Most Common Tier: {} ({} models)", tier, count);
+        println!("  Most Common Tier: {tier} ({count} models)");
     }
 
     println!("\nFamily Distribution:");
     for (family, count) in &stats.family_distribution {
-        println!("  {}: {} models", family, count);
+        println!("  {family}: {count} models");
     }
 
     println!("\nCompletion Type Support:");
     for (completion_type, count) in &stats.completion_type_distribution {
-        println!("  {}: {} models", completion_type, count);
+        println!("  {completion_type}: {count} models");
     }
 
     // Example 12: Model Utility Functions
@@ -331,7 +331,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Base model name extraction:");
     for model_id in &versioned_models {
         let base_name = ModelUtils::extract_base_model_name(model_id);
-        println!("  {} → {}", model_id, base_name);
+        println!("  {model_id} → {base_name}");
     }
 
     // Check family relationships
@@ -376,7 +376,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
             Err(e) => {
-                println!("  {}: ❓ Error checking availability: {}", model_id, e);
+                println!("  {model_id}: ❓ Error checking availability: {e}");
             }
         }
     }

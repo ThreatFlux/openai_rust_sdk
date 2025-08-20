@@ -149,6 +149,7 @@ impl EmbeddingUtils {
 
     /// Calculate the mean of multiple embeddings
     #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn mean_embedding(embeddings: &[Vec<f32>]) -> Vec<f32> {
         if embeddings.is_empty() {
             return Vec::new();

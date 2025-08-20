@@ -249,6 +249,7 @@ impl GPT5RequestBuilder {
     }
 
     /// Set the model
+    #[must_use]
     pub fn model(mut self, model: impl Into<String>) -> Self {
         self.model = model.into();
         self
@@ -276,6 +277,7 @@ impl GPT5RequestBuilder {
     }
 
     /// Set the input
+    #[must_use]
     pub fn input(mut self, input: impl Into<ResponseInput>) -> Self {
         self.input = Some(input.into());
         self

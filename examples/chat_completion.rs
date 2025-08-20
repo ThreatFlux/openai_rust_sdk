@@ -58,11 +58,11 @@ async fn simple_text_generation(client: &OpenAIClient) -> Result<(), Box<dyn std
 
     match client.generate_text("gpt-3.5-turbo", prompt).await {
         Ok(response) => {
-            println!("Prompt: {}", prompt);
-            println!("Response: {}", response);
+            println!("Prompt: {prompt}");
+            println!("Response: {response}");
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -81,7 +81,7 @@ async fn streaming_text_generation(
 
     match client.generate_text_stream("gpt-3.5-turbo", prompt).await {
         Ok(mut stream) => {
-            println!("Prompt: {}", prompt);
+            println!("Prompt: {prompt}");
             print!("Streaming response: ");
 
             while let Some(chunk_result) = stream.next().await {
@@ -89,12 +89,12 @@ async fn streaming_text_generation(
                     Ok(chunk) => {
                         for choice in chunk.choices {
                             if let Some(content) = choice.delta.content {
-                                print!("{}", content);
+                                print!("{content}");
                             }
                         }
                     }
                     Err(e) => {
-                        println!("\nStreaming error: {}", e);
+                        println!("\nStreaming error: {e}");
                         break;
                     }
                 }
@@ -102,7 +102,7 @@ async fn streaming_text_generation(
             println!();
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -123,10 +123,10 @@ async fn multi_turn_conversation(client: &OpenAIClient) -> Result<(), Box<dyn st
     match client.chat("gpt-3.5-turbo", conversation).await {
         Ok(response) => {
             println!("Final user message: How does it work in Rust specifically?");
-            println!("Assistant response: {}", response);
+            println!("Assistant response: {response}");
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -149,10 +149,10 @@ async fn conversation_with_instructions(
         Ok(response) => {
             println!("System: You are a helpful Rust programming tutor...");
             println!("User: What is the difference between String and &str in Rust?");
-            println!("Assistant: {}", response);
+            println!("Assistant: {response}");
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -194,7 +194,7 @@ async fn custom_parameters(client: &OpenAIClient) -> Result<(), Box<dyn std::err
             }
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -247,7 +247,7 @@ async fn prompt_template_usage(client: &OpenAIClient) -> Result<(), Box<dyn std:
             }
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -275,7 +275,7 @@ async fn streaming_conversation(client: &OpenAIClient) -> Result<(), Box<dyn std
                     Ok(chunk) => {
                         for choice in chunk.choices {
                             if let Some(content) = choice.delta.content {
-                                print!("{}", content);
+                                print!("{content}");
                                 full_response.push_str(&content);
                             }
 
@@ -290,14 +290,14 @@ async fn streaming_conversation(client: &OpenAIClient) -> Result<(), Box<dyn std
                         }
                     }
                     Err(e) => {
-                        println!("\nStreaming error: {}", e);
+                        println!("\nStreaming error: {e}");
                         break;
                     }
                 }
             }
         }
         Err(e) => {
-            println!("Error (expected in demo mode): {}", e);
+            println!("Error (expected in demo mode): {e}");
         }
     }
 
@@ -316,22 +316,22 @@ async fn error_handling_example(client: &OpenAIClient) -> Result<(), Box<dyn std
 
     match result {
         Ok(response) => {
-            println!("Success: {}", response);
+            println!("Success: {response}");
         }
         Err(openai_rust_sdk::OpenAIError::Authentication(msg)) => {
-            println!("Authentication error: {}", msg);
+            println!("Authentication error: {msg}");
         }
         Err(openai_rust_sdk::OpenAIError::Api {
             status_code,
             message,
         }) => {
-            println!("API error {}: {}", status_code, message);
+            println!("API error {status_code}: {message}");
         }
         Err(openai_rust_sdk::OpenAIError::Request(e)) => {
-            println!("Request error: {}", e);
+            println!("Request error: {e}");
         }
         Err(e) => {
-            println!("Other error: {}", e);
+            println!("Other error: {e}");
         }
     }
 

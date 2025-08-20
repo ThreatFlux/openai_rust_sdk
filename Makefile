@@ -166,13 +166,14 @@ lint-strict: ## Run clippy with strict settings (matches CI/CD)
 	@cargo clippy --all-features --all-targets -- \
 		-D warnings \
 		-D clippy::all \
-		-A clippy::needless_pass_by_value \
-		-A clippy::derive_partial_eq_without_eq \
-		-A clippy::use_self \
-		-A clippy::unused_self \
+		-D clippy::pedantic \
+		-D clippy::nursery \
+		-D clippy::cargo \
 		-A clippy::module_name_repetitions \
 		-A clippy::missing_errors_doc \
-		-A clippy::missing_panics_doc
+		-A clippy::missing_panics_doc \
+		-A clippy::must_use_candidate \
+		-A clippy::multiple_crate_versions
 	@echo "$(BLUE)  With no default features...$(NC)"
 	@cargo clippy --no-default-features --all-targets -- \
 		-D warnings \

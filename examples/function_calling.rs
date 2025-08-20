@@ -226,22 +226,21 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
     while let Some(event_result) = stream.next().await {
         match event_result? {
             FunctionStreamEvent::ContentDelta { content } => {
-                print!("{}", content);
+                print!("{content}");
             }
             FunctionStreamEvent::FunctionCallStarted {
                 call_id,
                 function_name,
             } => {
                 println!(
-                    "\n🔧 Function call started: {} ({})",
-                    function_name, call_id
+                    "\n🔧 Function call started: {function_name} ({call_id})"
                 );
             }
             FunctionStreamEvent::FunctionCallArgumentsDelta {
                 call_id,
                 arguments_delta,
             } => {
-                print!("Args[{}]: {}", call_id, arguments_delta);
+                print!("Args[{call_id}]: {arguments_delta}");
             }
             FunctionStreamEvent::FunctionCallCompleted { call } => {
                 println!("\n✅ Function call completed: {}", call.name);
@@ -256,7 +255,7 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
                 break;
             }
             FunctionStreamEvent::Error { message } => {
-                println!("\n❌ Error: {}", message);
+                println!("\n❌ Error: {message}");
                 break;
             }
         }
@@ -322,7 +321,7 @@ async fn complete_conversation_flow(
         println!("\n--- Round {} ---", i + 1);
 
         if let Some(content) = &result.content {
-            println!("Assistant: {}", content);
+            println!("Assistant: {content}");
         }
 
         if !result.function_calls.is_empty() {
@@ -395,7 +394,7 @@ async fn weather_assistant_example(
     match client.create_function_response(&request, &config).await {
         Ok(response) => {
             if let Some(content) = &response.content {
-                println!("Assistant: {}", content);
+                println!("Assistant: {content}");
             }
 
             // Handle function calls
@@ -411,7 +410,7 @@ async fn weather_assistant_example(
                         // Create error result
                         all_results.push(FunctionCallOutput::new(
                             &call.call_id,
-                            format!("Error: {}", e),
+                            format!("Error: {e}"),
                         ));
                     }
                 }
@@ -425,17 +424,17 @@ async fn weather_assistant_example(
                 {
                     Ok(final_response) => {
                         if let Some(final_content) = final_response.content {
-                            println!("Assistant (final): {}", final_content);
+                            println!("Assistant (final): {final_content}");
                         }
                     }
                     Err(e) => {
-                        println!("❌ Error getting final response: {}", e);
+                        println!("❌ Error getting final response: {e}");
                     }
                 }
             }
         }
         Err(e) => {
-            println!("❌ Error in function calling: {}", e);
+            println!("❌ Error in function calling: {e}");
         }
     }
 
@@ -450,7 +449,7 @@ fn _demo_function_results() {
     // JSON result
     let json_result = FunctionCallOutput::from_json(
         "call-123",
-        json!({
+        &json!({
             "temperature": 22.5,
             "humidity": 65,
             "description": "Partly cloudy",

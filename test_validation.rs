@@ -20,6 +20,6 @@ fn main() {
     ];
     
     for (name, rejects_empty) in apis {
-        println!("{}: {}", name, if rejects_empty { "✅ Rejects empty key" } else { "❌ Accepts empty key" });
+        println!("{}: {name, if rejects_empty { "✅ Rejects empty key" } else { "❌ Accepts empty key" }}");
     }
 }

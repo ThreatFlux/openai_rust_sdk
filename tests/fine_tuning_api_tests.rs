@@ -391,7 +391,7 @@ mod validation_tests {
         let mut metadata = HashMap::new();
         // Add 10 entries (max allowed)
         for i in 0..10 {
-            metadata.insert(format!("key{}", i), format!("value{}", i));
+            metadata.insert(format!("key{i}"), format!("value{i}"));
         }
 
         let request = FineTuningJobRequest::builder()

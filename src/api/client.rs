@@ -56,16 +56,18 @@ impl StandardApiClient {
 
     /// Get the HTTP client
     #[must_use]
-    pub fn http_client(&self) -> &HttpClient {
+    pub const fn http_client(&self) -> &HttpClient {
         &self.http_client
     }
 }
 
 impl ApiClient for StandardApiClient {
+    #[allow(clippy::use_self)]
     fn new<S: Into<String>>(api_key: S) -> Result<Self> {
         StandardApiClient::new(api_key)
     }
 
+    #[allow(clippy::use_self)]
     fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
         StandardApiClient::new_with_base_url(api_key, base_url)
     }

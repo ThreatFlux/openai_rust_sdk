@@ -894,7 +894,7 @@ mod tests {
     #[test]
     fn test_image_response_methods() {
         let response = ImageResponse {
-            created: 1234567890,
+            created: 1_234_567_890,
             data: vec![
                 ImageData {
                     url: Some("https://example.com/image1.png".to_string()),
@@ -946,7 +946,7 @@ mod tests {
         }"#;
 
         let response: ImageResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(response.created, 1234567890);
+        assert_eq!(response.created, 1_234_567_890);
         assert_eq!(response.data.len(), 1);
         assert_eq!(
             response.data[0].url,

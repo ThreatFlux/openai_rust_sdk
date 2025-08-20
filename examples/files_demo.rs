@@ -45,7 +45,7 @@ const SAMPLE_BATCH_DATA: &str = r#"{"custom_id": "request-1", "method": "POST", 
 {"custom_id": "request-3", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Explain quantum computing."}], "max_tokens": 150}}"#;
 
 /// Sample document for assistants
-const SAMPLE_DOCUMENT: &str = r#"# OpenAI API Documentation
+const SAMPLE_DOCUMENT: &str = r"# OpenAI API Documentation
 
 ## Overview
 The OpenAI API provides access to powerful AI models for various tasks including:
@@ -76,7 +76,7 @@ Authorization: Bearer YOUR_API_KEY
 2. Implement proper error handling
 3. Respect rate limits
 4. Use caching when possible
-5. Monitor usage and costs"#;
+5. Monitor usage and costs";
 
 /// Helper struct to track demo files for cleanup
 #[derive(Debug)]

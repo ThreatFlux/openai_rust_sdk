@@ -128,7 +128,7 @@ async fn main() -> Result<()> {
                 uploaded_file_ids.push(file.id);
             }
             Err(e) => {
-                println!("❌ Failed to upload {}: {}", filename, e);
+                println!("❌ Failed to upload {filename}: {e}");
             }
         }
     }
@@ -148,7 +148,7 @@ async fn main() -> Result<()> {
             .await?;
 
         println!("✅ Added file to vector store: {}", vector_store_file.id);
-        println!("   File ID: {}", first_file_id);
+        println!("   File ID: {first_file_id}");
         println!("   Status: {:?}", vector_store_file.status);
         println!("   Usage: {} bytes\n", vector_store_file.usage_bytes);
     }
@@ -312,17 +312,17 @@ async fn main() -> Result<()> {
         Err(OpenAIError::ApiError { status: 404, .. }) => {
             println!("✅ Correctly handled 404 error for non-existent vector store");
         }
-        Err(e) => println!("   Unexpected error: {}", e),
+        Err(e) => println!("   Unexpected error: {e}"),
     }
 
     // Check if vector store exists (convenience method)
     let exists = vector_stores_api
         .vector_store_exists(&basic_store.id)
         .await?;
-    println!("✅ Vector store exists check: {}", exists);
+    println!("✅ Vector store exists check: {exists}");
 
     let not_exists = vector_stores_api.vector_store_exists("vs-fake123").await?;
-    println!("✅ Non-existent vector store check: {}\n", not_exists);
+    println!("✅ Non-existent vector store check: {not_exists}\n");
 
     // Demo 12: Advanced Features
     println!("🔬 Demo 12: Advanced Features");
@@ -368,7 +368,7 @@ async fn main() -> Result<()> {
             );
         }
         Err(e) => {
-            println!("⚠️ Timeout or error waiting for vector store: {}", e);
+            println!("⚠️ Timeout or error waiting for vector store: {e}");
         }
     }
     println!();
@@ -381,10 +381,10 @@ async fn main() -> Result<()> {
     for file_id in &uploaded_file_ids {
         match files_api.delete_file(file_id).await {
             Ok(delete_response) if delete_response.deleted => {
-                println!("✅ Deleted file: {}", file_id);
+                println!("✅ Deleted file: {file_id}");
             }
-            Ok(_) => println!("⚠️ File deletion not confirmed: {}", file_id),
-            Err(e) => println!("❌ Failed to delete file {}: {}", file_id, e),
+            Ok(_) => println!("⚠️ File deletion not confirmed: {file_id}"),
+            Err(e) => println!("❌ Failed to delete file {file_id}: {e}"),
         }
     }
 
@@ -394,10 +394,10 @@ async fn main() -> Result<()> {
     for store_id in stores_to_delete {
         match vector_stores_api.delete_vector_store(store_id).await {
             Ok(delete_response) if delete_response.deleted => {
-                println!("✅ Deleted vector store: {}", store_id);
+                println!("✅ Deleted vector store: {store_id}");
             }
-            Ok(_) => println!("⚠️ Vector store deletion not confirmed: {}", store_id),
-            Err(e) => println!("❌ Failed to delete vector store {}: {}", store_id, e),
+            Ok(_) => println!("⚠️ Vector store deletion not confirmed: {store_id}"),
+            Err(e) => println!("❌ Failed to delete vector store {store_id}: {e}"),
         }
     }
 
@@ -427,7 +427,7 @@ async fn main() -> Result<()> {
 fn format_bytes(bytes: u64) -> String {
     let bytes = bytes as f64;
     if bytes < 1024.0 {
-        format!("{} B", bytes)
+        format!("{bytes} B")
     } else if bytes < 1024.0 * 1024.0 {
         format!("{:.1} KB", bytes / 1024.0)
     } else if bytes < 1024.0 * 1024.0 * 1024.0 {

@@ -230,7 +230,7 @@ fn test_vector_store_methods() {
     let mut vector_store = VectorStore {
         id: "vs-test123".to_string(),
         object: "vector_store".to_string(),
-        created_at: 1640995200,
+        created_at: 1_640_995_200,
         name: Some("Test Store".to_string()),
         usage_bytes: 2048,
         file_counts: FileCounts {
@@ -242,8 +242,8 @@ fn test_vector_store_methods() {
         },
         status: VectorStoreStatus::Completed,
         expires_after: Some(ExpirationPolicy::new_days(30)),
-        expires_at: Some(2000000000), // Future timestamp (2033)
-        last_active_at: Some(1640995200),
+        expires_at: Some(2_000_000_000), // Future timestamp (2033)
+        last_active_at: Some(1_640_995_200),
         metadata: HashMap::new(),
     };
 
@@ -317,7 +317,7 @@ fn test_list_responses_filtering() {
         VectorStore {
             id: "vs-1".to_string(),
             object: "vector_store".to_string(),
-            created_at: 1640995200,
+            created_at: 1_640_995_200,
             name: Some("Store 1".to_string()),
             usage_bytes: 1024,
             file_counts: FileCounts::new(),
@@ -330,7 +330,7 @@ fn test_list_responses_filtering() {
         VectorStore {
             id: "vs-2".to_string(),
             object: "vector_store".to_string(),
-            created_at: 1640995300,
+            created_at: 1_640_995_300,
             name: Some("Store 2".to_string()),
             usage_bytes: 2048,
             file_counts: FileCounts::new(),
@@ -366,7 +366,7 @@ fn test_list_responses_filtering() {
             id: "file-1".to_string(),
             object: "vector_store.file".to_string(),
             usage_bytes: 512,
-            created_at: 1640995200,
+            created_at: 1_640_995_200,
             vector_store_id: "vs-1".to_string(),
             status: VectorStoreFileStatus::Completed,
             last_error: None,
@@ -376,7 +376,7 @@ fn test_list_responses_filtering() {
             id: "file-2".to_string(),
             object: "vector_store.file".to_string(),
             usage_bytes: 256,
-            created_at: 1640995300,
+            created_at: 1_640_995_300,
             vector_store_id: "vs-1".to_string(),
             status: VectorStoreFileStatus::Failed,
             last_error: None,

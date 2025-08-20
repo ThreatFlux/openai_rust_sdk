@@ -101,7 +101,7 @@ pub struct Container {
 }
 
 /// Container status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ContainerStatus {
     /// Container is being created
@@ -260,7 +260,7 @@ pub struct CodeExecutionResult {
 }
 
 /// Execution status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ExecutionStatus {
     /// Code is being executed
@@ -358,7 +358,7 @@ pub struct EnhancedCodeInterpreterConfig {
 }
 
 /// Container mode for Code Interpreter
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 #[derive(Default)]
 pub enum ContainerMode {

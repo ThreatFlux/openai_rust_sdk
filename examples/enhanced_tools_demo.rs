@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", response.output_text());
         }
         Err(e) => {
-            println!("⚠️ File search requires valid vector store IDs: {}", e);
+            println!("⚠️ File search requires valid vector store IDs: {e}");
         }
     }
 
@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", response.output_text());
         }
         Err(e) => {
-            println!("⚠️ MCP server query failed: {}", e);
+            println!("⚠️ MCP server query failed: {e}");
         }
     }
 
@@ -204,7 +204,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", response.output_text());
         }
         Err(e) => {
-            println!("⚠️ Image generation not available in this context: {}", e);
+            println!("⚠️ Image generation not available in this context: {e}");
         }
     }
 
@@ -232,7 +232,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", response.output_text());
         }
         Err(e) => {
-            println!("⚠️ Code interpreter not available: {}", e);
+            println!("⚠️ Code interpreter not available: {e}");
         }
     }
 

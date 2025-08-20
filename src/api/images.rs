@@ -756,7 +756,7 @@ mod tests {
         }"#;
 
         let response: ImageResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(response.created, 1234567890);
+        assert_eq!(response.created, 1_234_567_890);
         assert_eq!(response.data.len(), 1);
         assert_eq!(
             response.data[0].url,

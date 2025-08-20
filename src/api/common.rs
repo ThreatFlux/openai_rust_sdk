@@ -12,7 +12,7 @@ pub trait ApiClientConstructors: Sized {
     ///
     /// # Arguments
     ///
-    /// * `api_key` - Your OpenAI API key
+    /// * `api_key` - Your `OpenAI` API key
     ///
     /// # Errors
     ///
@@ -25,7 +25,7 @@ pub trait ApiClientConstructors: Sized {
     ///
     /// # Arguments
     ///
-    /// * `api_key` - Your OpenAI API key
+    /// * `api_key` - Your `OpenAI` API key
     /// * `base_url` - Custom base URL for the API
     ///
     /// # Errors

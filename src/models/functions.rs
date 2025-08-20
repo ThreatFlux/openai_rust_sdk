@@ -311,7 +311,7 @@ impl FunctionCallOutput {
     }
 
     /// Create output from a JSON value
-    pub fn from_json(call_id: impl Into<String>, value: Value) -> Result<Self, serde_json::Error> {
+    pub fn from_json(call_id: impl Into<String>, value: &Value) -> Result<Self, serde_json::Error> {
         let output = serde_json::to_string(&value)?;
         Ok(Self::new(call_id, output))
     }
@@ -408,7 +408,7 @@ mod tests {
 
         let json_output = FunctionCallOutput::from_json(
             "call-456",
-            serde_json::json!({"temperature": 22, "unit": "celsius"}),
+            &serde_json::json!({"temperature": 22, "unit": "celsius"}),
         )
         .unwrap();
 

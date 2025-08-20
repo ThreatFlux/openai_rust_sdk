@@ -28,12 +28,12 @@
 //!
 //! // Monitor status
 //! let status = api.get_batch_status(&batch.id).await?;
-//! println!("Batch status: {}", status.status);
+//! println!("Batch status: {status.status}");
 //!
 //! // Retrieve results when complete
 //! if status.status == BatchStatus::Completed {
 //!     let results = api.get_batch_results(&batch.id).await?;
-//!     println!("Results: {}", results);
+//!     println!("Results: {results}");
 //! }
 //! # Ok::<(), openai_rust_sdk::OpenAIError>(())
 //! # });
@@ -55,7 +55,7 @@ pub struct BatchApi {
 }
 
 /// Batch status enumeration
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BatchStatus {
     /// The input file is being validated before the batch can begin
@@ -79,14 +79,14 @@ pub enum BatchStatus {
 impl std::fmt::Display for BatchStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let status = match self {
-            BatchStatus::Validating => "validating",
-            BatchStatus::Failed => "failed",
-            BatchStatus::InProgress => "in_progress",
-            BatchStatus::Finalizing => "finalizing",
-            BatchStatus::Completed => "completed",
-            BatchStatus::Expired => "expired",
-            BatchStatus::Cancelling => "cancelling",
-            BatchStatus::Cancelled => "cancelled",
+            Self::Validating => "validating",
+            Self::Failed => "failed",
+            Self::InProgress => "in_progress",
+            Self::Finalizing => "finalizing",
+            Self::Completed => "completed",
+            Self::Expired => "expired",
+            Self::Cancelling => "cancelling",
+            Self::Cancelled => "cancelled",
         };
         write!(f, "{status}")
     }
@@ -225,12 +225,16 @@ impl BatchReport {
         if self.total_responses == 0 {
             0.0
         } else {
-            (self.successful_responses as f64 / self.total_responses as f64) * 100.0
+            #[allow(clippy::cast_precision_loss)]
+            {
+                (self.successful_responses as f64 / self.total_responses as f64) * 100.0
+            }
         }
     }
 
     /// Calculates the YARA rule extraction rate as a percentage
     #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn yara_extraction_rate(&self) -> f64 {
         if self.successful_responses == 0 {
             0.0
@@ -241,6 +245,8 @@ impl BatchReport {
 
     /// Generates a formatted report text
     #[must_use]
+    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::format_push_string)]
     pub fn generate_report_text(&self) -> String {
         let mut report = String::new();
 
@@ -384,7 +390,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let file = api.upload_batch_file(Path::new("batch_input.jsonl")).await?;
-    /// println!("Uploaded file ID: {}", file.id);
+    /// println!("Uploaded file ID: {file.id}");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -437,7 +443,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let batch = api.create_batch("file-abc123", "/v1/chat/completions").await?;
-    /// println!("Created batch: {}", batch.id);
+    /// println!("Created batch: {batch.id}");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -487,7 +493,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let status = api.get_batch_status("batch_abc123").await?;
-    /// println!("Batch status: {}", status.status);
+    /// println!("Batch status: {status.status}");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -518,7 +524,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let results = api.get_batch_results("batch_abc123").await?;
-    /// println!("Batch results: {}", results);
+    /// println!("Batch results: {results}");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -561,7 +567,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let count = api.download_batch_results("batch_abc123", Path::new("results.jsonl")).await?;
-    /// println!("Downloaded {} results to file", count);
+    /// println!("Downloaded {count} results to file");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -607,7 +613,7 @@ impl BatchApi {
     /// let api = BatchApi::new("your-api-key")?;
     /// let error_count = api.download_batch_errors("batch_abc123", Path::new("errors.jsonl")).await?;
     /// if error_count > 0 {
-    ///     println!("Downloaded {} errors to file", error_count);
+    ///     println!("Downloaded {error_count} errors to file");
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -654,7 +660,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let (results, errors) = api.download_all_batch_files("batch_abc123", Path::new("./batch_output")).await?;
-    /// println!("Downloaded {} results and {} errors", results, errors);
+    /// println!("Downloaded {} results and {results, errors} errors");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -709,7 +715,7 @@ impl BatchApi {
     ///     Path::new("batch_results.jsonl"),
     ///     Path::new("./yara_rules")
     /// ).await?;
-    /// println!("Extracted {} YARA rules", rule_count);
+    /// println!("Extracted {rule_count} YARA rules");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -750,7 +756,8 @@ impl BatchApi {
                                             message.get("content").and_then(|v| v.as_str())
                                         {
                                             // Extract YARA rule from the response
-                                            if let Some(yara_rule) = self.extract_yara_rule(content)
+                                            if let Some(yara_rule) =
+                                                Self::extract_yara_rule(content)
                                             {
                                                 let rule_filename = format!("{custom_id}.yar");
                                                 let rule_path = output_dir.join(rule_filename);
@@ -784,16 +791,14 @@ impl BatchApi {
     ///
     /// This helper method searches for YARA rule patterns in the response content
     /// and extracts clean rule text.
-    fn extract_yara_rule(&self, content: &str) -> Option<String> {
+    fn extract_yara_rule(content: &str) -> Option<String> {
         // Look for content between ```yara and next ```
         if let Some(start) = content.find("```yara") {
             let rule_start = start + 7; // Skip "```yara"
                                         // Skip to the next line after ```yara
-            let rule_start = if let Some(newline) = content[rule_start..].find('\n') {
-                rule_start + newline + 1
-            } else {
-                rule_start
-            };
+            let rule_start = content[rule_start..]
+                .find('\n')
+                .map_or(rule_start, |newline| rule_start + newline + 1);
 
             if let Some(end) = content[rule_start..].find("```") {
                 let rule_end = rule_start + end;
@@ -896,7 +901,7 @@ impl BatchApi {
                                         if let Some(content) =
                                             message.get("content").and_then(|v| v.as_str())
                                         {
-                                            if self.extract_yara_rule(content).is_some() {
+                                            if Self::extract_yara_rule(content).is_some() {
                                                 report.yara_rules_found += 1;
                                             }
                                             report.total_tokens += content.len();
@@ -1000,7 +1005,7 @@ impl BatchApi {
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
     /// let cancelled_batch = api.cancel_batch("batch_abc123").await?;
-    /// println!("Batch status: {}", cancelled_batch.status);
+    /// println!("Batch status: {cancelled_batch.status}");
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
     /// ```
@@ -1032,7 +1037,7 @@ impl BatchApi {
     /// let api = BatchApi::new("your-api-key")?;
     /// let batches = api.list_batches(Some(10), None).await?;
     /// for batch in batches.data {
-    ///     println!("Batch {}: {}", batch.id, batch.status);
+    ///     println!("Batch {}: {batch.id, batch.status}");
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });
@@ -1081,9 +1086,9 @@ impl BatchApi {
     ///     openai_rust_sdk::api::batch::BatchStatus::Completed => {
     ///         println!("Batch completed successfully!");
     ///         let results = api.get_batch_results(&final_batch.id).await?;
-    ///         println!("Results: {}", results);
+    ///         println!("Results: {results}");
     ///     }
-    ///     _ => println!("Batch finished with status: {}", final_batch.status),
+    ///     _ => println!("Batch finished with status: {final_batch.status}"),
     /// }
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
     /// # });

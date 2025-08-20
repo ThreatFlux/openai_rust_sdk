@@ -65,5 +65,8 @@ pub fn uses_iterators(source: &str) -> bool {
 
 /// Calculate complexity score based on features
 pub fn calculate_complexity_score(string_count: usize) -> u8 {
-    (string_count + 1).min(10) as u8
+    #[allow(clippy::cast_possible_truncation)]
+    {
+        (string_count + 1).min(10) as u8
+    }
 }

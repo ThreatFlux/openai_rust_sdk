@@ -37,7 +37,7 @@
 //!     .build()?;
 //!
 //! let run = api.create_run("thread_abc123", run_request).await?;
-//! println!("Created run: {}", run.id);
+//! println!("Created run: {run.id}");
 //!
 //! // Monitor run status
 //! loop {
@@ -154,7 +154,7 @@ impl RunsApi {
     ///     .build()?;
     ///
     /// let run = api.create_run("thread_abc123", request).await?;
-    /// println!("Created run: {}", run.id);
+    /// println!("Created run: {run.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -191,7 +191,7 @@ impl RunsApi {
     ///     .build()?;
     ///
     /// let run = api.create_thread_and_run(request).await?;
-    /// println!("Created thread and run: {} in thread {}", run.id, run.thread_id);
+    /// println!("Created thread and run: {} in thread {run.id, run.thread_id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -256,7 +256,7 @@ impl RunsApi {
     /// let request = ModifyRunRequest { metadata: Some(metadata) };
     ///
     /// let run = api.modify_run("thread_abc123", "run_abc123", request).await?;
-    /// println!("Modified run: {}", run.id);
+    /// println!("Modified run: {run.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -295,7 +295,7 @@ impl RunsApi {
     /// let api = RunsApi::new("your-api-key")?;
     /// let params = ListRunsParams { limit: Some(10), ..Default::default() };
     /// let response = api.list_runs("thread_abc123", Some(params)).await?;
-    /// println!("Found {} runs", response.data.len());
+    /// println!("Found {response.data.len(} runs"));
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -343,7 +343,7 @@ impl RunsApi {
     /// };
     ///
     /// let run = api.submit_tool_outputs("thread_abc123", "run_abc123", request).await?;
-    /// println!("Submitted tool outputs to run: {}", run.id);
+    /// println!("Submitted tool outputs to run: {run.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -380,7 +380,7 @@ impl RunsApi {
     /// # tokio_test::block_on(async {
     /// let api = RunsApi::new("your-api-key")?;
     /// let run = api.cancel_run("thread_abc123", "run_abc123").await?;
-    /// println!("Cancelled run: {}", run.id);
+    /// println!("Cancelled run: {run.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -421,7 +421,7 @@ impl RunsApi {
     /// let api = RunsApi::new("your-api-key")?;
     /// let params = ListRunStepsParams { limit: Some(10), ..Default::default() };
     /// let response = api.list_run_steps("thread_abc123", "run_abc123", Some(params)).await?;
-    /// println!("Found {} run steps", response.data.len());
+    /// println!("Found {response.data.len(} run steps"));
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -509,7 +509,7 @@ impl RunsApi {
     /// };
     ///
     /// let run = api.submit_tool_outputs_stream("thread_abc123", "run_abc123", request).await?;
-    /// println!("Submitted tool outputs with streaming to run: {}", run.id);
+    /// println!("Submitted tool outputs with streaming to run: {run.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -553,7 +553,7 @@ impl RunsApi {
     ///     .build()?;
     ///
     /// let run = api.create_run_stream("thread_abc123", request).await?;
-    /// println!("Created streaming run: {}", run.id);
+    /// println!("Created streaming run: {run.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -591,7 +591,7 @@ impl RunsApi {
     ///     .build()?;
     ///
     /// let run = api.create_thread_and_run_stream(request).await?;
-    /// println!("Created streaming thread and run: {} in thread {}", run.id, run.thread_id);
+    /// println!("Created streaming thread and run: {} in thread {run.id, run.thread_id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```

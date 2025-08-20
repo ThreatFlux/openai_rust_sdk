@@ -20,7 +20,7 @@ use std::{env, time::Instant};
 use tokio::time::{sleep, Duration};
 
 // Static system prompt that will be cached (>1024 tokens)
-const SYSTEM_PROMPT: &str = r#"
+const SYSTEM_PROMPT: &str = r"
 You are an advanced AI assistant specialized in data analysis, programming, and scientific research.
 Your capabilities include:
 
@@ -86,7 +86,7 @@ When writing code:
 This extensive system prompt ensures that we meet the 1024 token minimum for caching
 and provides consistent behavior across all requests. The static nature of this prompt
 makes it ideal for caching, as it will be reused across multiple API calls.
-"#;
+";
 
 // Common examples that can be cached
 const EXAMPLES: &str = r#"
@@ -147,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             total_cached_tokens += cached;
             total_prompt_tokens += usage.prompt_tokens;
 
-            println!("Request #{}: ", i);
+            println!("Request #{i}: ");
             println!("  ⏱️  Latency: {:.2}ms", elapsed.as_millis());
             println!("  📝 Prompt tokens: {}", usage.prompt_tokens);
             println!(
@@ -178,14 +178,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n📈 Caching Statistics:");
     println!(
-        "  • Average first request latency: {:.0}ms",
-        avg_first_latency
+        "  • Average first request latency: {avg_first_latency:.0}ms"
     );
     println!(
-        "  • Average cached request latency: {:.0}ms",
-        avg_cached_latency
+        "  • Average cached request latency: {avg_cached_latency:.0}ms"
     );
-    println!("  • Latency reduction: {:.1}%", latency_reduction);
+    println!("  • Latency reduction: {latency_reduction:.1}%");
     println!(
         "  • Total tokens cached: {}/{} ({:.1}%)",
         total_cached_tokens,
@@ -378,7 +376,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for (label, delay) in intervals {
         if delay > 0 {
-            println!("  ⏳ Waiting {} seconds...", delay);
+            println!("  ⏳ Waiting {delay} seconds...");
             sleep(Duration::from_secs(delay as u64)).await;
         }
 

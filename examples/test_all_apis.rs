@@ -109,7 +109,7 @@ async fn test_files_api(api_key: &str) -> Result<()> {
                 Ok(files) => {
                     println!("   ✅ Found {} files", files.data.len());
                 }
-                Err(e) => println!("   ❌ List files failed: {}", e),
+                Err(e) => println!("   ❌ List files failed: {e}"),
             }
 
             // Test retrieve file
@@ -118,7 +118,7 @@ async fn test_files_api(api_key: &str) -> Result<()> {
                 Ok(retrieved) => {
                     println!("   ✅ File retrieved: {} bytes", retrieved.bytes);
                 }
-                Err(e) => println!("   ❌ Retrieve file failed: {}", e),
+                Err(e) => println!("   ❌ Retrieve file failed: {e}"),
             }
 
             // Test delete file
@@ -127,11 +127,11 @@ async fn test_files_api(api_key: &str) -> Result<()> {
                 Ok(_) => {
                     println!("   ✅ File deleted successfully");
                 }
-                Err(e) => println!("   ❌ Delete file failed: {}", e),
+                Err(e) => println!("   ❌ Delete file failed: {e}"),
             }
         }
         Err(e) => {
-            println!("   ❌ File upload failed: {}", e);
+            println!("   ❌ File upload failed: {e}");
         }
     }
 
@@ -170,7 +170,7 @@ async fn test_assistants_api(api_key: &str) -> Result<()> {
                 Ok(list) => {
                     println!("   ✅ Found {} assistants", list.data.len());
                 }
-                Err(e) => println!("   ❌ List assistants failed: {}", e),
+                Err(e) => println!("   ❌ List assistants failed: {e}"),
             }
 
             // Test retrieve assistant
@@ -179,7 +179,7 @@ async fn test_assistants_api(api_key: &str) -> Result<()> {
                 Ok(retrieved) => {
                     println!("   ✅ Assistant retrieved: {:?}", retrieved.name);
                 }
-                Err(e) => println!("   ❌ Retrieve assistant failed: {}", e),
+                Err(e) => println!("   ❌ Retrieve assistant failed: {e}"),
             }
 
             // Test update assistant
@@ -190,7 +190,7 @@ async fn test_assistants_api(api_key: &str) -> Result<()> {
                 Ok(_) => {
                     println!("   ✅ Assistant updated successfully");
                 }
-                Err(e) => println!("   ❌ Update assistant failed: {}", e),
+                Err(e) => println!("   ❌ Update assistant failed: {e}"),
             }
 
             // Test delete assistant
@@ -199,11 +199,11 @@ async fn test_assistants_api(api_key: &str) -> Result<()> {
                 Ok(_) => {
                     println!("   ✅ Assistant deleted successfully");
                 }
-                Err(e) => println!("   ❌ Delete assistant failed: {}", e),
+                Err(e) => println!("   ❌ Delete assistant failed: {e}"),
             }
         }
         Err(e) => {
-            println!("   ❌ Create assistant failed: {}", e);
+            println!("   ❌ Create assistant failed: {e}");
         }
     }
 
@@ -241,10 +241,10 @@ async fn test_threads_api(api_key: &str) -> Result<()> {
                         Ok(messages) => {
                             println!("   ✅ Found {} messages", messages.data.len());
                         }
-                        Err(e) => println!("   ❌ List messages failed: {}", e),
+                        Err(e) => println!("   ❌ List messages failed: {e}"),
                     }
                 }
-                Err(e) => println!("   ❌ Add message failed: {}", e),
+                Err(e) => println!("   ❌ Add message failed: {e}"),
             }
 
             // Test delete thread
@@ -253,11 +253,11 @@ async fn test_threads_api(api_key: &str) -> Result<()> {
                 Ok(_) => {
                     println!("   ✅ Thread deleted successfully");
                 }
-                Err(e) => println!("   ❌ Delete thread failed: {}", e),
+                Err(e) => println!("   ❌ Delete thread failed: {e}"),
             }
         }
         Err(e) => {
-            println!("   ❌ Create thread failed: {}", e);
+            println!("   ❌ Create thread failed: {e}");
         }
     }
 
@@ -288,7 +288,7 @@ async fn test_vector_stores_api(api_key: &str) -> Result<()> {
                 Ok(list) => {
                     println!("   ✅ Found {} vector stores", list.data.len());
                 }
-                Err(e) => println!("   ❌ List vector stores failed: {}", e),
+                Err(e) => println!("   ❌ List vector stores failed: {e}"),
             }
 
             // Test retrieve vector store
@@ -297,7 +297,7 @@ async fn test_vector_stores_api(api_key: &str) -> Result<()> {
                 Ok(retrieved) => {
                     println!("   ✅ Vector store retrieved: {:?}", retrieved.name);
                 }
-                Err(e) => println!("   ❌ Retrieve vector store failed: {}", e),
+                Err(e) => println!("   ❌ Retrieve vector store failed: {e}"),
             }
 
             // Test delete vector store
@@ -306,11 +306,11 @@ async fn test_vector_stores_api(api_key: &str) -> Result<()> {
                 Ok(_) => {
                     println!("   ✅ Vector store deleted successfully");
                 }
-                Err(e) => println!("   ❌ Delete vector store failed: {}", e),
+                Err(e) => println!("   ❌ Delete vector store failed: {e}"),
             }
         }
         Err(e) => {
-            println!("   ❌ Create vector store failed: {}", e);
+            println!("   ❌ Create vector store failed: {e}");
         }
     }
 
@@ -336,12 +336,12 @@ async fn test_fine_tuning_api(api_key: &str) -> Result<()> {
                     Ok(retrieved) => {
                         println!("   ✅ Job retrieved: {}", retrieved.model);
                     }
-                    Err(e) => println!("   ❌ Retrieve job failed: {}", e),
+                    Err(e) => println!("   ❌ Retrieve job failed: {e}"),
                 }
             }
         }
         Err(e) => {
-            println!("   ❌ List fine-tuning jobs failed: {}", e);
+            println!("   ❌ List fine-tuning jobs failed: {e}");
         }
     }
 
@@ -373,7 +373,7 @@ async fn test_audio_api(api_key: &str) -> Result<()> {
             let audio_path = std::env::temp_dir().join("test_speech.mp3");
             match fs::write(&audio_path, &response.audio_data).await {
                 Ok(_) => {
-                    println!("      Audio saved to: {:?}", audio_path);
+                    println!("      Audio saved to: {audio_path:?}");
 
                     // Test Transcription (using the generated audio)
                     println!("   🎤 Testing Transcription...");
@@ -388,7 +388,7 @@ async fn test_audio_api(api_key: &str) -> Result<()> {
                             println!("   ✅ Transcription successful: {}", transcription.text);
                         }
                         Err(e) => {
-                            println!("   ❌ Transcription failed: {}", e);
+                            println!("   ❌ Transcription failed: {e}");
                             if e.to_string().contains("400") {
                                 println!("      Note: May need actual audio file");
                             }
@@ -398,11 +398,11 @@ async fn test_audio_api(api_key: &str) -> Result<()> {
                     // Clean up
                     let _ = fs::remove_file(&audio_path).await;
                 }
-                Err(e) => println!("   ❌ Failed to save audio: {}", e),
+                Err(e) => println!("   ❌ Failed to save audio: {e}"),
             }
         }
         Err(e) => {
-            println!("   ❌ Speech generation failed: {}", e);
+            println!("   ❌ Speech generation failed: {e}");
         }
     }
 
@@ -429,7 +429,7 @@ async fn test_moderations_api(api_key: &str) -> Result<()> {
             }
         }
         Err(e) => {
-            println!("   ❌ Safe content moderation failed: {}", e);
+            println!("   ❌ Safe content moderation failed: {e}");
         }
     }
 
@@ -452,7 +452,7 @@ async fn test_moderations_api(api_key: &str) -> Result<()> {
             }
         }
         Err(e) => {
-            println!("   ❌ Edge case moderation failed: {}", e);
+            println!("   ❌ Edge case moderation failed: {e}");
         }
     }
 
@@ -484,14 +484,14 @@ async fn test_runs_api(api_key: &str) -> Result<()> {
     {
         Ok(assistant) => {
             let assistant_id = assistant.id.clone();
-            println!("   ✅ Assistant created: {}", assistant_id);
+            println!("   ✅ Assistant created: {assistant_id}");
 
             // Create thread with message
             let thread_request = ThreadRequest::default();
             match threads_api.create_thread(thread_request).await {
                 Ok(thread) => {
                     let thread_id = thread.id.clone();
-                    println!("   ✅ Thread created: {}", thread_id);
+                    println!("   ✅ Thread created: {thread_id}");
 
                     // Add a message
                     let message = MessageRequest {
@@ -527,7 +527,7 @@ async fn test_runs_api(api_key: &str) -> Result<()> {
                                         Ok(runs) => {
                                             println!("   ✅ Found {} runs", runs.data.len());
                                         }
-                                        Err(e) => println!("   ❌ List runs failed: {}", e),
+                                        Err(e) => println!("   ❌ List runs failed: {e}"),
                                     }
 
                                     // Cancel run (cleanup)
@@ -536,25 +536,25 @@ async fn test_runs_api(api_key: &str) -> Result<()> {
                                         Ok(_) => {
                                             println!("   ✅ Run cancelled");
                                         }
-                                        Err(e) => println!("   ❌ Cancel run failed: {}", e),
+                                        Err(e) => println!("   ❌ Cancel run failed: {e}"),
                                     }
                                 }
-                                Err(e) => println!("   ❌ Create run failed: {}", e),
+                                Err(e) => println!("   ❌ Create run failed: {e}"),
                             }
                         }
-                        Err(e) => println!("   ❌ Add message failed: {}", e),
+                        Err(e) => println!("   ❌ Add message failed: {e}"),
                     }
 
                     // Clean up thread
                     let _ = threads_api.delete_thread(&thread_id).await;
                 }
-                Err(e) => println!("   ❌ Create thread failed: {}", e),
+                Err(e) => println!("   ❌ Create thread failed: {e}"),
             }
 
             // Clean up assistant
             let _ = assistants_api.delete_assistant(&assistant_id).await;
         }
-        Err(e) => println!("   ❌ Create assistant failed: {}", e),
+        Err(e) => println!("   ❌ Create assistant failed: {e}"),
     }
 
     Ok(())

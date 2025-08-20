@@ -7,7 +7,7 @@ use crate::models::responses::{
 use serde_json::{json, Value};
 
 /// Convert message role to OpenAI format
-pub fn role_to_string(role: MessageRole) -> &'static str {
+pub fn role_to_string(role: &MessageRole) -> &'static str {
     match role {
         MessageRole::Developer => "system",
         MessageRole::User => "user",
@@ -65,7 +65,7 @@ fn image_detail_to_string(detail: &ImageDetail) -> &'static str {
 }
 
 /// Add optional parameters to request
-pub fn add_optional_params(request: &mut Value, params: OptionalParams) {
+pub fn add_optional_params(request: &mut Value, params: &OptionalParams) {
     if let Some(temp) = params.temperature {
         request["temperature"] = json!(temp);
     }

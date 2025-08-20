@@ -40,7 +40,7 @@
 //!     .build()?;
 //!
 //! let job = api.create_fine_tuning_job(job_request).await?;
-//! println!("Created fine-tuning job: {}", job.id);
+//! println!("Created fine-tuning job: {job.id}");
 //!
 //! // Monitor job progress
 //! while !job.status.is_terminal() {
@@ -50,7 +50,7 @@
 //!     // Get recent events
 //!     let events = api.list_fine_tuning_events(&job.id, None).await?;
 //!     for event in &events.data {
-//!         println!("{}: {}", event.level, event.message);
+//!         println!("{}: {event.level, event.message}");
 //!     }
 //!     
 //!     tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
@@ -58,7 +58,7 @@
 //!
 //! // Use the fine-tuned model
 //! if let Some(model_name) = job.fine_tuned_model {
-//!     println!("Fine-tuned model ready: {}", model_name);
+//!     println!("Fine-tuned model ready: {model_name}");
 //! }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! # });
@@ -159,7 +159,7 @@ impl FineTuningApi {
     ///     .build()?;
     ///
     /// let job = api.create_fine_tuning_job(job_request).await?;
-    /// println!("Created job: {}", job.id);
+    /// println!("Created job: {job.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -194,7 +194,7 @@ impl FineTuningApi {
     /// let jobs = api.list_fine_tuning_jobs(Some(params)).await?;
     ///
     /// for job in jobs.data {
-    ///     println!("Job {}: {:?}", job.id, job.status);
+    ///     println!("Job {job.id, job.status}: {:?}");
     /// }
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
@@ -312,7 +312,7 @@ impl FineTuningApi {
     /// let events = api.list_fine_tuning_events("ft-123", Some(params)).await?;
     ///
     /// for event in events.data {
-    ///     println!("{}: {}", event.level, event.message);
+    ///     println!("{}: {event.level, event.message}");
     /// }
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
@@ -367,7 +367,7 @@ impl FineTuningApi {
     /// let checkpoints = api.list_fine_tuning_checkpoints("ft-123", Some(params)).await?;
     ///
     /// for checkpoint in checkpoints.data {
-    ///     println!("Checkpoint {}: step {}", checkpoint.id, checkpoint.step_number);
+    ///     println!("Checkpoint {}: step {checkpoint.id, checkpoint.step_number}");
     /// }
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
@@ -426,7 +426,7 @@ impl FineTuningApi {
     ///     "ft-123",
     ///     Some(Duration::from_secs(30)),
     ///     Some(Box::new(|event| {
-    ///         println!("Event: {}", event.message);
+    ///         println!("Event: {event.message}");
     ///     }))
     /// ).await?;
     ///
@@ -504,7 +504,7 @@ impl FineTuningApi {
     /// ).await?;
     ///
     /// if let Some(model_name) = final_job.fine_tuned_model {
-    ///     println!("Fine-tuned model ready: {}", model_name);
+    ///     println!("Fine-tuned model ready: {model_name}");
     /// }
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
@@ -546,7 +546,7 @@ impl FineTuningApi {
     /// let final_job = api.create_and_monitor_fine_tuning_job(
     ///     job_request,
     ///     Some(Duration::from_secs(30)),
-    ///     Some(Box::new(|event| println!("Training event: {}", event.message)))
+    ///     Some(Box::new(|event| println!("Training event: {event.message}")))
     /// ).await?;
     ///
     /// println!("Training completed with status: {:?}", final_job.status);

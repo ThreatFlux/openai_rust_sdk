@@ -369,9 +369,9 @@ fn test_complete_sdk_integration() {
 
     for (test_name, description, passed) in &test_results {
         if *passed {
-            println!("✅ {}: {}", test_name, description);
+            println!("✅ {test_name}: {description}");
         } else {
-            println!("❌ {}: {}", test_name, description);
+            println!("❌ {test_name}: {description}");
         }
     }
 

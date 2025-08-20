@@ -388,7 +388,7 @@ pub struct PromptPatterns;
 impl PromptPatterns {
     /// Create a classification prompt
     #[must_use]
-    pub fn classification(categories: Vec<String>, instructions: Option<String>) -> PromptBuilder {
+    pub fn classification(categories: &[String], instructions: Option<String>) -> PromptBuilder {
         let builder = PromptBuilder::new()
             .with_identity("You are a classification assistant that categorizes inputs into predefined categories.");
 
@@ -410,7 +410,7 @@ impl PromptPatterns {
 
     /// Create a data extraction prompt
     #[must_use]
-    pub fn extraction(fields: Vec<String>, output_format: &str) -> PromptBuilder {
+    pub fn extraction(fields: &[String], output_format: &str) -> PromptBuilder {
         PromptBuilder::new()
             .with_identity("You are a data extraction assistant that extracts structured information from unstructured text.")
             .with_instruction_list(vec![
@@ -447,7 +447,7 @@ impl PromptPatterns {
 
     /// Create a code generation prompt
     #[must_use]
-    pub fn code_generation(language: &str, requirements: Vec<String>) -> PromptBuilder {
+    pub fn code_generation(language: &str, requirements: &[String]) -> PromptBuilder {
         PromptBuilder::new()
             .with_identity(format!("You are a {language} programming assistant that generates clean, efficient, and well-documented code."))
             .with_instruction_list(vec![

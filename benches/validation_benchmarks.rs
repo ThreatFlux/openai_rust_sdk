@@ -19,11 +19,11 @@ use std::time::Duration;
 #[cfg(feature = "yara")]
 fn benchmark_simple_rule_validation(c: &mut Criterion) {
     let validator = YaraValidator::new();
-    let simple_rule = r#"
+    let simple_rule = r"
         rule simple_benchmark {
             condition: true
         }
-    "#;
+    ";
 
     c.bench_function("validate_simple_rule", |b| {
         b.iter(|| validator.validate_rule(black_box(simple_rule)).unwrap())
@@ -143,11 +143,11 @@ fn benchmark_pattern_testing(c: &mut Criterion) {
         ),
         (
             "hex_pattern",
-            r#"rule test { strings: $h = { 4D 5A } condition: $h }"#,
+            r"rule test { strings: $h = { 4D 5A } condition: $h }",
         ),
         (
             "regex_pattern",
-            r#"rule test { strings: $r = /test[0-9]+/ condition: $r }"#,
+            r"rule test { strings: $r = /test[0-9]+/ condition: $r },
         ),
         (
             "multiple_patterns",
@@ -265,10 +265,10 @@ fn benchmark_error_handling(c: &mut Criterion) {
         ("syntax_error", "rule invalid { condition invalid_syntax }"),
         (
             "missing_condition",
-            "rule incomplete { strings: $s = \"test\" }",
+            "rule incomplete { strings: $s = "test" }",
         ),
         ("empty_rule", ""),
-        ("malformed", "this is not a YARA rule"),
+        ("malformed", "this is not a YARA rule "),
     ];
 
     for (error_type, rule) in invalid_rules {
@@ -282,16 +282,8 @@ fn benchmark_error_handling(c: &mut Criterion) {
 
 // Helper function to generate rules with varying numbers of strings
 #[cfg(feature = "yara")]
-fn generate_rule_with_strings(string_count: usize) -> String {
-    let mut rule = String::from("rule generated_rule {\n    strings:\n");
-
-    for i in 0..string_count {
-        rule.push_str(&format!("        $str{} = \"test_string_{}\"\n", i, i));
-    }
-
-    rule.push_str("    condition:\n        any of them\n}");
-    rule
-}
+fn generate_rule_with_strings(string_count: usize) -> String { let mut rule = String::from("rule generated_rule {\n    strings:\n"); for i in 0..string_count { rule.push_str(&format!("        $str{} = \"test_string_{}\"
+", i, i)); } rule.push_str("    condition:\n        any of them\n}"); rule }
 
 #[cfg(feature = "yara")]
 criterion_group!(

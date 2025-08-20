@@ -472,14 +472,12 @@ impl AudioUtils {
     /// Estimate audio duration from file size (rough approximation)
     /// This is a very rough estimate based on typical bitrates
     #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn estimate_duration_from_size(file_size_bytes: u64, format: &AudioFormat) -> f64 {
         let bits_per_second = match format {
-            AudioFormat::Mp3 => 128_000.0,    // 128 kbps
-            AudioFormat::Opus => 64_000.0,    // 64 kbps
-            AudioFormat::Aac => 128_000.0,    // 128 kbps
-            AudioFormat::Flac => 1_411_000.0, // ~1.4 Mbps (CD quality)
-            AudioFormat::Wav => 1_411_000.0,  // CD quality PCM
-            AudioFormat::Pcm => 1_411_000.0,  // CD quality PCM
+            AudioFormat::Mp3 | AudioFormat::Aac => 128_000.0, // 128 kbps
+            AudioFormat::Opus => 64_000.0,                    // 64 kbps
+            AudioFormat::Flac | AudioFormat::Wav | AudioFormat::Pcm => 1_411_000.0, // CD quality
         };
 
         (file_size_bytes as f64 * 8.0) / bits_per_second
@@ -489,12 +487,12 @@ impl AudioUtils {
     /// Based on `OpenAI` pricing (as of 2024)
     #[must_use]
     pub fn estimate_tts_cost(text: &str, model: &str) -> f64 {
+        #[allow(clippy::cast_precision_loss)]
         let chars = text.len() as f64;
 
         match model {
-            "tts-1" => chars * 0.000015,   // $0.015 per 1K characters
             "tts-1-hd" => chars * 0.00003, // $0.030 per 1K characters
-            _ => chars * 0.000015,         // Default to standard pricing
+            _ => chars * 0.000_015,        // tts-1 and default pricing
         }
     }
 

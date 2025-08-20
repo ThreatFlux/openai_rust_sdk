@@ -193,7 +193,7 @@ async fn base64_image_processing(_client: &OpenAIClient) -> Result<(), Box<dyn s
     ];
 
     // Encode to base64 data URL
-    let data_url = ImageUtils::encode_to_data_url(&png_data, ImageFormat::Png);
+    let data_url = ImageUtils::encode_to_data_url(&png_data, &ImageFormat::Png);
     println!("Created base64 data URL (length: {})", data_url.len());
     println!("Data URL preview: {}...", &data_url[..100]);
 
@@ -224,7 +224,7 @@ async fn base64_image_processing(_client: &OpenAIClient) -> Result<(), Box<dyn s
 
     // Create a message with the base64 image
     let message =
-        Message::user_with_image_bytes("What color is this pixel?", &png_data, ImageFormat::Png);
+        Message::user_with_image_bytes("What color is this pixel?", &png_data, &ImageFormat::Png);
 
     println!("Created message with base64 image data");
     println!("Message contains images: {}", message.has_images());

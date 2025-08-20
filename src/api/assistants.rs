@@ -37,7 +37,7 @@
 //!     .build()?;
 //!
 //! let assistant = api.create_assistant(assistant_request).await?;
-//! println!("Created assistant: {}", assistant.id);
+//! println!("Created assistant: {assistant.id}");
 //!
 //! // Retrieve the assistant
 //! let retrieved = api.retrieve_assistant(&assistant.id).await?;
@@ -45,11 +45,11 @@
 //!
 //! // List all assistants
 //! let assistants = api.list_assistants(None).await?;
-//! println!("Found {} assistants", assistants.data.len());
+//! println!("Found {assistants.data.len(} assistants"));
 //!
 //! // Delete the assistant
 //! let deleted = api.delete_assistant(&assistant.id).await?;
-//! println!("Deleted: {}", deleted.deleted);
+//! println!("Deleted: {deleted.deleted}");
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! # });
 //! ```
@@ -129,7 +129,7 @@ impl AssistantsApi {
     ///     .build()?;
     ///
     /// let assistant = api.create_assistant(request).await?;
-    /// println!("Created assistant: {}", assistant.id);
+    /// println!("Created assistant: {assistant.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -196,7 +196,7 @@ impl AssistantsApi {
     ///     .build()?;
     ///
     /// let assistant = api.modify_assistant("asst_abc123", update_request).await?;
-    /// println!("Modified assistant: {}", assistant.id);
+    /// println!("Modified assistant: {assistant.id}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -231,7 +231,7 @@ impl AssistantsApi {
     /// # tokio_test::block_on(async {
     /// let api = AssistantsApi::new("your-api-key")?;
     /// let result = api.delete_assistant("asst_abc123").await?;
-    /// println!("Deleted: {}", result.deleted);
+    /// println!("Deleted: {result.deleted}");
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # });
     /// ```
@@ -270,7 +270,7 @@ impl AssistantsApi {
     ///     .limit(10)
     ///     .order(SortOrder::Desc);
     /// let assistants = api.list_assistants(Some(params)).await?;
-    /// println!("Found {} assistants", assistants.data.len());
+    /// println!("Found {assistants.data.len(} assistants"));
     ///
     /// // List all assistants (using default parameters)
     /// let all_assistants = api.list_assistants(None).await?;
