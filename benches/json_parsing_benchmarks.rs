@@ -3,12 +3,16 @@
 //! These benchmarks measure the performance of JSON operations used throughout
 //! the SDK for API communication and data storage.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+#[cfg(feature = "yara")]
+use criterion::{black_box, BenchmarkId};
+use criterion::{criterion_group, criterion_main, Criterion};
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
 use std::time::Duration;
+#[cfg(feature = "yara")]
 use tempfile::NamedTempFile;
 
 #[cfg(feature = "yara")]
