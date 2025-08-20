@@ -23,10 +23,13 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  RUSTFLAGS: -D warnings
+  RUSTFLAGS: -D warnings -C link-arg=-s
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
   RUSTUP_MAX_RETRIES: 10
+  # Reduce debug info and optimize for smaller binaries
+  CARGO_PROFILE_TEST_DEBUG: 1
+  CARGO_PROFILE_DEV_DEBUG: 1
 
 jobs:
   # Quick format and lint check
@@ -80,6 +83,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      # Free up disk space on GitHub runners
+      - name: Free Disk Space (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+      
+      - name: Free Disk Space (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          sudo rm -rf /Applications/Xcode_*.app
+          sudo rm -rf ~/Library/Developer/CoreSimulator
+          df -h
+      
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -118,8 +141,14 @@ jobs:
         env:
           RUST_TEST_THREADS: 2
       
-      - name: Run doc tests
-        run: cargo test --doc --all-features
+      - name: Run doc tests (split for disk space)
+        run: |
+          # Run doc tests in smaller batches to reduce disk usage
+          cargo test --doc --all-features
+          # Clean up test artifacts to save disk space
+          rm -rf target/debug/deps/*.d
+          rm -rf target/debug/deps/*.rmeta
+          rm -rf target/debug/incremental
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage

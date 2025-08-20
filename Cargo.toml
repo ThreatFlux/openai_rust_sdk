@@ -120,3 +120,24 @@ path = "examples/vision_demo.rs"
 name = "response_format_demo"
 path = "examples/response_format_demo.rs"
 
+# Optimization profiles for reduced binary size
+[profile.dev]
+# Faster compilation for development
+opt-level = 0
+debug = 1  # Reduced debug info
+incremental = true
+overflow-checks = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"  # Link Time Optimization for smaller binaries
+codegen-units = 1  # Better optimization but slower compile
+strip = true  # Strip symbols for smaller size
+panic = "abort"  # Smaller binary, no unwinding
+
+[profile.test]
+# Optimize test builds for size to prevent disk space issues
+opt-level = 1  # Some optimization for faster tests
+debug = 1  # Reduced debug info
+incremental = false  # Don't keep incremental compilation artifacts
+overflow-checks = true
