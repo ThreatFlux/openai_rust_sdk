@@ -24,6 +24,7 @@ struct Person {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 struct TaskList {
     title: String,
     tasks: Vec<Task>,
@@ -32,6 +33,7 @@ struct TaskList {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 struct Task {
     id: String,
     description: String,
@@ -40,6 +42,7 @@ struct Task {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
 enum Priority {
     Low,
     Medium,
