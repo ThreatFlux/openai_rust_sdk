@@ -282,8 +282,16 @@ fn benchmark_error_handling(c: &mut Criterion) {
 
 // Helper function to generate rules with varying numbers of strings
 #[cfg(feature = "yara")]
-fn generate_rule_with_strings(string_count: usize) -> String { let mut rule = String::from("rule generated_rule {\n    strings:\n"); for i in 0..string_count { rule.push_str(&format!("        $str{} = \"test_string_{}\"
-", i, i)); } rule.push_str("    condition:\n        any of them\n}"); rule }
+fn generate_rule_with_strings(string_count: usize) -> String {
+    let mut rule = String::from("rule generated_rule {\n    strings:\n");
+
+    for i in 0..string_count {
+        rule.push_str(&format!("        $str{} = \"test_string_{}\"\n", i, i));
+    }
+
+    rule.push_str("    condition:\n        any of them\n}");
+    rule
+}
 
 #[cfg(feature = "yara")]
 criterion_group!(
