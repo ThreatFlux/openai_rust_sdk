@@ -165,6 +165,8 @@ jobs:
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
         uses: taiki-e/install-action@5c27e59d8c472d2a91731d8b5d7fe040fad53387  # v2.58.18
+        with:
+          tool: cargo-llvm-cov
       
       - name: Generate coverage
         if: matrix.coverage
