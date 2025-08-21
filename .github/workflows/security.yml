@@ -21,6 +21,8 @@ jobs:
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        with:
+          toolchain: stable
       
       - name: Install cargo-audit
         run: cargo install cargo-audit
@@ -48,6 +50,8 @@ jobs:
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        with:
+          toolchain: stable
       
       - name: Install cargo-deny
         run: cargo install cargo-deny
@@ -115,6 +119,8 @@ jobs:
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        with:
+          toolchain: stable
       
       - name: Install dependencies
         run: |
@@ -159,6 +165,8 @@ jobs:
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        with:
+          toolchain: stable
       
       - name: Install cargo-supply-chain
         run: |
