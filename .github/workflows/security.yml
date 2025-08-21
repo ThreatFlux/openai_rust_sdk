@@ -209,13 +209,7 @@ jobs:
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.after }}
-          extra_args: --debug --only-verified --format=sarif --output=trufflehog.sarif
-      
-      - name: Upload TruffleHog results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trufflehog.sarif
-        if: always() && hashFiles('trufflehog.sarif') != ''
+          extra_args: --debug --only-verified
       
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
