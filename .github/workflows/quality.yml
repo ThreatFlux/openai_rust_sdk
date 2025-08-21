@@ -273,10 +273,12 @@ jobs:
           output-file-path: benchmark-output.txt
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: false
-          comment-on-alert: true
-          alert-threshold: '150%'
-          fail-on-alert: false
+          # Don't try to compare with previous results since gh-pages doesn't exist
+          save-data-file: false
+          # Just output the results as a job summary
           summary-always: true
+          # Don't comment on PRs
+          comment-always: false
 
   # Dependency analysis
   deps-analysis:
