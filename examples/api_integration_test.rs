@@ -6,9 +6,6 @@ fn main() {
 }
 
 #[cfg(feature = "yara")]
-use tempfile;
-
-#[cfg(feature = "yara")]
 use openai_rust_sdk::{
     api::{
         batch::BatchApi,

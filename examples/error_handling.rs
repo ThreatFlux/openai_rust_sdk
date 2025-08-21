@@ -16,8 +16,6 @@ use anyhow::{Context, Result};
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]
 use std::collections::HashMap;
-#[cfg(feature = "yara")]
-use tempfile;
 
 #[cfg(feature = "yara")]
 fn main() -> Result<()> {
@@ -189,7 +187,8 @@ fn demo_file_operation_errors() -> Result<()> {
 
                 // Implement retry with fallback location
                 println!("    Attempting fallback to temp directory...");
-                let fallback_dir = tempfile::tempdir().expect("Failed to create fallback temp directory");
+                let fallback_dir =
+                    tempfile::tempdir().expect("Failed to create fallback temp directory");
                 let fallback_path = fallback_dir.path().join("fallback_batch.jsonl");
                 match generator.generate_test_suite(&fallback_path, "basic") {
                     Ok(()) => {

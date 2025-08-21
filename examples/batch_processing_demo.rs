@@ -19,7 +19,6 @@ use openai_rust_sdk::{
     testing::BatchJobGenerator,
 };
 use std::env;
-use tempfile;
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]

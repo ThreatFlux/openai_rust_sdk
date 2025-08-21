@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Ok(());
         }
     };
-    
+
     // Ensure no extra arguments
     if args.next().is_some() {
         eprintln!("Error: Too many arguments provided");
