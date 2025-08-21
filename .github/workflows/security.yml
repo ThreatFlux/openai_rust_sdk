@@ -8,14 +8,13 @@ on:
   schedule:
     - cron: '15 3 * * 1'  # Weekly on Monday at 3:15 AM UTC
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   # Security audit for dependencies
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -45,6 +44,8 @@ jobs:
   license-check:
     name: License Check
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -104,6 +105,8 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     permissions:
       security-events: write
       actions: read
@@ -160,6 +163,8 @@ jobs:
   supply-chain:
     name: Supply Chain Security
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -181,7 +186,7 @@ jobs:
       - name: Generate SBOM with cargo-cyclonedx
         run: |
           cargo install cargo-cyclonedx
-          cargo cyclonedx --format json --output-file sbom.json
+          cargo cyclonedx --format json > sbom.json
       
       - name: Upload SBOM
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
@@ -202,8 +207,8 @@ jobs:
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@0f58ae7c5036094a1e3e750d18772af92821b503  # v3.90.5
         with:
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.after }}
           extra_args: --debug --only-verified --format=sarif --output=trufflehog.sarif
       
       - name: Upload TruffleHog results
@@ -229,7 +234,7 @@ jobs:
         with:
           project: 'openai-rust-sdk'
           path: '.'
-          format: 'HTML,SARIF'
+          format: 'ALL'
           args: >
             --enableRetired
             --enableExperimental
