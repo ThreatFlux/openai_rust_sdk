@@ -6,6 +6,9 @@ fn main() {
 }
 
 #[cfg(feature = "yara")]
+use tempfile;
+
+#[cfg(feature = "yara")]
 use openai_rust_sdk::{
     api::{
         batch::BatchApi,
@@ -59,8 +62,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let batch_api = BatchApi::new(api_key.clone())?;
     let batch_generator = BatchJobGenerator::new(Some("gpt-4o-mini".to_string()));
 
-    // Generate a small batch file for testing
-    let temp_file = std::env::temp_dir().join("batch_api_test.jsonl");
+    // Generate a small batch file for testing - using tempfile for secure creation
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp directory");
+    let temp_file = temp_dir.path().join("batch_api_test.jsonl");
 
     println!("   Generating batch job file...");
     match batch_generator.generate_test_suite(&temp_file, "basic") {

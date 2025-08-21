@@ -19,6 +19,7 @@ use openai_rust_sdk::{
     testing::BatchJobGenerator,
 };
 use std::env;
+use tempfile;
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]
@@ -34,7 +35,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 1: Generate batch file
     println!("\n📝 Step 1: Generating YARA validation batch file...");
     let batch_generator = BatchJobGenerator::new(Some("gpt-4o-mini".to_string()));
-    let batch_file = std::env::temp_dir().join("yara_batch_demo.jsonl");
+    let temp_dir = tempfile::tempdir()?;
+    let batch_file = temp_dir.path().join("yara_batch_demo.jsonl");
 
     batch_generator.generate_test_suite(&batch_file, "malware")?;
     println!("✅ Generated batch file: {}", batch_file.display());
