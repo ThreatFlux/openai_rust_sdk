@@ -145,10 +145,21 @@ jobs:
         run: |
           # Run doc tests in smaller batches to reduce disk usage
           cargo test --doc --all-features
-          # Clean up test artifacts to save disk space
+      
+      - name: Clean up test artifacts (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
           rm -rf target/debug/deps/*.d
           rm -rf target/debug/deps/*.rmeta
           rm -rf target/debug/incremental
+      
+      - name: Clean up test artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path target/debug/deps/*.d) { Remove-Item target/debug/deps/*.d -Force }
+          if (Test-Path target/debug/deps/*.rmeta) { Remove-Item target/debug/deps/*.rmeta -Force }
+          if (Test-Path target/debug/incremental) { Remove-Item target/debug/incremental -Recurse -Force }
+        shell: pwsh
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
