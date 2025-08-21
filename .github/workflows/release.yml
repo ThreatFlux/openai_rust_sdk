@@ -323,25 +323,3 @@ jobs:
           publish_dir: ./target/doc
           cname: openai-rust-sdk.threatflux.com
         continue-on-error: true
-
-  # Create release announcement
-  announce:
-    name: Announce Release
-    needs: [prepare, publish-crate, docker]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send Discord notification
-        if: secrets.DISCORD_WEBHOOK
-        run: |
-          curl -H "Content-Type: application/json" \
-            -d "{\"content\": \"🚀 OpenAI Rust SDK v${{ needs.prepare.outputs.version }} has been released! Check it out at https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare.outputs.version }}\"}" \
-            ${{ secrets.DISCORD_WEBHOOK }}
-        continue-on-error: true
-      
-      - name: Send Slack notification
-        if: secrets.SLACK_WEBHOOK
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"🚀 OpenAI Rust SDK v${{ needs.prepare.outputs.version }} has been released!\\n<https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare.outputs.version }}|View Release>\"}" \
-            ${{ secrets.SLACK_WEBHOOK }}
-        continue-on-error: true
