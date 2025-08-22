@@ -135,13 +135,27 @@ jobs:
         if: matrix.use_cross
         run: cargo install cross
       
-      - name: Update version in Cargo.toml
+      - name: Update version in Cargo.toml (Unix)
+        if: runner.os != 'Windows'
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          sed -i.bak "s/^version = .*/version = \"$VERSION\"/" Cargo.toml || \
-          sed -i '' "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+          else
+            sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+          fi
       
-      - name: Build release binary
+      - name: Update version in Cargo.toml (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $version = "${{ needs.prepare.outputs.version }}"
+          $content = Get-Content Cargo.toml -Raw
+          $content = $content -replace '^version = .*', "version = `"$version`""
+          Set-Content -Path Cargo.toml -Value $content -NoNewline
+        shell: pwsh
+      
+      - name: Build release binary (Unix)
+        if: runner.os != 'Windows'
         run: |
           if [ "${{ matrix.use_cross }}" == "true" ]; then
             cross build --release --target ${{ matrix.target }} --all-features
@@ -149,41 +163,72 @@ jobs:
             cargo build --release --target ${{ matrix.target }} --all-features
           fi
       
-      - name: Package binary
+      - name: Build release binary (Windows)
+        if: runner.os == 'Windows'
+        run: cargo build --release --target ${{ matrix.target }} --all-features
+      
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            7z a ../../../${{ matrix.artifact_name }}.zip openai_rust_sdk.exe
-          else
-            tar czf ../../../${{ matrix.artifact_name }}.tar.gz openai_rust_sdk
-          fi
+          tar czf ../../../${{ matrix.artifact_name }}.tar.gz openai_rust_sdk
       
-      - name: Calculate checksums
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            certutil -hashfile ${{ matrix.artifact_name }}.zip SHA256 > ${{ matrix.artifact_name }}.zip.sha256
-          else
-            shasum -a 256 ${{ matrix.artifact_name }}.tar.gz > ${{ matrix.artifact_name }}.tar.gz.sha256
-          fi
+          cd target\${{ matrix.target }}\release
+          7z a ..\..\..\${{ matrix.artifact_name }}.zip openai_rust_sdk.exe
       
-      - name: Upload release artifact
+      - name: Calculate checksums (Unix)
+        if: runner.os != 'Windows'
+        run: shasum -a 256 ${{ matrix.artifact_name }}.tar.gz > ${{ matrix.artifact_name }}.tar.gz.sha256
+      
+      - name: Calculate checksums (Windows)
+        if: runner.os == 'Windows'
+        run: certutil -hashfile ${{ matrix.artifact_name }}.zip SHA256 > ${{ matrix.artifact_name }}.zip.sha256
+      
+      - name: Upload release artifact (Unix)
+        if: runner.os != 'Windows'
         uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
-          asset_path: ./${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
-          asset_name: ${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
-          asset_content_type: ${{ matrix.os == 'windows-latest' && 'application/zip' || 'application/gzip' }}
+          asset_path: ./${{ matrix.artifact_name }}.tar.gz
+          asset_name: ${{ matrix.artifact_name }}.tar.gz
+          asset_content_type: application/gzip
       
-      - name: Upload checksum
+      - name: Upload release artifact (Windows)
+        if: runner.os == 'Windows'
         uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.prepare.outputs.upload_url }}
-          asset_path: ./${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip.sha256' || '.tar.gz.sha256' }}
-          asset_name: ${{ matrix.artifact_name }}${{ matrix.os == 'windows-latest' && '.zip.sha256' || '.tar.gz.sha256' }}
+          asset_path: ./${{ matrix.artifact_name }}.zip
+          asset_name: ${{ matrix.artifact_name }}.zip
+          asset_content_type: application/zip
+      
+      - name: Upload checksum (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare.outputs.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}.tar.gz.sha256
+          asset_name: ${{ matrix.artifact_name }}.tar.gz.sha256
+          asset_content_type: text/plain
+      
+      - name: Upload checksum (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare.outputs.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}.zip.sha256
+          asset_name: ${{ matrix.artifact_name }}.zip.sha256
           asset_content_type: text/plain
 
   # Publish to crates.io
