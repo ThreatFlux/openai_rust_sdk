@@ -96,6 +96,7 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact_name: openai-rust-sdk-linux-musl-amd64
+            use_cross: true
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: openai-rust-sdk-linux-arm64
@@ -124,12 +125,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev pkg-config
-          if [ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]; then
-            sudo apt-get install -y musl-tools
-          fi
-          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
-            sudo apt-get install -y gcc-aarch64-linux-gnu
-          fi
+          # Cross handles all cross-compilation dependencies
       
       - name: Install cross-compilation tool
         if: matrix.use_cross
