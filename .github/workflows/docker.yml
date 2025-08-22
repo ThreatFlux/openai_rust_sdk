@@ -427,11 +427,23 @@ jobs:
     needs: [build, sign]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    continue-on-error: true  # Don't fail the workflow if Docker Hub update fails
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
+      - name: Check if Docker Hub credentials exist
+        id: check-creds
+        run: |
+          if [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]] && [[ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
+            echo "has-creds=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-creds=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Docker Hub credentials not configured. Skipping description update."
+          fi
+      
       - name: Update Docker Hub description
+        if: steps.check-creds.outputs.has-creds == 'true'
         uses: peter-evans/dockerhub-description@432a30c9e07499fd01da9f8a49f0faf9e0ca5b77  # v4.0.2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -439,6 +451,7 @@ jobs:
           repository: threatflux/openai-rust-sdk
           readme-filepath: ./README.md
           short-description: "Comprehensive OpenAI API SDK for Rust with YARA validation"
+        continue-on-error: true
 
   # Summary
   docker-success:
