@@ -233,8 +233,8 @@ jobs:
               echo "" >> release_notes.md
             fi
             
-            # Other changes
-            OTHER=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges | grep -v "^- feat" | grep -v "^- fix" | grep -v "^- docs" | grep -v "BREAKING CHANGE")
+            # Other changes (use || true to prevent grep from failing when no matches)
+            OTHER=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges | { grep -v "^- feat" || true; } | { grep -v "^- fix" || true; } | { grep -v "^- docs" || true; } | { grep -v "BREAKING CHANGE" || true; })
             if [ -n "$OTHER" ]; then
               echo "#### 🔧 Other Changes" >> release_notes.md
               echo "$OTHER" >> release_notes.md
