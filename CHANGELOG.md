@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.1] - 2025-08-23
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: replace yara-x git dependency with crates.io version (5e4c819)
+
+### 📊 Statistics
+
+- **Version**: 1.1.0 → 1.1.1
+- **Date**: 2025-08-23
+- **Commits**: 1
+- **Contributors**: 1
+
+
 ## [1.1.0] - 2025-08-23
 
 
