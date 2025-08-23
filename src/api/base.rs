@@ -50,13 +50,57 @@ impl HttpClient {
         )
     }
 
-    /// Create a new HTTP client with the given API key
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
+    /// Build a URL from the base URL and path
+    fn build_simple_url(&self, path: &str) -> String {
+        format!("{}{}", self.base_url, path)
+    }
+
+    /// Execute a GET request with the given headers
+    async fn execute_get_request<T>(&self, url: &str, headers: HeaderMap) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        let response = self.client.get(url).headers(headers).send().await?;
+        self.handle_response(response).await
+    }
+
+    /// Execute a POST request with JSON body and the given headers
+    async fn execute_post_request<T, B>(&self, url: &str, headers: HeaderMap, body: &B) -> Result<T>
+    where
+        T: DeserializeOwned,
+        B: serde::Serialize,
+    {
+        let response = self
+            .client
+            .post(url)
+            .headers(headers)
+            .json(body)
+            .send()
+            .await?;
+        self.handle_response(response).await
+    }
+
+    /// Execute a DELETE request with the given headers
+    async fn execute_delete_request<T>(&self, url: &str, headers: HeaderMap) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        let response = self.client.delete(url).headers(headers).send().await?;
+        self.handle_response(response).await
+    }
+
+    /// Validate API key and return it if valid
+    fn validate_api_key<S: Into<String>>(api_key: S) -> Result<String> {
         let api_key = api_key.into();
         if api_key.trim().is_empty() {
             return Err(OpenAIError::authentication("API key cannot be empty"));
         }
+        Ok(api_key)
+    }
 
+    /// Create a new HTTP client with the given API key
+    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
+        let api_key = Self::validate_api_key(api_key)?;
         let client = reqwest::Client::new();
         Ok(Self {
             client,
@@ -67,11 +111,7 @@ impl HttpClient {
 
     /// Create a new HTTP client with custom base URL
     pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        let api_key = api_key.into();
-        if api_key.trim().is_empty() {
-            return Err(OpenAIError::authentication("API key cannot be empty"));
-        }
-
+        let api_key = Self::validate_api_key(api_key)?;
         let client = reqwest::Client::new();
         Ok(Self {
             client,
@@ -98,31 +138,24 @@ impl HttpClient {
         &self.client
     }
 
+    /// Build authorization header value
+    fn build_auth_header(&self) -> Result<HeaderValue> {
+        HeaderValue::from_str(&format!("Bearer {}", self.api_key))
+            .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid API key format: {e}")))
+    }
+
     /// Build standard headers for API requests
     pub fn build_headers(&self) -> Result<HeaderMap> {
         let mut headers = HeaderMap::new();
-
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-                .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid API key format: {e}")))?,
-        );
-
+        headers.insert(AUTHORIZATION, self.build_auth_header()?);
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-
         Ok(headers)
     }
 
     /// Build headers without Content-Type (for multipart requests)
     pub fn build_auth_headers(&self) -> Result<HeaderMap> {
         let mut headers = HeaderMap::new();
-
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-                .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid API key format: {e}")))?,
-        );
-
+        headers.insert(AUTHORIZATION, self.build_auth_header()?);
         Ok(headers)
     }
 
@@ -155,12 +188,9 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers()?;
-
-        let response = self.client.get(&url).headers(headers).send().await?;
-
-        self.handle_response(response).await
+        self.execute_get_request(&url, headers).await
     }
 
     /// Make a GET request with beta headers to the specified path
@@ -168,12 +198,9 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers_with_beta()?;
-
-        let response = self.client.get(&url).headers(headers).send().await?;
-
-        self.handle_response(response).await
+        self.execute_get_request(&url, headers).await
     }
 
     /// Make a POST request with JSON body to the specified path
@@ -183,18 +210,9 @@ impl HttpClient {
         T: DeserializeOwned,
         B: serde::Serialize,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers()?;
-
-        let response = self
-            .client
-            .post(&url)
-            .headers(headers)
-            .json(body)
-            .send()
-            .await?;
-
-        self.handle_response(response).await
+        self.execute_post_request(&url, headers, body).await
     }
 
     /// Make a POST request with JSON body and beta headers to the specified path
@@ -204,18 +222,9 @@ impl HttpClient {
         T: DeserializeOwned,
         B: serde::Serialize,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers_with_beta()?;
-
-        let response = self
-            .client
-            .post(&url)
-            .headers(headers)
-            .json(body)
-            .send()
-            .await?;
-
-        self.handle_response(response).await
+        self.execute_post_request(&url, headers, body).await
     }
 
     /// Make a DELETE request to the specified path
@@ -223,12 +232,9 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers()?;
-
-        let response = self.client.delete(&url).headers(headers).send().await?;
-
-        self.handle_response(response).await
+        self.execute_delete_request(&url, headers).await
     }
 
     /// Make a DELETE request with beta headers to the specified path
@@ -236,12 +242,9 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers_with_beta()?;
-
-        let response = self.client.delete(&url).headers(headers).send().await?;
-
-        self.handle_response(response).await
+        self.execute_delete_request(&url, headers).await
     }
 
     /// Build URL with path and optional query parameters
@@ -273,10 +276,7 @@ impl HttpClient {
     {
         let url = self.build_url(path, query_params);
         let headers = self.build_headers()?;
-
-        let response = self.client.get(&url).headers(headers).send().await?;
-
-        self.handle_response(response).await
+        self.execute_get_request(&url, headers).await
     }
 
     /// Make a GET request with query parameters and beta headers
@@ -290,10 +290,7 @@ impl HttpClient {
     {
         let url = self.build_url(path, query_params);
         let headers = self.build_headers_with_beta()?;
-
-        let response = self.client.get(&url).headers(headers).send().await?;
-
-        self.handle_response(response).await
+        self.execute_get_request(&url, headers).await
     }
 
     /// Make a POST request with multipart form data
@@ -301,7 +298,7 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_auth_headers()?; // Don't set Content-Type for multipart
 
         let response = self
@@ -317,7 +314,7 @@ impl HttpClient {
 
     /// Make a GET request and return raw text content
     pub async fn get_text(&self, path: &str) -> Result<String> {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers()?;
 
         let response = self.client.get(&url).headers(headers).send().await?;
@@ -334,7 +331,7 @@ impl HttpClient {
 
     /// Make a GET request and return raw bytes
     pub async fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
-        let url = format!("{}{}", self.base_url, path);
+        let url = self.build_simple_url(path);
         let headers = self.build_headers()?;
 
         let response = self.client.get(&url).headers(headers).send().await?;
