@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.1] - 2025-08-23
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: handle empty grep results in changelog generation (cb95bda)
+- fix: resolve auto-release workflow permission issues (c768f54)
+
+#### 🔧 Other Changes
+- refactor: eliminate code duplication in error handling and query parameters (acf1c52)
+
+### 📊 Statistics
+
+- **Version**: 1.0.0 → 1.0.1
+- **Date**: 2025-08-23
+- **Commits**: 3
+- **Contributors**: 1
+
+
 ## [1.0.0] - 2025-08-23
 
 
