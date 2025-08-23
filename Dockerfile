@@ -1,5 +1,18 @@
-# Build stage
-FROM rust:slim AS builder
+# Dependency cache stage using cargo-chef
+FROM lukemathwalker/cargo-chef:latest-rust-slim AS chef
+WORKDIR /app
+
+# Plan the build (generate recipe.json)
+FROM chef AS planner
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+COPY benches ./benches
+COPY examples ./examples
+COPY tests ./tests
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Build dependencies (cached layer)
+FROM chef AS builder
 
 # Build arguments
 ARG VERSION=unknown
@@ -15,32 +28,20 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
-WORKDIR /usr/src/openai-rust-sdk
+# Copy the build recipe and build dependencies
+COPY --from=planner /app/recipe.json recipe.json
 
-# Copy manifests first for better caching
+# Build dependencies - this is the caching layer!
+RUN cargo chef cook --release --recipe-path recipe.json --all-features
+
+# Copy all source code
 COPY Cargo.toml Cargo.lock ./
-
-# Create dummy directories and files for dependencies
-RUN mkdir -p src/api src/models src/testing src/builders src/schema benches examples tests && \
-    echo "fn main() {}" > src/main.rs && \
-    echo "pub fn lib() {}" > src/lib.rs && \
-    echo "fn main() {}" > benches/validation_benchmarks.rs && \
-    echo "fn main() {}" > benches/json_parsing_benchmarks.rs
-
-# Build dependencies (this layer will be cached)
-RUN cargo build --release && \
-    rm -rf src benches examples tests \
-    target/release/deps/*openai*rust*sdk* \
-    target/release/.fingerprint/*openai*rust*sdk*
-
-# Copy source code
 COPY src ./src
 COPY benches ./benches
 COPY examples ./examples
 COPY tests ./tests
 
-# Build for release with version info and all features
+# Build the application
 ENV CARGO_PKG_VERSION=${VERSION}
 RUN cargo build --release --all-features
 
@@ -58,11 +59,11 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 -s /bin/bash openai
 
 # Copy the binary from builder
-COPY --from=builder /usr/src/openai-rust-sdk/target/release/openai_rust_sdk /usr/local/bin/openai-rust-sdk
+COPY --from=builder /app/target/release/openai_rust_sdk /usr/local/bin/openai-rust-sdk
 
 # Copy library files for potential linking
-COPY --from=builder /usr/src/openai-rust-sdk/target/release/libopenai_rust_sdk.rlib /usr/local/lib/
-COPY --from=builder /usr/src/openai-rust-sdk/target/release/deps /usr/local/lib/deps
+COPY --from=builder /app/target/release/libopenai_rust_sdk.rlib /usr/local/lib/
+COPY --from=builder /app/target/release/deps /usr/local/lib/deps
 
 # Create necessary directories
 RUN mkdir -p /data /config /output && \

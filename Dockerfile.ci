@@ -1,0 +1,107 @@
+# CI/CD optimized Dockerfile with aggressive caching
+# This file is specifically optimized for CI/CD builds with maximum caching
+
+# Use buildkit inline cache for better layer caching
+# syntax=docker/dockerfile:1.4
+
+# Dependency cache stage using cargo-chef
+FROM lukemathwalker/cargo-chef:latest-rust-slim AS chef
+WORKDIR /app
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Plan the build (generate recipe.json)
+FROM chef AS planner
+COPY Cargo.toml Cargo.lock ./
+# Create dummy files for workspace
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs && echo "pub fn lib() {}" > src/lib.rs
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Build dependencies (heavily cached layer)
+FROM chef AS dependencies
+
+# Copy the build recipe
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies - this layer is cached aggressively
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json --all-features
+
+# Final build stage
+FROM chef AS builder
+
+# Build arguments
+ARG VERSION=unknown
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Copy cached dependencies
+COPY --from=dependencies /app/target target
+COPY --from=dependencies /usr/local/cargo /usr/local/cargo
+
+# Copy all source files
+COPY . .
+
+# Build the application with cache mount
+ENV CARGO_PKG_VERSION=${VERSION}
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target,sharing=locked \
+    cargo build --release --all-features && \
+    # Copy out the binary before the cache is unmounted
+    cp target/release/openai_rust_sdk /app/openai_rust_sdk && \
+    cp target/release/libopenai_rust_sdk.rlib /app/libopenai_rust_sdk.rlib || true && \
+    cp -r target/release/deps /app/deps || true
+
+# Runtime stage (minimal size)
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies in a single layer
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 -s /bin/bash openai \
+    && mkdir -p /data /config /output
+
+# Copy the binary and libraries from builder
+COPY --from=builder --chown=openai:openai /app/openai_rust_sdk /usr/local/bin/openai-rust-sdk
+COPY --from=builder --chown=openai:openai /app/libopenai_rust_sdk.rlib /usr/local/lib/ 2>/dev/null || true
+COPY --from=builder --chown=openai:openai /app/deps /usr/local/lib/deps 2>/dev/null || true
+
+# Copy test data
+COPY --chown=openai:openai test_data /opt/openai-rust-sdk/test_data
+
+# Set ownership
+RUN chown -R openai:openai /data /config /output
+
+# Switch to non-root user
+USER openai
+WORKDIR /data
+
+# Environment variables
+ENV RUST_LOG=info \
+    OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["openai-rust-sdk", "--version"] || exit 1
+
+# Metadata
+LABEL org.opencontainers.image.title="OpenAI Rust SDK" \
+      org.opencontainers.image.description="Comprehensive OpenAI API SDK for Rust with YARA rule validation" \
+      org.opencontainers.image.authors="Wyatt Roersma <wyattroersma@gmail.com>, Claude Code" \
+      org.opencontainers.image.source="https://github.com/threatflux/openai_rust_sdk" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}"
+
+EXPOSE 3000 8080
+ENTRYPOINT ["openai-rust-sdk"]

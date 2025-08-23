@@ -97,6 +97,7 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83  # v6.18.0
         with:
           context: .
+          file: ./Dockerfile.ci
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -105,8 +106,16 @@ jobs:
             VERSION=${{ steps.build_args.outputs.VERSION }}
             BUILD_DATE=${{ steps.build_args.outputs.BUILD_DATE }}
             VCS_REF=${{ steps.build_args.outputs.VCS_REF }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            BUILDKIT_INLINE_CACHE=1
+          cache-from: |
+            type=gha
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
+          cache-to: |
+            type=gha,mode=max
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+            type=inline
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=OpenAI Rust SDK
       
       - name: Export image for scanning
@@ -114,12 +123,18 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83  # v6.18.0
         with:
           context: .
+          file: ./Dockerfile.ci
           platforms: linux/amd64
           tags: openai-rust-sdk:scan
           build-args: |
             VERSION=${{ steps.build_args.outputs.VERSION }}
             BUILD_DATE=${{ steps.build_args.outputs.BUILD_DATE }}
             VCS_REF=${{ steps.build_args.outputs.VCS_REF }}
+            BUILDKIT_INLINE_CACHE=1
+          cache-from: |
+            type=gha
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           outputs: type=docker,dest=/tmp/image.tar
       
       - name: Upload image artifact
