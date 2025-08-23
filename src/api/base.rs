@@ -27,6 +27,29 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
+    /// Handle error response by extracting text and parsing as API error
+    async fn handle_error_response<T>(
+        &self,
+        response: reqwest::Response,
+        status: reqwest::StatusCode,
+    ) -> Result<T> {
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+
+        // Try to parse as API error response
+        serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
+            |_| {
+                Err(OpenAIError::ApiError {
+                    status: status.as_u16(),
+                    message: error_text,
+                })
+            },
+            |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
+        )
+    }
+
     /// Create a new HTTP client with the given API key
     pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
         let api_key = api_key.into();
@@ -123,21 +146,7 @@ impl HttpClient {
                 OpenAIError::ParseError(format!("Failed to parse response: {e}. Response: {text}"))
             })
         } else {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-
-            // Try to parse as API error response
-            serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
-                |_| {
-                    Err(OpenAIError::ApiError {
-                        status: status.as_u16(),
-                        message: error_text,
-                    })
-                },
-                |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
-            )
+            self.handle_error_response(response, status).await
         }
     }
 
@@ -319,21 +328,7 @@ impl HttpClient {
                 OpenAIError::RequestError(format!("Failed to read response text: {e}"))
             })
         } else {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-
-            // Try to parse as API error response
-            serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
-                |_| {
-                    Err(OpenAIError::ApiError {
-                        status: status.as_u16(),
-                        message: error_text,
-                    })
-                },
-                |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
-            )
+            self.handle_error_response(response, status).await
         }
     }
 
@@ -351,21 +346,7 @@ impl HttpClient {
             })?;
             Ok(bytes.to_vec())
         } else {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-
-            // Try to parse as API error response
-            serde_json::from_str::<crate::error::ApiErrorResponse>(&error_text).map_or_else(
-                |_| {
-                    Err(OpenAIError::ApiError {
-                        status: status.as_u16(),
-                        message: error_text,
-                    })
-                },
-                |api_error| Err(OpenAIError::from_api_response(status.as_u16(), api_error)),
-            )
+            self.handle_error_response(response, status).await
         }
     }
 }

@@ -306,15 +306,15 @@ impl RunsApi {
     ) -> Result<ListRunsResponse> {
         let path = format!("/v1/threads/{}/runs", thread_id.as_ref());
 
-        match params {
-            Some(params) => {
-                let query_params = crate::api::common::build_runs_query_params(&params);
-                self.http_client
-                    .get_with_query_and_beta(&path, &query_params)
-                    .await
-            }
-            None => self.http_client.get_with_beta(&path).await,
-        }
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
+
+        self.http_client
+            .get_with_query_and_beta(&path, &query_params)
+            .await
     }
 
     /// Submit tool outputs to a run
@@ -437,15 +437,15 @@ impl RunsApi {
             run_id.as_ref()
         );
 
-        match params {
-            Some(params) => {
-                let query_params = crate::api::common::build_run_steps_query_params(&params);
-                self.http_client
-                    .get_with_query(&endpoint, &query_params)
-                    .await
-            }
-            None => self.http_client.get(&endpoint).await,
-        }
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
+
+        self.http_client
+            .get_with_query(&endpoint, &query_params)
+            .await
     }
 
     /// Retrieve a run step

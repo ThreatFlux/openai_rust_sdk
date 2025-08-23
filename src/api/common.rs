@@ -61,46 +61,6 @@ where
     query_params
 }
 
-/// Build query params from a runs list params struct
-pub fn build_runs_query_params(
-    params: &crate::models::runs::ListRunsParams,
-) -> Vec<(String, String)> {
-    let mut query_params = Vec::new();
-    if let Some(limit) = params.limit {
-        query_params.push(("limit".to_string(), limit.to_string()));
-    }
-    if let Some(ref order) = params.order {
-        query_params.push(("order".to_string(), order.clone()));
-    }
-    if let Some(ref after) = params.after {
-        query_params.push(("after".to_string(), after.clone()));
-    }
-    if let Some(ref before) = params.before {
-        query_params.push(("before".to_string(), before.clone()));
-    }
-    query_params
-}
-
-/// Build query params from a run steps list params struct
-pub fn build_run_steps_query_params(
-    params: &crate::models::runs::ListRunStepsParams,
-) -> Vec<(String, String)> {
-    let mut query_params = Vec::new();
-    if let Some(limit) = params.limit {
-        query_params.push(("limit".to_string(), limit.to_string()));
-    }
-    if let Some(ref order) = params.order {
-        query_params.push(("order".to_string(), order.clone()));
-    }
-    if let Some(ref after) = params.after {
-        query_params.push(("after".to_string(), after.clone()));
-    }
-    if let Some(ref before) = params.before {
-        query_params.push(("before".to_string(), before.clone()));
-    }
-    query_params
-}
-
 /// Common trait for list query parameters
 pub trait ListQueryParams {
     /// Get the limit parameter

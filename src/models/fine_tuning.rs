@@ -482,6 +482,19 @@ impl ListFineTuningJobsParams {
         self.limit = Some(limit);
         self
     }
+
+    /// Build query parameters for the API request
+    #[must_use]
+    pub fn to_query_params(&self) -> Vec<(String, String)> {
+        let mut params = Vec::new();
+        if let Some(after) = &self.after {
+            params.push(("after".to_string(), after.clone()));
+        }
+        if let Some(limit) = self.limit {
+            params.push(("limit".to_string(), limit.to_string()));
+        }
+        params
+    }
 }
 
 /// Parameters for listing fine-tuning job events
@@ -512,6 +525,19 @@ impl ListFineTuningJobEventsParams {
         self.limit = Some(limit);
         self
     }
+
+    /// Build query parameters for the API request
+    #[must_use]
+    pub fn to_query_params(&self) -> Vec<(String, String)> {
+        let mut params = Vec::new();
+        if let Some(after) = &self.after {
+            params.push(("after".to_string(), after.clone()));
+        }
+        if let Some(limit) = self.limit {
+            params.push(("limit".to_string(), limit.to_string()));
+        }
+        params
+    }
 }
 
 /// Parameters for listing fine-tuning job checkpoints
@@ -541,6 +567,19 @@ impl ListFineTuningJobCheckpointsParams {
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
+    }
+
+    /// Build query parameters for the API request
+    #[must_use]
+    pub fn to_query_params(&self) -> Vec<(String, String)> {
+        let mut params = Vec::new();
+        if let Some(after) = &self.after {
+            params.push(("after".to_string(), after.clone()));
+        }
+        if let Some(limit) = self.limit {
+            params.push(("limit".to_string(), limit.to_string()));
+        }
+        params
     }
 }
 

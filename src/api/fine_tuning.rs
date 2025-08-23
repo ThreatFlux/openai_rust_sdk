@@ -203,23 +203,15 @@ impl FineTuningApi {
         &self,
         params: Option<ListFineTuningJobsParams>,
     ) -> Result<ListFineTuningJobsResponse> {
-        match params {
-            Some(params) => {
-                let mut query_params = Vec::new();
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
 
-                if let Some(after) = params.after {
-                    query_params.push(("after".to_string(), after));
-                }
-                if let Some(limit) = params.limit {
-                    query_params.push(("limit".to_string(), limit.to_string()));
-                }
-
-                self.http_client
-                    .get_with_query("/v1/fine_tuning/jobs", &query_params)
-                    .await
-            }
-            None => self.http_client.get("/v1/fine_tuning/jobs").await,
-        }
+        self.http_client
+            .get_with_query("/v1/fine_tuning/jobs", &query_params)
+            .await
     }
 
     /// Get info about a fine-tuning job
@@ -325,23 +317,15 @@ impl FineTuningApi {
         let fine_tuning_job_id = fine_tuning_job_id.into();
         let endpoint = format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/events");
 
-        match params {
-            Some(params) => {
-                let mut query_params = Vec::new();
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
 
-                if let Some(after) = params.after {
-                    query_params.push(("after".to_string(), after));
-                }
-                if let Some(limit) = params.limit {
-                    query_params.push(("limit".to_string(), limit.to_string()));
-                }
-
-                self.http_client
-                    .get_with_query(&endpoint, &query_params)
-                    .await
-            }
-            None => self.http_client.get(&endpoint).await,
-        }
+        self.http_client
+            .get_with_query(&endpoint, &query_params)
+            .await
     }
 
     /// Get training checkpoints for a fine-tuning job
@@ -380,23 +364,15 @@ impl FineTuningApi {
         let fine_tuning_job_id = fine_tuning_job_id.into();
         let endpoint = format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/checkpoints");
 
-        match params {
-            Some(params) => {
-                let mut query_params = Vec::new();
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
 
-                if let Some(after) = params.after {
-                    query_params.push(("after".to_string(), after));
-                }
-                if let Some(limit) = params.limit {
-                    query_params.push(("limit".to_string(), limit.to_string()));
-                }
-
-                self.http_client
-                    .get_with_query(&endpoint, &query_params)
-                    .await
-            }
-            None => self.http_client.get(&endpoint).await,
-        }
+        self.http_client
+            .get_with_query(&endpoint, &query_params)
+            .await
     }
 
     /// Monitor a fine-tuning job until completion or failure

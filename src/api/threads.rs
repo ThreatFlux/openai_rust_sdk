@@ -408,27 +408,11 @@ impl ThreadsApi {
         let thread_id = thread_id.into();
         let path = format!("/v1/threads/{thread_id}/messages");
 
-        let mut query_params = Vec::new();
-
-        // Add query parameters if provided
-        if let Some(params) = params {
-            if let Some(limit) = params.limit {
-                query_params.push(("limit".to_string(), limit.to_string()));
-            }
-            if let Some(order) = params.order {
-                let order_str = match order {
-                    crate::models::threads::SortOrder::Asc => "asc",
-                    crate::models::threads::SortOrder::Desc => "desc",
-                };
-                query_params.push(("order".to_string(), order_str.to_string()));
-            }
-            if let Some(after) = params.after {
-                query_params.push(("after".to_string(), after));
-            }
-            if let Some(before) = params.before {
-                query_params.push(("before".to_string(), before));
-            }
-        }
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
 
         self.http_client
             .get_with_query_and_beta(&path, &query_params)

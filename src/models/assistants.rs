@@ -393,6 +393,50 @@ impl ListAssistantsParams {
         self.before = Some(before.into());
         self
     }
+
+    /// Build query parameters for the API request
+    #[must_use]
+    pub fn to_query_params(&self) -> Vec<(String, String)> {
+        let mut params = Vec::new();
+        if let Some(limit) = self.limit {
+            params.push(("limit".to_string(), limit.to_string()));
+        }
+        if let Some(order) = &self.order {
+            let order_str = match order {
+                SortOrder::Asc => "asc",
+                SortOrder::Desc => "desc",
+            };
+            params.push(("order".to_string(), order_str.to_string()));
+        }
+        if let Some(after) = &self.after {
+            params.push(("after".to_string(), after.clone()));
+        }
+        if let Some(before) = &self.before {
+            params.push(("before".to_string(), before.clone()));
+        }
+        params
+    }
+}
+
+impl crate::api::common::ListQueryParams for ListAssistantsParams {
+    fn limit(&self) -> Option<u32> {
+        self.limit
+    }
+
+    fn order_str(&self) -> Option<&str> {
+        self.order.as_ref().map(|o| match o {
+            SortOrder::Asc => "asc",
+            SortOrder::Desc => "desc",
+        })
+    }
+
+    fn after(&self) -> Option<&String> {
+        self.after.as_ref()
+    }
+
+    fn before(&self) -> Option<&String> {
+        self.before.as_ref()
+    }
 }
 
 /// Sort order for listing results
