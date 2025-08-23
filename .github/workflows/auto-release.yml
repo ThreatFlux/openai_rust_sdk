@@ -314,12 +314,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Trigger release workflow
+      - name: Trigger release builds
         run: |
-          # Trigger the main release workflow to build artifacts
-          gh workflow run release.yml -f version=${{ needs.check-for-release.outputs.next_version }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "✅ Release v${{ needs.check-for-release.outputs.next_version }} created!"
+          echo ""
+          echo "The release has been created and tagged. Release artifacts will be built"
+          echo "automatically when the tag is pushed, or you can manually trigger the"
+          echo "release workflow from the Actions tab."
+          echo ""
+          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.check-for-release.outputs.next_version }}"
 
   notify-skip:
     name: Notify Skip Reason
