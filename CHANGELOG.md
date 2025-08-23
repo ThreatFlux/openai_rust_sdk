@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.0] - 2025-08-23
+
+
+### 🚀 What's Changed
+
+#### ✨ Features
+- feat: add crates.io publishing to auto-release workflow (81a28c6)
+
+### 📊 Statistics
+
+- **Version**: 1.0.1 → 1.1.0
+- **Date**: 2025-08-23
+- **Commits**: 1
+- **Contributors**: 1
+
+
 ## [1.0.1] - 2025-08-23
 
 
