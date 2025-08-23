@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.0.0] - 2025-08-23
+
+
+### 🚀 What's Changed
+
+#### 💥 Breaking Changes
+- feat: add automatic versioning and release workflow (443d367)
+
+#### ✨ Features
+- feat: add automatic versioning and release workflow (443d367)
+
+#### 🐛 Bug Fixes
+- fix: add MPL-2.0 to allowed licenses (8a6d1ae)
+- fix: use rustls instead of OpenSSL for cross-platform compatibility (bff4194)
+
+#### 🔧 Other Changes
+- chore: update Cargo.lock after switching to rustls (cd513ab)
+
+### 📊 Statistics
+
+- **Version**: 0.1.4 → 1.0.0
+- **Date**: 2025-08-23
+- **Commits**: 4
+- **Contributors**: 1
+
+
 ## v0.2.0 - Function Calling & Enhanced Features
 
 ### 🎉 Major Features Added
