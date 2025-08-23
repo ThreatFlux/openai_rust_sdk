@@ -41,7 +41,7 @@ rand = "0.8"
 log = "0.4"
 
 # Optional YARA validation support
-yara-x = { git = "https://github.com/VirusTotal/yara-x", optional = true }
+yara-x = { version = "1.5", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
