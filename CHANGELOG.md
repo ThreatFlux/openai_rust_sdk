@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.0] - 2025-08-23
+
+
+### 🚀 What's Changed
+
+#### ✨ Features
+- feat: add aggressive Docker caching to reduce CI/CD build time (4331380)
+
+#### 🐛 Bug Fixes
+- fix: remove duplicate inline cache export in Docker workflow (a42a797)
+
+### 📊 Statistics
+
+- **Version**: 1.1.1 → 1.2.0
+- **Date**: 2025-08-23
+- **Commits**: 2
+- **Contributors**: 1
+
+
 ## [1.1.1] - 2025-08-23
 
 
