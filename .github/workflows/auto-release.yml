@@ -1,0 +1,334 @@
+name: Auto Release
+
+on:
+  workflow_run:
+    workflows: ["CI", "Quality", "Security"]
+    types:
+      - completed
+    branches:
+      - main
+  schedule:
+    # Run weekly on Monday at 9 AM UTC to check for accumulated changes
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  check-for-release:
+    name: Check if Release Needed
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      next_version: ${{ steps.version.outputs.next_version }}
+      current_version: ${{ steps.version.outputs.current_version }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Check CI status
+        id: ci_status
+        run: |
+          # Check if all required workflows have passed recently
+          echo "Checking CI status..."
+          
+          # Get the latest workflow runs
+          CI_STATUS=$(gh run list --workflow=ci.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
+          QUALITY_STATUS=$(gh run list --workflow=quality.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
+          SECURITY_STATUS=$(gh run list --workflow=security.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
+          
+          if [[ "$CI_STATUS" == "success" ]] && [[ "$QUALITY_STATUS" == "success" ]] && [[ "$SECURITY_STATUS" == "success" ]]; then
+            echo "all_passed=true" >> $GITHUB_OUTPUT
+            echo "✅ All CI checks passed"
+          else
+            echo "all_passed=false" >> $GITHUB_OUTPUT
+            echo "❌ Some CI checks have not passed"
+            echo "CI: $CI_STATUS, Quality: $QUALITY_STATUS, Security: $SECURITY_STATUS"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Check for changes since last release
+        id: check
+        run: |
+          # Get the last release tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous releases found"
+            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          # Check for changes since last tag
+          CHANGES=$(git log $LAST_TAG..HEAD --oneline --no-merges | wc -l)
+          
+          # Check for conventional commits that would trigger a release
+          FEAT_COUNT=$(git log $LAST_TAG..HEAD --grep="^feat" --oneline | wc -l)
+          FIX_COUNT=$(git log $LAST_TAG..HEAD --grep="^fix" --oneline | wc -l)
+          BREAKING_COUNT=$(git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --oneline | wc -l)
+          
+          echo "Changes since $LAST_TAG: $CHANGES"
+          echo "Features: $FEAT_COUNT, Fixes: $FIX_COUNT, Breaking: $BREAKING_COUNT"
+          
+          # Determine if we should release
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "reason=manual" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.ci_status.outputs.all_passed }}" != "true" ]]; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "reason=ci_failed" >> $GITHUB_OUTPUT
+          elif [[ $CHANGES -eq 0 ]]; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "reason=no_changes" >> $GITHUB_OUTPUT
+          elif [[ $BREAKING_COUNT -gt 0 ]] || [[ $FEAT_COUNT -gt 0 ]] || [[ $FIX_COUNT -gt 0 ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "reason=conventional_commits" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "reason=no_release_commits" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Determine version bump
+        id: version
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          # Get current version from Cargo.toml
+          CURRENT_VERSION=$(grep "^version = " Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          # Determine bump type
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            BUMP_TYPE="${{ github.event.inputs.version_bump }}"
+          else
+            # Auto-determine based on commits
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -z "$LAST_TAG" ]; then
+              LAST_TAG=$(git rev-list --max-parents=0 HEAD)
+            fi
+            
+            BREAKING_COUNT=$(git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --oneline | wc -l)
+            FEAT_COUNT=$(git log $LAST_TAG..HEAD --grep="^feat" --oneline | wc -l)
+            
+            if [[ $BREAKING_COUNT -gt 0 ]]; then
+              BUMP_TYPE="major"
+            elif [[ $FEAT_COUNT -gt 0 ]]; then
+              BUMP_TYPE="minor"
+            else
+              BUMP_TYPE="patch"
+            fi
+          fi
+          
+          # Calculate next version
+          case $BUMP_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "Next version will be: $NEXT_VERSION (bump: $BUMP_TYPE)"
+
+  create-release:
+    name: Create Release
+    needs: check-for-release
+    if: needs.check-for-release.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Update version in Cargo.toml
+        run: |
+          VERSION="${{ needs.check-for-release.outputs.next_version }}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+          
+          # Also update Cargo.lock
+          cargo update -p openai_rust_sdk
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.check-for-release.outputs.next_version }}"
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
+            echo "## 🎉 First Release - v$VERSION" > release_notes.md
+          else
+            echo "## 📦 Release v$VERSION" > release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "### 🚀 What's Changed" >> release_notes.md
+          echo "" >> release_notes.md
+          
+          # Group commits by type
+          if [ -n "$LAST_TAG" ]; then
+            # Breaking changes
+            BREAKING=$(git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --pretty=format:"- %s (%h)" --no-merges)
+            if [ -n "$BREAKING" ]; then
+              echo "#### 💥 Breaking Changes" >> release_notes.md
+              echo "$BREAKING" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+            
+            # Features
+            FEATURES=$(git log $LAST_TAG..HEAD --grep="^feat" --pretty=format:"- %s (%h)" --no-merges)
+            if [ -n "$FEATURES" ]; then
+              echo "#### ✨ Features" >> release_notes.md
+              echo "$FEATURES" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+            
+            # Bug fixes
+            FIXES=$(git log $LAST_TAG..HEAD --grep="^fix" --pretty=format:"- %s (%h)" --no-merges)
+            if [ -n "$FIXES" ]; then
+              echo "#### 🐛 Bug Fixes" >> release_notes.md
+              echo "$FIXES" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+            
+            # Documentation
+            DOCS=$(git log $LAST_TAG..HEAD --grep="^docs" --pretty=format:"- %s (%h)" --no-merges)
+            if [ -n "$DOCS" ]; then
+              echo "#### 📚 Documentation" >> release_notes.md
+              echo "$DOCS" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+            
+            # Other changes
+            OTHER=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges | grep -v "^- feat" | grep -v "^- fix" | grep -v "^- docs" | grep -v "BREAKING CHANGE")
+            if [ -n "$OTHER" ]; then
+              echo "#### 🔧 Other Changes" >> release_notes.md
+              echo "$OTHER" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+          fi
+          
+          echo "### 📊 Statistics" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- **Version**: ${{ needs.check-for-release.outputs.current_version }} → $VERSION" >> release_notes.md
+          echo "- **Date**: $(date +'%Y-%m-%d')" >> release_notes.md
+          
+          if [ -n "$LAST_TAG" ]; then
+            COMMIT_COUNT=$(git log $LAST_TAG..HEAD --oneline --no-merges | wc -l)
+            CONTRIBUTOR_COUNT=$(git log $LAST_TAG..HEAD --format="%an" --no-merges | sort -u | wc -l)
+            echo "- **Commits**: $COMMIT_COUNT" >> release_notes.md
+            echo "- **Contributors**: $CONTRIBUTOR_COUNT" >> release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "*Released automatically by GitHub Actions* 🤖" >> release_notes.md
+      
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ needs.check-for-release.outputs.next_version }}"
+          DATE=$(date +'%Y-%m-%d')
+          
+          # Create new CHANGELOG entry
+          echo "# Changelog" > CHANGELOG.new.md
+          echo "" >> CHANGELOG.new.md
+          echo "## [$VERSION] - $DATE" >> CHANGELOG.new.md
+          echo "" >> CHANGELOG.new.md
+          
+          # Add the release notes content (without the header)
+          tail -n +2 release_notes.md | head -n -3 >> CHANGELOG.new.md
+          echo "" >> CHANGELOG.new.md
+          
+          # Append existing changelog if it exists
+          if [ -f CHANGELOG.md ]; then
+            # Skip the first line if it's "# Changelog"
+            if head -n 1 CHANGELOG.md | grep -q "^# Changelog"; then
+              tail -n +2 CHANGELOG.md >> CHANGELOG.new.md
+            else
+              cat CHANGELOG.md >> CHANGELOG.new.md
+            fi
+          fi
+          
+          mv CHANGELOG.new.md CHANGELOG.md
+      
+      - name: Commit version bump
+        run: |
+          git add Cargo.toml Cargo.lock CHANGELOG.md
+          git commit -m "chore: release v${{ needs.check-for-release.outputs.next_version }}
+
+          Automated release with:
+          - Version bump from ${{ needs.check-for-release.outputs.current_version }} to ${{ needs.check-for-release.outputs.next_version }}
+          - Updated CHANGELOG.md
+          - All CI checks passing"
+      
+      - name: Create and push tag
+        run: |
+          VERSION="${{ needs.check-for-release.outputs.next_version }}"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin main
+          git push origin "v$VERSION"
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.check-for-release.outputs.next_version }}
+          name: Release v${{ needs.check-for-release.outputs.next_version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Trigger release workflow
+        run: |
+          # Trigger the main release workflow to build artifacts
+          gh workflow run release.yml -f version=${{ needs.check-for-release.outputs.next_version }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-skip:
+    name: Notify Skip Reason
+    needs: check-for-release
+    if: needs.check-for-release.outputs.should_release == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log skip reason
+        run: |
+          echo "📋 Auto-release skipped"
+          echo "Reason: Check output from check-for-release job"
+          echo "To manually trigger a release, use the workflow dispatch option"
