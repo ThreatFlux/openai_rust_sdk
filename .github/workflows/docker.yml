@@ -106,7 +106,6 @@ jobs:
             VERSION=${{ steps.build_args.outputs.VERSION }}
             BUILD_DATE=${{ steps.build_args.outputs.BUILD_DATE }}
             VCS_REF=${{ steps.build_args.outputs.VCS_REF }}
-            BUILDKIT_INLINE_CACHE=1
           cache-from: |
             type=gha
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
@@ -115,7 +114,6 @@ jobs:
           cache-to: |
             type=gha,mode=max
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-            type=inline
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=OpenAI Rust SDK
       
       - name: Export image for scanning
@@ -130,7 +128,6 @@ jobs:
             VERSION=${{ steps.build_args.outputs.VERSION }}
             BUILD_DATE=${{ steps.build_args.outputs.BUILD_DATE }}
             VCS_REF=${{ steps.build_args.outputs.VCS_REF }}
-            BUILDKIT_INLINE_CACHE=1
           cache-from: |
             type=gha
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
