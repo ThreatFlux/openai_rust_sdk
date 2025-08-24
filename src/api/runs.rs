@@ -78,6 +78,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::runs::{
     CreateThreadAndRunRequest, ListRunStepsParams, ListRunStepsResponse, ListRunsParams,
@@ -91,27 +92,13 @@ pub struct RunsApi {
     http_client: HttpClient,
 }
 
-impl RunsApi {
-    /// Creates a new Runs API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::runs::RunsApi;
-    ///
-    /// let api = RunsApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for RunsApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl RunsApi {
     /// Creates a new Runs API client with a custom base URL
     ///
     /// # Arguments

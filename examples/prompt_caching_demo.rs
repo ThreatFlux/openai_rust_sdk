@@ -21,7 +21,7 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::responses::ResponsesApi,
+    api::{common::ApiClientConstructors, responses::ResponsesApi},
     models::responses::{Message, ResponseRequest},
 };
 use std::{env, time::Instant};

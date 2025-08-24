@@ -4,7 +4,7 @@
 //! This example tests the actual GPT-5 API methods
 
 use openai_rust_sdk::{
-    api::gpt5::GPT5Api,
+    api::{common::ApiClientConstructors, gpt5::GPT5Api},
     error::Result,
     models::{
         gpt5::{ReasoningEffort, Verbosity},

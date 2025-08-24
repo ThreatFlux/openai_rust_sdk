@@ -28,15 +28,6 @@ impl crate::api::common::ApiClientConstructors for ImagesApi {
 }
 
 impl ImagesApi {
-    /// Create a new Images API client
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        <Self as crate::api::common::ApiClientConstructors>::new(api_key)
-    }
-
-    /// Create a new Images API client with custom base URL
-    pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        <Self as crate::api::common::ApiClientConstructors>::new_with_base_url(api_key, base_url)
-    }
     /// Helper to add optional form fields
     fn add_optional_form_fields(
         mut form: multipart::Form,
@@ -567,6 +558,7 @@ impl ImageUtils {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::common::ApiClientConstructors;
     use std::path::PathBuf;
 
     #[test]

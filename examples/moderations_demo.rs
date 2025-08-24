@@ -5,7 +5,7 @@
 //! content according to `OpenAI`'s usage policies.
 
 use openai_rust_sdk::{
-    api::moderations::ModerationsApi,
+    api::{common::ApiClientConstructors, moderations::ModerationsApi},
     error::OpenAIError,
     models::moderations::{ModerationBuilder, SafetyThresholds},
 };

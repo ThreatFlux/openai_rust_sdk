@@ -34,8 +34,9 @@
 //! cargo run --example fine_tuning_demo
 //! ```
 
-use openai_rust_sdk::api::files::FilesApi;
-use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+use openai_rust_sdk::api::{
+    common::ApiClientConstructors, files::FilesApi, fine_tuning::FineTuningApi,
+};
 use openai_rust_sdk::error::{OpenAIError, Result};
 use openai_rust_sdk::models::files::{FilePurpose, FileUploadRequest};
 use openai_rust_sdk::models::fine_tuning::{

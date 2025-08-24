@@ -9,6 +9,7 @@ fn main() {
 use openai_rust_sdk::{
     api::{
         batch::BatchApi,
+        common::ApiClientConstructors,
         functions::{FunctionConfig, FunctionsApi},
         gpt5::GPT5Api,
         responses::ResponsesApi,

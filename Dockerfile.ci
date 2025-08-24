@@ -61,10 +61,21 @@ RUN apt-get update && apt-get install -y \
     && useradd -m -u 1000 -s /bin/bash openai \
     && mkdir -p /data /config /output
 
-# Copy the binary and libraries from builder
+# Copy the binary from builder
 COPY --from=builder --chown=openai:openai /app/target/release/openai_rust_sdk /usr/local/bin/openai-rust-sdk
-COPY --from=builder --chown=openai:openai /app/target/release/libopenai_rust_sdk.rlib /usr/local/lib/ 2>/dev/null || true
-COPY --from=builder --chown=openai:openai /app/target/release/deps /usr/local/lib/deps 2>/dev/null || true
+
+# Copy optional libraries if they exist (handled gracefully if not present)
+# Note: These may not exist for binary crates, only for library crates
+# Using a RUN command to handle optional files
+RUN --mount=type=bind,from=builder,source=/app/target/release,target=/tmp/release \
+    if [ -f /tmp/release/libopenai_rust_sdk.rlib ]; then \
+        cp /tmp/release/libopenai_rust_sdk.rlib /usr/local/lib/; \
+        chown openai:openai /usr/local/lib/libopenai_rust_sdk.rlib; \
+    fi && \
+    if [ -d /tmp/release/deps ]; then \
+        cp -r /tmp/release/deps /usr/local/lib/; \
+        chown -R openai:openai /usr/local/lib/deps; \
+    fi || true
 
 # Copy test data
 COPY --chown=openai:openai test_data /opt/openai-rust-sdk/test_data

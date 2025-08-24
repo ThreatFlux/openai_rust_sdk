@@ -1,6 +1,6 @@
 use crate::api::functions::{FunctionConfig, FunctionResponseResult, FunctionsApi};
 use crate::api::streaming::ResponseStream;
-use crate::api::{ResponsesApi, StreamingApi};
+use crate::api::{common::ApiClientConstructors, ResponsesApi, StreamingApi};
 use crate::error::Result;
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice};
 use crate::models::responses::{

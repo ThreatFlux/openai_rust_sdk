@@ -15,7 +15,10 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::batch::{BatchApi, BatchStatus},
+    api::{
+        batch::{BatchApi, BatchStatus},
+        common::ApiClientConstructors,
+    },
     testing::BatchJobGenerator,
 };
 use std::env;

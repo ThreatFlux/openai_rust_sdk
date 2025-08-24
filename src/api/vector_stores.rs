@@ -46,6 +46,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::vector_stores::{
     ListVectorStoreFilesParams, ListVectorStoreFilesResponse, ListVectorStoresParams,
@@ -62,6 +63,12 @@ pub struct VectorStoresApi {
     http_client: HttpClient,
 }
 
+impl ApiClientConstructors for VectorStoresApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
+    }
+}
+
 impl VectorStoresApi {
     /// Get the API key (for testing)
     #[must_use]
@@ -73,38 +80,6 @@ impl VectorStoresApi {
     #[must_use]
     pub fn base_url(&self) -> &str {
         self.http_client.base_url()
-    }
-
-    /// Creates a new Vector Stores API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
-    ///
-    /// let api = VectorStoresApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
-    }
-
-    /// Creates a new Vector Stores API client with custom base URL
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    /// * `base_url` - Custom base URL for the API
-    pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new_with_base_url(api_key, base_url)?,
-        })
     }
 
     /// Creates a vector store

@@ -11,7 +11,7 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::{containers::ContainersApi, responses::ResponsesApi},
+    api::{common::ApiClientConstructors, containers::ContainersApi, responses::ResponsesApi},
     models::{
         containers::{ContainerBuilder, ContainerMode},
         responses::ResponseRequest,

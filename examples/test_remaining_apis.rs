@@ -2,8 +2,8 @@
 //! Test remaining untested APIs
 
 use openai_rust_sdk::api::{
-    assistants::AssistantsApi, audio::AudioApi, files::FilesApi, fine_tuning::FineTuningApi,
-    threads::ThreadsApi, vector_stores::VectorStoresApi,
+    assistants::AssistantsApi, audio::AudioApi, common::ApiClientConstructors, files::FilesApi,
+    fine_tuning::FineTuningApi, threads::ThreadsApi, vector_stores::VectorStoresApi,
 };
 use std::env;
 

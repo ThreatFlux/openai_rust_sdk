@@ -8,18 +8,19 @@
 //! - Enhanced tools and function calling
 
 use openai_rust_sdk::{
-    api::gpt5::GPT5Api,
+    api::{common::ApiClientConstructors, gpt5::GPT5Api},
     error::Result,
     models::{
         gpt5::{models, ReasoningEffort, Verbosity},
         responses::{Message, MessageContentInput, MessageRole, ResponseInput},
     },
 };
-use std::env;
+
+mod common;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| "test-key".to_string());
+    let api_key = common::get_api_key_or_default("test-key");
 
     println!("\n🚀 Testing GPT-5 API Capabilities\n");
     println!("{}", "=".repeat(60));

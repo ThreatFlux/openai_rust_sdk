@@ -1,4 +1,5 @@
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::responses::{
     Message, MessageRole, ResponseInput, ResponseRequest, ResponseResult,
@@ -11,14 +12,13 @@ pub struct ResponsesApi {
     http_client: HttpClient,
 }
 
-impl ResponsesApi {
-    /// Create a new `ResponsesApi` client
-    pub fn new(api_key: impl Into<String>) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for ResponsesApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl ResponsesApi {
     /// Create a new `ResponsesApi` client with custom base URL
     pub fn with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
         Ok(Self {

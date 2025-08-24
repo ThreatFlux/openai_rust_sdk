@@ -36,7 +36,7 @@
 //! 5. Demonstrate file management operations
 //! 6. Clean up by deleting demo files
 
-use openai_rust_sdk::api::files::FilesApi;
+use openai_rust_sdk::api::{common::ApiClientConstructors, files::FilesApi};
 use openai_rust_sdk::models::files::{FilePurpose, FileUploadRequest, ListFilesParams, SortOrder};
 use std::env;
 use std::path::Path;

@@ -5,7 +5,7 @@
 //! It simulates a complete workflow using multiple APIs in sequence.
 
 use openai_rust_sdk::api::{
-    assistants::AssistantsApi, audio::AudioApi, batch::BatchApi, embeddings::EmbeddingsApi,
+    assistants::AssistantsApi, audio::AudioApi, batch::BatchApi, common::ApiClientConstructors, embeddings::EmbeddingsApi,
     files::FilesApi, fine_tuning::FineTuningApi, images::ImagesApi, models::ModelsApi,
     moderations::ModerationsApi, responses::ResponsesApi, runs::RunsApi, threads::ThreadsApi,
     vector_stores::VectorStoresApi,

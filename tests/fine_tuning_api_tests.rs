@@ -9,7 +9,7 @@
 //! - Error handling and validation
 //! - Hyperparameter configuration
 
-use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+use openai_rust_sdk::api::{common::ApiClientConstructors, fine_tuning::FineTuningApi};
 use openai_rust_sdk::error::OpenAIError;
 use openai_rust_sdk::models::fine_tuning::{
     CheckpointMetrics, FineTuningJobRequest, FineTuningJobStatus, Hyperparameters,

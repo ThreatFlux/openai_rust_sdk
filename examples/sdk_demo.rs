@@ -14,6 +14,7 @@ async fn main() {
 #[cfg(feature = "yara")]
 use openai_rust_sdk::{
     api::{
+        common::ApiClientConstructors,
         functions::{FunctionConfig, FunctionsApi},
         gpt5::{GPT5Api, GPT5RequestBuilder},
         responses::ResponsesApi,

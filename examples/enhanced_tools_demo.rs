@@ -16,7 +16,7 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::responses::ResponsesApi,
+    api::{common::ApiClientConstructors, responses::ResponsesApi},
     models::{
         responses::ResponseRequest,
         tools::{McpApproval, ToolBuilder},

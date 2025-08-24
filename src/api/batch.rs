@@ -40,6 +40,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use reqwest::multipart;
 use serde::{Deserialize, Serialize};
@@ -335,39 +336,13 @@ impl Default for BatchReport {
     }
 }
 
+impl ApiClientConstructors for BatchApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
+    }
+}
+
 impl BatchApi {
-    /// Creates a new Batch API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::batch::BatchApi;
-    ///
-    /// let api = BatchApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
-    }
-
-    /// Creates a new Batch API client with custom base URL
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    /// * `base_url` - Custom base URL for the API
-    pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new_with_base_url(api_key, base_url)?,
-        })
-    }
-
     /// Uploads a JSONL file for batch processing
     ///
     /// The file must be in JSONL format where each line contains a valid batch request.

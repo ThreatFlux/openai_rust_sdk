@@ -8,7 +8,7 @@
 //! - Type-safe parsing of structured responses
 
 use openai_rust_sdk::{
-    api::ResponsesApi,
+    api::{common::ApiClientConstructors, ResponsesApi},
     models::responses::{JsonSchemaSpec, ResponseRequest, SchemaUtils},
     schema::SchemaBuilder,
 };

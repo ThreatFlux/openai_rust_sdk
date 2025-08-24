@@ -13,7 +13,7 @@
 //! cargo run --example batch_file_processing <batch_id>
 //! ```
 
-use openai_rust_sdk::api::batch::BatchApi;
+use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
 use std::env;
 
 #[tokio::main]

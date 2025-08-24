@@ -4,140 +4,71 @@
 //! allowing models to execute Python code in sandboxed environments with
 //! file handling capabilities.
 
-use crate::error::OpenAIError;
 use crate::models::containers::{
     CodeExecutionRequest, CodeExecutionResult, Container, ContainerConfig, ContainerFile,
     ContainerFileList, ContainerList, ListContainersParams,
 };
-use reqwest::{multipart, Client};
+use crate::{
+    api::{base::HttpClient, common::ApiClientConstructors},
+    error::{OpenAIError, Result},
+};
+use reqwest::multipart;
 use serde_json::json;
 use std::path::Path;
 use tokio::fs;
 
 /// Container Management API client
 pub struct ContainersApi {
-    /// HTTP client for making requests
-    client: Client,
-    /// `OpenAI` API key for authentication
-    api_key: String,
-    /// Base URL for API requests
-    base_url: String,
+    /// Shared HTTP client for making requests
+    client: HttpClient,
+}
+
+impl ApiClientConstructors for ContainersApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self {
+            client: http_client,
+        }
+    }
 }
 
 impl ContainersApi {
-    /// Create a new Containers API client
-    #[allow(clippy::unnecessary_wraps)]
-    pub fn new(api_key: String) -> Result<Self, OpenAIError> {
-        Ok(Self {
-            client: Client::new(),
-            api_key,
-            base_url: "https://api.openai.com/v1".to_string(),
-        })
-    }
-
     /// Create a new container explicitly
-    pub async fn create_container(
-        &self,
-        config: ContainerConfig,
-    ) -> Result<Container, OpenAIError> {
-        let url = format!("{}/containers", self.base_url);
-
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&config)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<Container>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+    pub async fn create_container(&self, config: ContainerConfig) -> Result<Container> {
+        self.client.post("/v1/containers", &config).await
     }
 
     /// Get container details
-    pub async fn get_container(&self, container_id: &str) -> Result<Container, OpenAIError> {
-        let url = format!("{}/containers/{}", self.base_url, container_id);
-
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<Container>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+    pub async fn get_container(&self, container_id: &str) -> Result<Container> {
+        let path = format!("/v1/containers/{container_id}");
+        self.client.get(&path).await
     }
 
     /// List all containers
     pub async fn list_containers(
         &self,
         params: Option<ListContainersParams>,
-    ) -> Result<ContainerList, OpenAIError> {
-        let mut url = format!("{}/containers", self.base_url);
-
-        if let Some(p) = params {
-            let query_params =
-                serde_json::to_string(&p).map_err(|e| OpenAIError::ParseError(e.to_string()))?;
-            url.push('?');
-            url.push_str(&query_params);
+    ) -> Result<ContainerList> {
+        match params {
+            Some(p) => {
+                // Convert params to query parameters
+                let query_params: Vec<(String, String)> = vec![
+                    (
+                        "limit".to_string(),
+                        p.limit.map(|l| l.to_string()).unwrap_or_default(),
+                    ),
+                    ("order".to_string(), p.order.unwrap_or_default()),
+                    ("after".to_string(), p.after.unwrap_or_default()),
+                    ("before".to_string(), p.before.unwrap_or_default()),
+                ]
+                .into_iter()
+                .filter(|(_, v)| !v.is_empty())
+                .collect();
+                self.client
+                    .get_with_query("/v1/containers", &query_params)
+                    .await
+            }
+            None => self.client.get("/v1/containers").await,
         }
-
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<ContainerList>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
     }
 
     /// Update container metadata
@@ -145,45 +76,29 @@ impl ContainersApi {
         &self,
         container_id: &str,
         metadata: serde_json::Value,
-    ) -> Result<Container, OpenAIError> {
-        let url = format!("{}/containers/{}", self.base_url, container_id);
+    ) -> Result<Container> {
+        let path = format!("/v1/containers/{container_id}");
+        let body = json!({ "metadata": metadata });
+
+        // Use reqwest client directly for PATCH since HttpClient doesn't have patch method yet
+        let url = format!("{}{path}", self.client.base_url());
+        let headers = self.client.build_headers()?;
 
         let response = self
             .client
+            .client()
             .patch(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&json!({ "metadata": metadata }))
+            .headers(headers)
+            .json(&body)
             .send()
             .await
             .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<Container>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+        self.client.handle_response(response).await
     }
 
     /// Upload a file to a container
-    pub async fn upload_file(
-        &self,
-        container_id: &str,
-        file_path: &Path,
-    ) -> Result<ContainerFile, OpenAIError> {
-        let url = format!("{}/containers/{}/files", self.base_url, container_id);
-
+    pub async fn upload_file(&self, container_id: &str, file_path: &Path) -> Result<ContainerFile> {
         // Read file content
         let file_content = fs::read(file_path)
             .await
@@ -201,31 +116,8 @@ impl ContainersApi {
             .part("file", part)
             .text("purpose", "code_interpreter");
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .multipart(form)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<ContainerFile>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+        let path = format!("/v1/containers/{container_id}/files");
+        self.client.post_multipart(&path, form).await
     }
 
     /// Upload file content directly
@@ -234,9 +126,7 @@ impl ContainersApi {
         container_id: &str,
         file_name: &str,
         content: Vec<u8>,
-    ) -> Result<ContainerFile, OpenAIError> {
-        let url = format!("{}/containers/{}/files", self.base_url, container_id);
-
+    ) -> Result<ContainerFile> {
         // Create multipart form
         let part = multipart::Part::bytes(content).file_name(file_name.to_string());
 
@@ -244,99 +134,20 @@ impl ContainersApi {
             .part("file", part)
             .text("purpose", "code_interpreter");
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .multipart(form)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<ContainerFile>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+        let path = format!("/v1/containers/{container_id}/files");
+        self.client.post_multipart(&path, form).await
     }
 
     /// List files in a container
-    pub async fn list_files(&self, container_id: &str) -> Result<ContainerFileList, OpenAIError> {
-        let url = format!("{}/containers/{}/files", self.base_url, container_id);
-
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<ContainerFileList>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+    pub async fn list_files(&self, container_id: &str) -> Result<ContainerFileList> {
+        let path = format!("/v1/containers/{container_id}/files");
+        self.client.get(&path).await
     }
 
     /// Download a file from a container
-    pub async fn download_file(
-        &self,
-        container_id: &str,
-        file_id: &str,
-    ) -> Result<Vec<u8>, OpenAIError> {
-        let url = format!(
-            "{}/containers/{}/files/{}/content",
-            self.base_url, container_id, file_id
-        );
-
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .bytes()
-            .await
-            .map(|b| b.to_vec())
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))
+    pub async fn download_file(&self, container_id: &str, file_id: &str) -> Result<Vec<u8>> {
+        let path = format!("/v1/containers/{container_id}/files/{file_id}/content");
+        self.client.get_bytes(&path).await
     }
 
     /// Download a file and save it to disk
@@ -345,7 +156,7 @@ impl ContainersApi {
         container_id: &str,
         file_id: &str,
         output_path: &Path,
-    ) -> Result<(), OpenAIError> {
+    ) -> Result<()> {
         let content = self.download_file(container_id, file_id).await?;
 
         fs::write(output_path, content)
@@ -356,33 +167,27 @@ impl ContainersApi {
     }
 
     /// Delete a file from a container
-    pub async fn delete_file(&self, container_id: &str, file_id: &str) -> Result<(), OpenAIError> {
-        let url = format!(
-            "{}/containers/{}/files/{}",
-            self.base_url, container_id, file_id
-        );
+    pub async fn delete_file(&self, container_id: &str, file_id: &str) -> Result<()> {
+        let path = format!("/v1/containers/{container_id}/files/{file_id}");
+
+        // Use reqwest client directly for DELETE with () response since HttpClient doesn't handle () yet
+        let url = format!("{}{path}", self.client.base_url());
+        let headers = self.client.build_headers()?;
 
         let response = self
             .client
+            .client()
             .delete(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .headers(headers)
             .send()
             .await
             .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            self.client.handle_response::<()>(response).await
         }
-
-        Ok(())
     }
 
     /// Execute Python code in a container
@@ -390,8 +195,8 @@ impl ContainersApi {
         &self,
         container_id: &str,
         code: &str,
-    ) -> Result<CodeExecutionResult, OpenAIError> {
-        let url = format!("{}/containers/{}/execute", self.base_url, container_id);
+    ) -> Result<CodeExecutionResult> {
+        let path = format!("/v1/containers/{container_id}/execute");
 
         let request = CodeExecutionRequest {
             code: code.to_string(),
@@ -399,32 +204,7 @@ impl ContainersApi {
             include_output: Some(true),
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<CodeExecutionResult>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+        self.client.post(&path, &request).await
     }
 
     /// Execute code with timeout
@@ -433,8 +213,8 @@ impl ContainersApi {
         container_id: &str,
         code: &str,
         timeout_ms: u32,
-    ) -> Result<CodeExecutionResult, OpenAIError> {
-        let url = format!("{}/containers/{}/execute", self.base_url, container_id);
+    ) -> Result<CodeExecutionResult> {
+        let path = format!("/v1/containers/{container_id}/execute");
 
         let request = CodeExecutionRequest {
             code: code.to_string(),
@@ -442,86 +222,55 @@ impl ContainersApi {
             include_output: Some(true),
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        response
-            .json::<CodeExecutionResult>()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+        self.client.post(&path, &request).await
     }
 
     /// Delete a container
-    pub async fn delete_container(&self, container_id: &str) -> Result<(), OpenAIError> {
-        let url = format!("{}/containers/{}", self.base_url, container_id);
+    pub async fn delete_container(&self, container_id: &str) -> Result<()> {
+        let path = format!("/v1/containers/{container_id}");
+
+        // Use reqwest client directly for DELETE with () response since HttpClient doesn't handle () yet
+        let url = format!("{}{path}", self.client.base_url());
+        let headers = self.client.build_headers()?;
 
         let response = self
             .client
+            .client()
             .delete(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .headers(headers)
             .send()
             .await
             .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            self.client.handle_response::<()>(response).await
         }
-
-        Ok(())
     }
 
     /// Keep a container alive by updating its last activity
-    pub async fn keep_alive(&self, container_id: &str) -> Result<(), OpenAIError> {
-        let url = format!("{}/containers/{}/keep-alive", self.base_url, container_id);
+    pub async fn keep_alive(&self, container_id: &str) -> Result<()> {
+        let path = format!("/v1/containers/{container_id}/keep-alive");
+
+        // Use reqwest client directly for POST with () response since HttpClient doesn't handle () well yet
+        let url = format!("{}{path}", self.client.base_url());
+        let headers = self.client.build_headers()?;
 
         let response = self
             .client
+            .client()
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .headers(headers)
             .send()
             .await
             .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            self.client.handle_response::<()>(response).await
         }
-
-        Ok(())
     }
 }
 
@@ -531,7 +280,8 @@ mod tests {
 
     #[test]
     fn test_container_api_creation() {
-        let api = ContainersApi::new("test_key".to_string()).unwrap();
-        assert_eq!(api.base_url, "https://api.openai.com/v1");
+        use crate::api::common::ApiClientConstructors;
+        let api = ContainersApi::new("test_key").unwrap();
+        assert_eq!(api.client.base_url(), "https://api.openai.com");
     }
 }

@@ -8,15 +8,20 @@
 //! - Filter by status and analyze completion rates
 
 use chrono::{DateTime, Utc};
-use openai_rust_sdk::api::batch::{BatchApi, BatchStatus};
-use openai_rust_sdk::error::Result;
-use std::env;
+use openai_rust_sdk::{
+    api::{
+        batch::{BatchApi, BatchStatus},
+        common::ApiClientConstructors,
+    },
+    error::Result,
+};
+
+mod common;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Get API key from environment
-    let api_key =
-        env::var("OPENAI_API_KEY").expect("Please set OPENAI_API_KEY environment variable");
+    let api_key = common::get_api_key();
 
     println!("\n🔄 Fetching Recent Batch Jobs from OpenAI\n");
     println!("{}", "=".repeat(60));

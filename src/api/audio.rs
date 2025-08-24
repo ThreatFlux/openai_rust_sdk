@@ -4,6 +4,7 @@
 //! speech-to-text transcription, and translation.
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::audio::{
     AudioFormat, AudioModels, AudioSpeechRequest, AudioSpeechResponse, AudioTranscriptionRequest,
@@ -25,60 +26,25 @@ pub struct AudioApi {
     http_client: HttpClient,
 }
 
+impl ApiClientConstructors for AudioApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
+    }
+}
+
 impl AudioApi {
-    /// Create a new Audio API client
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
-    }
-
-    /// Create a new client with custom base URL
-    pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new_with_base_url(api_key, base_url)?,
-        })
-    }
-
     /// Create speech from text using text-to-speech
     pub async fn create_speech(&self, request: &AudioSpeechRequest) -> Result<AudioSpeechResponse> {
-        let url = format!("{}/v1/audio/speech", self.http_client.base_url());
-        let headers = self.http_client.build_headers()?;
-
-        let response = self
+        let (audio_data, content_type) = self
             .http_client
-            .client()
-            .post(&url)
-            .headers(headers)
-            .json(request)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .post_bytes_with_content_type("/v1/audio/speech", request)
+            .await?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("audio/mpeg")
-            .to_string();
-
-        let audio_data = response
-            .bytes()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?
-            .to_vec();
+        let content_type = if content_type == "application/octet-stream" {
+            "audio/mpeg".to_string()
+        } else {
+            content_type
+        };
 
         Ok(AudioSpeechResponse::new(audio_data, content_type))
     }
@@ -88,30 +54,10 @@ impl AudioApi {
         &self,
         request: &AudioSpeechRequest,
     ) -> Result<impl tokio_stream::Stream<Item = Result<Bytes>>> {
-        let url = format!("{}/v1/audio/speech", self.http_client.base_url());
-        let headers = self.http_client.build_headers()?;
-
         let response = self
             .http_client
-            .client()
-            .post(&url)
-            .headers(headers)
-            .json(request)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
+            .post_stream("/v1/audio/speech", request)
+            .await?;
 
         let stream = response
             .bytes_stream()

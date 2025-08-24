@@ -4,6 +4,7 @@
 //! vector representations of text.
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::embeddings::{EmbeddingRequest, EmbeddingResponse};
 
@@ -13,21 +14,13 @@ pub struct EmbeddingsApi {
     http_client: HttpClient,
 }
 
+impl ApiClientConstructors for EmbeddingsApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
+    }
+}
+
 impl EmbeddingsApi {
-    /// Create a new Embeddings API client
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
-    }
-
-    /// Create a new client with custom base URL
-    pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new_with_base_url(api_key, base_url)?,
-        })
-    }
-
     /// Create embeddings for the given input
     pub async fn create_embeddings(&self, request: &EmbeddingRequest) -> Result<EmbeddingResponse> {
         self.http_client.post("/v1/embeddings", request).await

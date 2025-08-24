@@ -27,7 +27,7 @@
 //! cargo run --example threads_demo
 //! ```
 
-use openai_rust_sdk::api::threads::ThreadsApi;
+use openai_rust_sdk::api::{common::ApiClientConstructors, threads::ThreadsApi};
 use openai_rust_sdk::error::{OpenAIError, Result};
 use openai_rust_sdk::models::threads::{
     Annotation, FileCitation, FilePathInfo, ListMessagesParams, MessageContent, MessageRequest,

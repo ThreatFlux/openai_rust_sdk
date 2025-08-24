@@ -14,7 +14,10 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::embeddings::{EmbeddingUtils, EmbeddingsApi},
+    api::{
+        common::ApiClientConstructors,
+        embeddings::{EmbeddingUtils, EmbeddingsApi},
+    },
     models::embeddings::{EmbeddingBuilder, EmbeddingModels},
 };
 use std::env;

@@ -27,8 +27,9 @@
 //! cargo run --example vector_stores_demo
 //! ```
 
-use openai_rust_sdk::api::files::FilesApi;
-use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+use openai_rust_sdk::api::{
+    common::ApiClientConstructors, files::FilesApi, vector_stores::VectorStoresApi,
+};
 use openai_rust_sdk::error::{OpenAIError, Result};
 use openai_rust_sdk::models::files::{FilePurpose, FileUploadRequest};
 use openai_rust_sdk::models::vector_stores::{

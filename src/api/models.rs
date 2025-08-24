@@ -4,6 +4,7 @@
 //! and retrieving detailed information about specific models and their capabilities.
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::models::{
     CompletionType, ListModelsResponse, Model, ModelCapabilities, ModelFamily, ModelRequirements,
@@ -16,14 +17,13 @@ pub struct ModelsApi {
     http_client: HttpClient,
 }
 
-impl ModelsApi {
-    /// Create a new Models API client
-    pub fn new(api_key: impl Into<String>) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for ModelsApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl ModelsApi {
     /// Create a new client with custom base URL
     pub fn with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
         Ok(Self {

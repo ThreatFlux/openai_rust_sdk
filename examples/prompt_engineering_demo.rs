@@ -15,20 +15,19 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::responses::ResponsesApi,
+    api::{common::ApiClientConstructors, responses::ResponsesApi},
     models::responses::{Message, ResponseRequest},
     prompt_engineering::{
         Example, PromptBuilder, PromptPatterns, PromptTemplateBuilder, XmlContentBuilder,
     },
 };
-use std::env;
+
+mod common;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
+    let api_key = common::try_get_api_key()?;
 
     println!("🎯 Prompt Engineering Demo");
     println!("==========================");

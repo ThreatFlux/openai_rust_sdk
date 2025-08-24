@@ -20,15 +20,6 @@ impl crate::api::common::ApiClientConstructors for ModerationsApi {
 }
 
 impl ModerationsApi {
-    /// Create a new Moderations API client
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        <Self as crate::api::common::ApiClientConstructors>::new(api_key)
-    }
-
-    /// Create a new Moderations API client with custom base URL
-    pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        <Self as crate::api::common::ApiClientConstructors>::new_with_base_url(api_key, base_url)
-    }
     /// Create a moderation for the given request
     pub async fn create_moderation(
         &self,
@@ -179,6 +170,7 @@ impl ModerationResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::common::ApiClientConstructors;
 
     #[test]
     fn test_moderation_api_creation() {

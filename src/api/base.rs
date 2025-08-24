@@ -346,6 +346,69 @@ impl HttpClient {
             self.handle_error_response(response, status).await
         }
     }
+
+    /// Make a POST request and return raw bytes with content type
+    pub async fn post_bytes_with_content_type<B>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<(Vec<u8>, String)>
+    where
+        B: serde::Serialize,
+    {
+        let url = self.build_simple_url(path);
+        let headers = self.build_headers()?;
+
+        let response = self
+            .client
+            .post(&url)
+            .headers(headers)
+            .json(body)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if status.is_success() {
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("application/octet-stream")
+                .to_string();
+
+            let bytes = response.bytes().await.map_err(|e| {
+                OpenAIError::RequestError(format!("Failed to read response bytes: {e}"))
+            })?;
+
+            Ok((bytes.to_vec(), content_type))
+        } else {
+            self.handle_error_response(response, status).await
+        }
+    }
+
+    /// Make a POST request with streaming response
+    pub async fn post_stream<B>(&self, path: &str, body: &B) -> Result<reqwest::Response>
+    where
+        B: serde::Serialize,
+    {
+        let url = self.build_simple_url(path);
+        let headers = self.build_headers()?;
+
+        let response = self
+            .client
+            .post(&url)
+            .headers(headers)
+            .json(body)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(response)
+        } else {
+            self.handle_error_response(response, status).await
+        }
+    }
 }
 
 /// Request error utilities
@@ -358,6 +421,46 @@ pub fn map_request_error(e: &reqwest::Error, context: &str) -> OpenAIError {
 #[must_use]
 pub fn map_parse_error(e: &serde_json::Error, context: &str) -> OpenAIError {
     OpenAIError::ParseError(format!("{context}: {e}"))
+}
+
+/// Handle simple error responses with text extraction (for legacy code)
+pub async fn handle_simple_error_response(response: reqwest::Response) -> Result<()> {
+    let status = response.status();
+    if status.is_success() {
+        Ok(())
+    } else {
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        Err(OpenAIError::ApiError {
+            status: status.as_u16(),
+            message: error_text,
+        })
+    }
+}
+
+/// Handle error responses with JSON parsing attempt (for legacy code)
+pub async fn handle_error_response_with_json<T>(response: reqwest::Response) -> Result<T>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let status = response.status();
+    if status.is_success() {
+        response
+            .json::<T>()
+            .await
+            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+    } else {
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        Err(OpenAIError::ApiError {
+            status: status.as_u16(),
+            message: error_text,
+        })
+    }
 }
 
 #[cfg(test)]

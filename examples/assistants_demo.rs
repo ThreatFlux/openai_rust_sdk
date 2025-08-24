@@ -20,7 +20,7 @@
 //! cargo run --example assistants_demo
 //! ```
 
-use openai_rust_sdk::api::assistants::AssistantsApi;
+use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
 use openai_rust_sdk::error::{OpenAIError, Result};
 use openai_rust_sdk::models::assistants::{
     AssistantRequest, AssistantTool, ListAssistantsParams, SortOrder,

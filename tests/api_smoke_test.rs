@@ -8,7 +8,7 @@
 
 #[test]
 fn test_audio_api_exists() {
-    use openai_rust_sdk::api::audio::AudioApi;
+    use openai_rust_sdk::api::{audio::AudioApi, common::ApiClientConstructors};
     use openai_rust_sdk::models::audio::Voice;
 
     // API can be created
@@ -20,7 +20,7 @@ fn test_audio_api_exists() {
 
 #[test]
 fn test_images_api_exists() {
-    use openai_rust_sdk::api::images::ImagesApi;
+    use openai_rust_sdk::api::{common::ApiClientConstructors, images::ImagesApi};
 
     // API can be created
     let _api = ImagesApi::new("test-key").unwrap();
@@ -28,7 +28,7 @@ fn test_images_api_exists() {
 
 #[test]
 fn test_files_api_exists() {
-    use openai_rust_sdk::api::files::FilesApi;
+    use openai_rust_sdk::api::{common::ApiClientConstructors, files::FilesApi};
     use openai_rust_sdk::models::files::FilePurpose;
 
     // API can be created
@@ -40,7 +40,7 @@ fn test_files_api_exists() {
 
 #[test]
 fn test_embeddings_api_exists() {
-    use openai_rust_sdk::api::embeddings::EmbeddingsApi;
+    use openai_rust_sdk::api::{common::ApiClientConstructors, embeddings::EmbeddingsApi};
 
     // API can be created
     let _api = EmbeddingsApi::new("test-key").unwrap();
@@ -48,7 +48,7 @@ fn test_embeddings_api_exists() {
 
 #[test]
 fn test_models_api_exists() {
-    use openai_rust_sdk::api::models::ModelsApi;
+    use openai_rust_sdk::api::{common::ApiClientConstructors, models::ModelsApi};
 
     // API can be created
     let _api = ModelsApi::new("test-key").unwrap();
@@ -56,7 +56,7 @@ fn test_models_api_exists() {
 
 #[test]
 fn test_moderations_api_exists() {
-    use openai_rust_sdk::api::moderations::ModerationsApi;
+    use openai_rust_sdk::api::{common::ApiClientConstructors, moderations::ModerationsApi};
 
     // API can be created
     let _api = ModerationsApi::new("test-key").unwrap();
@@ -80,7 +80,7 @@ fn test_error_types_exist() {
 fn test_all_apis_imported_together() {
     // This ensures there are no naming conflicts when importing all APIs
     use openai_rust_sdk::api::{
-        audio::AudioApi, embeddings::EmbeddingsApi, files::FilesApi, images::ImagesApi,
+        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi, files::FilesApi, images::ImagesApi,
         models::ModelsApi, moderations::ModerationsApi,
     };
 

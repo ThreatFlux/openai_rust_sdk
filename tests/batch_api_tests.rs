@@ -11,9 +11,12 @@
 //! - Batch cancellation and cleanup
 //! - Report generation and analysis
 
-use openai_rust_sdk::api::batch::{
-    Batch, BatchApi, BatchList, BatchReport, BatchRequestCounts, BatchStatus, CreateBatchRequest,
-    FileUploadResponse,
+use openai_rust_sdk::api::{
+    batch::{
+        Batch, BatchApi, BatchList, BatchReport, BatchRequestCounts, BatchStatus, CreateBatchRequest,
+        FileUploadResponse,
+    },
+    common::ApiClientConstructors,
 };
 use serde_json::json;
 

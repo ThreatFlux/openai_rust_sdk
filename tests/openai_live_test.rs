@@ -5,7 +5,7 @@
 
 use openai_rust_sdk::{
     api::{
-        audio::AudioApi, embeddings::EmbeddingsApi, images::ImagesApi, models::ModelsApi,
+        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi, images::ImagesApi, models::ModelsApi,
         moderations::ModerationsApi, responses::ResponsesApi, streaming::StreamingApi,
     },
     models::{
@@ -319,7 +319,7 @@ async fn test_api_key_validation() {
 
 #[tokio::test]
 async fn test_batch_api_creation() {
-    use openai_rust_sdk::api::batch::BatchApi;
+    use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
 
     println!("\n📦 Testing Batch API Creation");
     println!("{}", "-".repeat(50));
@@ -332,7 +332,7 @@ async fn test_batch_api_creation() {
 
 #[tokio::test]
 async fn test_assistants_api_creation() {
-    use openai_rust_sdk::api::assistants::AssistantsApi;
+    use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
 
     println!("\n🤖 Testing Assistants API Creation");
     println!("{}", "-".repeat(50));
@@ -345,7 +345,7 @@ async fn test_assistants_api_creation() {
 
 #[tokio::test]
 async fn test_vector_stores_api_creation() {
-    use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    use openai_rust_sdk::api::{common::ApiClientConstructors, vector_stores::VectorStoresApi};
 
     println!("\n🗄️ Testing Vector Stores API Creation");
     println!("{}", "-".repeat(50));

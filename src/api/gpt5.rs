@@ -3,7 +3,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use crate::{
-    api::responses::ResponsesApi,
+    api::{common::ApiClientConstructors, responses::ResponsesApi},
     error::{OpenAIError, Result},
     models::{
         functions::{Tool, ToolChoice},

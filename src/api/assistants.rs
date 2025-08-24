@@ -55,6 +55,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::assistants::{
     Assistant, AssistantRequest, DeletionStatus, ListAssistantsParams, ListAssistantsResponse,
@@ -67,27 +68,13 @@ pub struct AssistantsApi {
     http_client: HttpClient,
 }
 
-impl AssistantsApi {
-    /// Creates a new Assistants API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::assistants::AssistantsApi;
-    ///
-    /// let api = AssistantsApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for AssistantsApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl AssistantsApi {
     /// Creates a new Assistants API client with custom base URL
     ///
     /// # Arguments

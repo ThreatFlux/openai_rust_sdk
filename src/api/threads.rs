@@ -59,6 +59,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::threads::{
     DeletionStatus, ListMessageFilesResponse, ListMessagesParams, ListMessagesResponse, Message,
@@ -72,27 +73,13 @@ pub struct ThreadsApi {
     http_client: HttpClient,
 }
 
-impl ThreadsApi {
-    /// Creates a new Threads API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
-    ///
-    /// let api = ThreadsApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for ThreadsApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl ThreadsApi {
     /// Creates a new Threads API client with custom base URL
     ///
     /// # Arguments

@@ -54,6 +54,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
 use crate::models::files::{
     File, FileDeleteResponse, FilePurpose, FileUploadRequest, ListFilesParams, ListFilesResponse,
@@ -68,27 +69,13 @@ pub struct FilesApi {
     http_client: HttpClient,
 }
 
-impl FilesApi {
-    /// Creates a new Files API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::files::FilesApi;
-    ///
-    /// let api = FilesApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for FilesApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl FilesApi {
     /// Creates a new Files API client with custom base URL
     ///
     /// # Arguments

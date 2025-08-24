@@ -9,7 +9,7 @@
 //! - Pagination and filtering
 //! - Content types and annotations
 
-use openai_rust_sdk::api::threads::ThreadsApi;
+use openai_rust_sdk::api::{common::ApiClientConstructors, threads::ThreadsApi};
 use openai_rust_sdk::models::threads::{
     Annotation, FileCitation, FilePathInfo, ListMessagesParams, Message, MessageContent,
     MessageFile, MessageRequest, MessageRole, SortOrder, Thread, ThreadRequest,

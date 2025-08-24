@@ -5,18 +5,21 @@
 //! including image generation, editing, and variation creation using DALL-E models.
 
 use openai_rust_sdk::{
-    api::images::{ImageUtils, ImagesApi},
+    api::{
+        common::ApiClientConstructors,
+        images::{ImageUtils, ImagesApi},
+    },
     error::Result,
     models::images::*,
 };
-use std::env;
 use std::path::PathBuf;
+
+mod common;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize the Images API client
-    let api_key =
-        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable must be set");
+    let api_key = common::get_api_key();
 
     let images_api = ImagesApi::new(api_key)?;
 

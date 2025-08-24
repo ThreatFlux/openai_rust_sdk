@@ -16,7 +16,9 @@
 //! cargo run --example runs_demo
 //! ```
 
-use openai_rust_sdk::api::{assistants::AssistantsApi, runs::RunsApi, threads::ThreadsApi};
+use openai_rust_sdk::api::{
+    assistants::AssistantsApi, common::ApiClientConstructors, runs::RunsApi, threads::ThreadsApi,
+};
 use openai_rust_sdk::models::assistants::{AssistantRequest, AssistantTool};
 use openai_rust_sdk::models::functions::FunctionTool;
 use openai_rust_sdk::models::runs::{

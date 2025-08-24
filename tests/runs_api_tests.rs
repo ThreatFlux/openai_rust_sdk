@@ -5,7 +5,7 @@
 //! These tests cover all aspects of run management, tool calling, step tracking,
 //! status monitoring, and error handling.
 
-use openai_rust_sdk::api::runs::RunsApi;
+use openai_rust_sdk::api::{common::ApiClientConstructors, runs::RunsApi};
 use openai_rust_sdk::models::assistants::AssistantTool;
 use openai_rust_sdk::models::runs::{
     CreateThreadAndRunRequest, ListRunStepsParams, ListRunsParams, ModifyRunRequest, RunRequest,

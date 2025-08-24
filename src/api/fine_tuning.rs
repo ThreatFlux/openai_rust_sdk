@@ -65,6 +65,7 @@
 //! ```
 
 use crate::api::base::HttpClient;
+use crate::api::common::ApiClientConstructors;
 use crate::error::Result;
 use crate::models::fine_tuning::{
     FineTuningJob, FineTuningJobEvent, FineTuningJobRequest, ListFineTuningJobCheckpointsParams,
@@ -84,27 +85,13 @@ pub struct FineTuningApi {
     http_client: HttpClient,
 }
 
-impl FineTuningApi {
-    /// Creates a new Fine-tuning API client
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - Your `OpenAI` API key
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openai_rust_sdk::api::fine_tuning::FineTuningApi;
-    ///
-    /// let api = FineTuningApi::new("your-api-key")?;
-    /// # Ok::<(), openai_rust_sdk::error::OpenAIError>(())
-    /// ```
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
-        Ok(Self {
-            http_client: HttpClient::new(api_key)?,
-        })
+impl ApiClientConstructors for FineTuningApi {
+    fn from_http_client(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
+}
 
+impl FineTuningApi {
     /// Creates a new Fine-tuning API client with custom base URL
     ///
     /// # Arguments

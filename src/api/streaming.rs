@@ -1,3 +1,4 @@
+use crate::api::common::ApiClientConstructors;
 use crate::api::responses::ResponsesApi;
 use crate::error::{ApiErrorResponse, OpenAIError, Result};
 use crate::models::functions::{FunctionCall, Tool, ToolChoice};

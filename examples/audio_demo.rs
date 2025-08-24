@@ -15,7 +15,10 @@
 //! cargo run --example audio_demo
 //! ```
 
-use openai_rust_sdk::api::audio::{AudioApi, AudioUtils};
+use openai_rust_sdk::api::{
+    audio::{AudioApi, AudioUtils},
+    common::ApiClientConstructors,
+};
 use openai_rust_sdk::models::audio::*;
 use std::env;
 use std::path::Path;

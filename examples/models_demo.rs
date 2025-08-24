@@ -16,7 +16,10 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::models::{ModelUtils, ModelsApi},
+    api::{
+        common::ApiClientConstructors,
+        models::{ModelUtils, ModelsApi},
+    },
     models::models::{CompletionType, Model, ModelFamily, ModelRequirements},
 };
 use std::collections::HashMap;
