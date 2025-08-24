@@ -27,18 +27,16 @@ FROM chef AS dependencies
 COPY --from=planner /app/recipe.json recipe.json
 
 # Build dependencies - this layer is cached aggressively
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/app/target \
-    cargo chef cook --release --recipe-path recipe.json --all-features
+# We don't use cache mounts here since we need the artifacts to persist
+RUN cargo chef cook --release --recipe-path recipe.json --all-features
 
 # Final build stage
 FROM chef AS builder
 
 # Build arguments
 ARG VERSION=unknown
-ARG BUILD_DATE
-ARG VCS_REF
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
 
 # Copy cached dependencies
 COPY --from=dependencies /app/target target
@@ -47,16 +45,9 @@ COPY --from=dependencies /usr/local/cargo /usr/local/cargo
 # Copy all source files
 COPY . .
 
-# Build the application with cache mount
+# Build the application
 ENV CARGO_PKG_VERSION=${VERSION}
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/app/target,sharing=locked \
-    cargo build --release --all-features && \
-    # Copy out the binary before the cache is unmounted
-    cp target/release/openai_rust_sdk /app/openai_rust_sdk && \
-    cp target/release/libopenai_rust_sdk.rlib /app/libopenai_rust_sdk.rlib || true && \
-    cp -r target/release/deps /app/deps || true
+RUN cargo build --release --all-features
 
 # Runtime stage (minimal size)
 FROM debian:bookworm-slim AS runtime
@@ -71,9 +62,9 @@ RUN apt-get update && apt-get install -y \
     && mkdir -p /data /config /output
 
 # Copy the binary and libraries from builder
-COPY --from=builder --chown=openai:openai /app/openai_rust_sdk /usr/local/bin/openai-rust-sdk
-COPY --from=builder --chown=openai:openai /app/libopenai_rust_sdk.rlib /usr/local/lib/ 2>/dev/null || true
-COPY --from=builder --chown=openai:openai /app/deps /usr/local/lib/deps 2>/dev/null || true
+COPY --from=builder --chown=openai:openai /app/target/release/openai_rust_sdk /usr/local/bin/openai-rust-sdk
+COPY --from=builder --chown=openai:openai /app/target/release/libopenai_rust_sdk.rlib /usr/local/lib/ 2>/dev/null || true
+COPY --from=builder --chown=openai:openai /app/target/release/deps /usr/local/lib/deps 2>/dev/null || true
 
 # Copy test data
 COPY --chown=openai:openai test_data /opt/openai-rust-sdk/test_data
@@ -92,6 +83,11 @@ ENV RUST_LOG=info \
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD ["openai-rust-sdk", "--version"] || exit 1
+
+# Build arguments need to be declared in the stage where they're used
+ARG VERSION=unknown
+ARG BUILD_DATE=unknown  
+ARG VCS_REF=unknown
 
 # Metadata
 LABEL org.opencontainers.image.title="OpenAI Rust SDK" \
