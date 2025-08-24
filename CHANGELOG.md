@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.1] - 2025-08-24
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: resolve Docker build cache mount issues in CI Dockerfile (1ace033)
+
+### 📊 Statistics
+
+- **Version**: 1.2.0 → 1.2.1
+- **Date**: 2025-08-24
+- **Commits**: 1
+- **Contributors**: 1
+
+
 ## [1.2.0] - 2025-08-23
 
 
