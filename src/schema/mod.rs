@@ -371,61 +371,45 @@ impl SchemaBuilder {
     pub fn build(self) -> JsonSchema {
         let mut schema = IndexMap::new();
 
-        if let Some(schema_type) = self.schema_type {
+        self.add_basic_properties(&mut schema);
+        self.add_object_properties(&mut schema);
+        self.add_array_properties(&mut schema);
+        self.add_validation_properties(&mut schema);
+        self.add_string_properties(&mut schema);
+        self.add_numeric_properties(&mut schema);
+        self.add_metadata_properties(&mut schema);
+
+        JsonSchema::new(json!(schema))
+    }
+
+    /// Add basic properties to schema
+    fn add_basic_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(ref schema_type) = self.schema_type {
             schema.insert("type".to_string(), json!(schema_type));
         }
 
-        if let Some(properties) = self.properties {
-            let props_map: HashMap<String, Value> = properties.into_iter().collect();
-            schema.insert("properties".to_string(), json!(props_map));
-        }
-
-        if let Some(items) = self.items {
-            schema.insert("items".to_string(), *items);
-        }
-
-        if let Some(required) = self.required {
-            schema.insert("required".to_string(), json!(required));
-        }
-
-        if let Some(enum_values) = self.enum_values {
+        if let Some(ref enum_values) = self.enum_values {
             schema.insert("enum".to_string(), json!(enum_values));
         }
 
-        if let Some(any_of) = self.any_of {
+        if let Some(ref any_of) = self.any_of {
             schema.insert("anyOf".to_string(), json!(any_of));
         }
 
-        if let Some(pattern) = self.pattern {
-            schema.insert("pattern".to_string(), json!(pattern));
+        if let Some(ref default) = self.default {
+            schema.insert("default".to_string(), default.clone());
+        }
+    }
+
+    /// Add object properties to schema
+    fn add_object_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(ref properties) = self.properties {
+            let props_map: HashMap<String, Value> = properties.clone().into_iter().collect();
+            schema.insert("properties".to_string(), json!(props_map));
         }
 
-        if let Some(format) = self.format {
-            schema.insert("format".to_string(), json!(format));
-        }
-
-        if let Some(minimum) = self.minimum {
-            schema.insert("minimum".to_string(), json!(minimum));
-        }
-
-        if let Some(maximum) = self.maximum {
-            schema.insert("maximum".to_string(), json!(maximum));
-        }
-
-        if let Some(min_length) = self.min_length {
-            schema.insert("minLength".to_string(), json!(min_length));
-        }
-
-        if let Some(max_length) = self.max_length {
-            schema.insert("maxLength".to_string(), json!(max_length));
-        }
-
-        if let Some(min_items) = self.min_items {
-            schema.insert("minItems".to_string(), json!(min_items));
-        }
-
-        if let Some(max_items) = self.max_items {
-            schema.insert("maxItems".to_string(), json!(max_items));
+        if let Some(ref required) = self.required {
+            schema.insert("required".to_string(), json!(required));
         }
 
         if let Some(additional_properties) = self.additional_properties {
@@ -435,24 +419,69 @@ impl SchemaBuilder {
             );
         }
 
-        if let Some(description) = self.description {
+        if let Some(ref definitions) = self.definitions {
+            let defs_map: HashMap<String, Value> = definitions.clone().into_iter().collect();
+            schema.insert("definitions".to_string(), json!(defs_map));
+        }
+    }
+
+    /// Add array properties to schema
+    fn add_array_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(ref items) = self.items {
+            schema.insert("items".to_string(), items.as_ref().clone());
+        }
+
+        if let Some(min_items) = self.min_items {
+            schema.insert("minItems".to_string(), json!(min_items));
+        }
+
+        if let Some(max_items) = self.max_items {
+            schema.insert("maxItems".to_string(), json!(max_items));
+        }
+    }
+
+    /// Add validation properties to schema
+    fn add_validation_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(ref pattern) = self.pattern {
+            schema.insert("pattern".to_string(), json!(pattern));
+        }
+
+        if let Some(ref format) = self.format {
+            schema.insert("format".to_string(), json!(format));
+        }
+    }
+
+    /// Add string properties to schema
+    fn add_string_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(min_length) = self.min_length {
+            schema.insert("minLength".to_string(), json!(min_length));
+        }
+
+        if let Some(max_length) = self.max_length {
+            schema.insert("maxLength".to_string(), json!(max_length));
+        }
+    }
+
+    /// Add numeric properties to schema
+    fn add_numeric_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(minimum) = self.minimum {
+            schema.insert("minimum".to_string(), json!(minimum));
+        }
+
+        if let Some(maximum) = self.maximum {
+            schema.insert("maximum".to_string(), json!(maximum));
+        }
+    }
+
+    /// Add metadata properties to schema
+    fn add_metadata_properties(&self, schema: &mut IndexMap<String, Value>) {
+        if let Some(ref description) = self.description {
             schema.insert("description".to_string(), json!(description));
         }
 
-        if let Some(title) = self.title {
+        if let Some(ref title) = self.title {
             schema.insert("title".to_string(), json!(title));
         }
-
-        if let Some(default) = self.default {
-            schema.insert("default".to_string(), default);
-        }
-
-        if let Some(definitions) = self.definitions {
-            let defs_map: HashMap<String, Value> = definitions.into_iter().collect();
-            schema.insert("definitions".to_string(), json!(defs_map));
-        }
-
-        JsonSchema::new(json!(schema))
     }
 }
 

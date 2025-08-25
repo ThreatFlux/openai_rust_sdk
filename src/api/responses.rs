@@ -48,78 +48,151 @@ impl ResponsesApi {
     pub fn to_openai_format(&self, request: &ResponseRequest) -> Result<serde_json::Value> {
         use serde_json::json;
 
-        // Convert input to messages format
-        let messages = match &request.input {
-            ResponseInput::Text(text) => {
-                if let Some(instructions) = &request.instructions {
-                    vec![
-                        json!({"role": "system", "content": instructions}),
-                        json!({"role": "user", "content": text}),
-                    ]
-                } else {
-                    vec![json!({"role": "user", "content": text})]
-                }
-            }
-            ResponseInput::Messages(msgs) => msgs
-                .iter()
-                .map(|msg| {
-                    let role = match msg.role {
-                        MessageRole::Developer => "system",
-                        MessageRole::User => "user",
-                        MessageRole::Assistant => "assistant",
-                        MessageRole::System => "system",
-                    };
-
-                    let content = match &msg.content {
-                        crate::models::responses::MessageContentInput::Text(text) => json!(text),
-                        crate::models::responses::MessageContentInput::Array(contents) => {
-                            json!(contents
-                                .iter()
-                                .map(|c| match c {
-                                    crate::models::responses::MessageContent::Text { text } =>
-                                        json!({
-                                            "type": "text",
-                                            "text": text
-                                        }),
-                                    crate::models::responses::MessageContent::Image {
-                                        image_url,
-                                    } => {
-                                        let mut img = json!({
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": image_url.url
-                                            }
-                                        });
-                                        if let Some(detail) = &image_url.detail {
-                                            img["image_url"]["detail"] = json!(match detail {
-                                                crate::models::responses::ImageDetail::Auto =>
-                                                    "auto",
-                                                crate::models::responses::ImageDetail::Low => "low",
-                                                crate::models::responses::ImageDetail::High =>
-                                                    "high",
-                                            });
-                                        }
-                                        img
-                                    }
-                                })
-                                .collect::<Vec<_>>())
-                        }
-                    };
-
-                    json!({
-                        "role": role,
-                        "content": content
-                    })
-                })
-                .collect(),
-        };
+        let messages = self.convert_input_to_messages(&request.input, &request.instructions);
 
         let mut openai_request = json!({
             "model": request.model,
             "messages": messages
         });
 
-        // Add optional parameters
+        self.add_optional_parameters(&mut openai_request, request);
+        self.add_response_format(&mut openai_request, &request.response_format);
+
+        Ok(openai_request)
+    }
+
+    /// Convert input to messages format
+    fn convert_input_to_messages(
+        &self,
+        input: &ResponseInput,
+        instructions: &Option<String>,
+    ) -> Vec<serde_json::Value> {
+        match input {
+            ResponseInput::Text(text) => self.convert_text_to_messages(text, instructions),
+            ResponseInput::Messages(msgs) => self.convert_messages_to_openai_format(msgs),
+        }
+    }
+
+    /// Convert text to messages format
+    fn convert_text_to_messages(
+        &self,
+        text: &str,
+        instructions: &Option<String>,
+    ) -> Vec<serde_json::Value> {
+        use serde_json::json;
+
+        if let Some(instructions) = instructions {
+            vec![
+                json!({"role": "system", "content": instructions}),
+                json!({"role": "user", "content": text}),
+            ]
+        } else {
+            vec![json!({"role": "user", "content": text})]
+        }
+    }
+
+    /// Convert messages to OpenAI format
+    fn convert_messages_to_openai_format(&self, messages: &[Message]) -> Vec<serde_json::Value> {
+        use serde_json::json;
+
+        messages
+            .iter()
+            .map(|msg| {
+                let role = self.convert_message_role(&msg.role);
+                let content = self.convert_message_content(&msg.content);
+
+                json!({
+                    "role": role,
+                    "content": content
+                })
+            })
+            .collect()
+    }
+
+    /// Convert message role to string
+    fn convert_message_role(&self, role: &MessageRole) -> &'static str {
+        match role {
+            MessageRole::Developer => "system",
+            MessageRole::User => "user",
+            MessageRole::Assistant => "assistant",
+            MessageRole::System => "system",
+        }
+    }
+
+    /// Convert message content to JSON value
+    fn convert_message_content(
+        &self,
+        content: &crate::models::responses::MessageContentInput,
+    ) -> serde_json::Value {
+        use serde_json::json;
+
+        match content {
+            crate::models::responses::MessageContentInput::Text(text) => json!(text),
+            crate::models::responses::MessageContentInput::Array(contents) => {
+                json!(contents
+                    .iter()
+                    .map(|c| self.convert_message_content_item(c))
+                    .collect::<Vec<_>>())
+            }
+        }
+    }
+
+    /// Convert message content item to JSON value
+    fn convert_message_content_item(
+        &self,
+        content: &crate::models::responses::MessageContent,
+    ) -> serde_json::Value {
+        use serde_json::json;
+
+        match content {
+            crate::models::responses::MessageContent::Text { text } => json!({
+                "type": "text",
+                "text": text
+            }),
+            crate::models::responses::MessageContent::Image { image_url } => {
+                self.convert_image_content(image_url)
+            }
+        }
+    }
+
+    /// Convert image content to JSON value
+    fn convert_image_content(
+        &self,
+        image_url: &crate::models::responses::ImageUrl,
+    ) -> serde_json::Value {
+        use serde_json::json;
+
+        let mut img = json!({
+            "type": "image_url",
+            "image_url": {
+                "url": image_url.url
+            }
+        });
+
+        if let Some(detail) = &image_url.detail {
+            img["image_url"]["detail"] = json!(self.convert_image_detail(detail));
+        }
+
+        img
+    }
+
+    /// Convert image detail to string
+    fn convert_image_detail(&self, detail: &crate::models::responses::ImageDetail) -> &'static str {
+        match detail {
+            crate::models::responses::ImageDetail::Auto => "auto",
+            crate::models::responses::ImageDetail::Low => "low",
+            crate::models::responses::ImageDetail::High => "high",
+        }
+    }
+
+    /// Add optional parameters to request
+    fn add_optional_parameters(
+        &self,
+        openai_request: &mut serde_json::Value,
+        request: &ResponseRequest,
+    ) {
+        use serde_json::json;
+
         if let Some(temp) = request.temperature {
             openai_request["temperature"] = json!(temp);
         }
@@ -138,13 +211,19 @@ impl ResponsesApi {
         if request.stream == Some(true) {
             openai_request["stream"] = json!(true);
         }
+    }
 
-        // Add response format if specified
-        if let Some(response_format) = &request.response_format {
+    /// Add response format to request
+    fn add_response_format(
+        &self,
+        openai_request: &mut serde_json::Value,
+        response_format: &Option<crate::models::responses::ResponseFormat>,
+    ) {
+        use serde_json::json;
+
+        if let Some(response_format) = response_format {
             match response_format {
-                crate::models::responses::ResponseFormat::Text => {
-                    // Default format, no need to specify
-                }
+                crate::models::responses::ResponseFormat::Text => {}
                 crate::models::responses::ResponseFormat::JsonObject => {
                     openai_request["response_format"] = json!({
                         "type": "json_object"
@@ -166,8 +245,6 @@ impl ResponsesApi {
                 }
             }
         }
-
-        Ok(openai_request)
     }
 
     /// Create a simple text response

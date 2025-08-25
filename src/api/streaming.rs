@@ -375,99 +375,138 @@ impl FunctionStreamProcessor {
                     }
                 };
 
-                for choice in chunk.choices {
-                    // Handle regular content
-                    if let Some(content) = choice.delta.content {
-                        yield Ok(FunctionStreamEvent::ContentDelta { content });
+                for choice in &chunk.choices {
+                    if let Some(ref content) = choice.delta.content {
+                        yield Ok(FunctionStreamEvent::ContentDelta { content: content.clone() });
                     }
 
-                    // Handle tool calls
-                    if let Some(tool_calls) = choice.delta.tool_calls {
-                        for tool_call in tool_calls {
-                            // Process tool call delta inline for simplicity
-                            let builder = processor.function_calls.entry(tool_call.index).or_insert_with(|| {
-                                FunctionCallBuilder {
-                                    call_id: None,
-                                    name: None,
-                                    arguments: String::new(),
-                                }
-                            });
-
-                            // Update call ID
-                            if let Some(id) = tool_call.id {
-                                builder.call_id = Some(id);
-                            }
-
-                            // Update function details
-                            if let Some(function) = tool_call.function {
-                                if let Some(name) = function.name {
-                                    builder.name = Some(name.clone());
-
-                                    // Emit function call started event
-                                    if let Some(call_id) = &builder.call_id {
-                                        yield Ok(FunctionStreamEvent::FunctionCallStarted {
-                                            call_id: call_id.clone(),
-                                            function_name: name,
-                                        });
-                                    }
-                                }
-
-                                if let Some(args_delta) = function.arguments {
-                                    builder.arguments.push_str(&args_delta);
-
-                                    // Emit arguments delta event
-                                    if let Some(call_id) = &builder.call_id {
-                                        yield Ok(FunctionStreamEvent::FunctionCallArgumentsDelta {
-                                            call_id: call_id.clone(),
-                                            arguments_delta: args_delta,
-                                        });
-                                    }
-                                }
-                            }
+                    if let Some(ref tool_calls) = choice.delta.tool_calls {
+                        for event in Self::process_tool_calls(&mut processor.function_calls, tool_calls.clone()) {
+                            yield Ok(event);
                         }
                     }
 
-                    // Handle completion
                     if choice.finish_reason.is_some() {
-                        // Send completed function calls
-                        for (_, builder) in processor.function_calls.drain() {
-                            if let Some(call) = builder.build() {
-                                yield Ok(FunctionStreamEvent::FunctionCallCompleted { call });
-                            }
+                        for event in Self::handle_completion(&mut processor.function_calls, &chunk, choice) {
+                            yield Ok(event);
                         }
-
-                        // Send completion event
-                        let response = ResponseResult {
-                            id: Some(chunk.id.clone()),
-                            object: chunk.object.clone(),
-                            created: chunk.created,
-                            model: chunk.model.clone(),
-                            choices: vec![ResponseChoice {
-                                index: choice.index,
-                                message: ResponseOutput {
-                                    content: None,
-                                    tool_calls: None,
-                                    function_calls: None,
-                                    structured_data: None,
-                                    schema_validation: None,
-                                },
-                                finish_reason: choice.finish_reason.clone(),
-                            }],
-                            usage: Some(Usage {
-                                prompt_tokens: 0,
-                                completion_tokens: 0,
-                                total_tokens: 0,
-                                prompt_tokens_details: None,
-                                completion_tokens_details: None,
-                            }),
-                        };
-
-                        yield Ok(FunctionStreamEvent::Completed { response });
                         break;
                     }
                 }
             }
         })
+    }
+
+    /// Process tool calls from stream delta
+    fn process_tool_calls(
+        function_calls: &mut std::collections::HashMap<u32, FunctionCallBuilder>,
+        tool_calls: Vec<crate::models::responses::ToolCallDelta>,
+    ) -> Vec<FunctionStreamEvent> {
+        let mut events = Vec::new();
+
+        for tool_call in tool_calls {
+            let builder =
+                function_calls
+                    .entry(tool_call.index)
+                    .or_insert_with(|| FunctionCallBuilder {
+                        call_id: None,
+                        name: None,
+                        arguments: String::new(),
+                    });
+
+            if let Some(id) = tool_call.id {
+                builder.call_id = Some(id);
+            }
+
+            if let Some(function) = tool_call.function {
+                events.extend(Self::process_function_delta(builder, function));
+            }
+        }
+
+        events
+    }
+
+    /// Process function call delta from stream
+    fn process_function_delta(
+        builder: &mut FunctionCallBuilder,
+        function: crate::models::responses::FunctionCallDelta,
+    ) -> Vec<FunctionStreamEvent> {
+        let mut events = Vec::new();
+
+        if let Some(name) = function.name {
+            builder.name = Some(name.clone());
+
+            if let Some(call_id) = &builder.call_id {
+                events.push(FunctionStreamEvent::FunctionCallStarted {
+                    call_id: call_id.clone(),
+                    function_name: name,
+                });
+            }
+        }
+
+        if let Some(args_delta) = function.arguments {
+            builder.arguments.push_str(&args_delta);
+
+            if let Some(call_id) = &builder.call_id {
+                events.push(FunctionStreamEvent::FunctionCallArgumentsDelta {
+                    call_id: call_id.clone(),
+                    arguments_delta: args_delta,
+                });
+            }
+        }
+
+        events
+    }
+
+    /// Handle stream completion
+    fn handle_completion(
+        function_calls: &mut std::collections::HashMap<u32, FunctionCallBuilder>,
+        chunk: &StreamChunk,
+        choice: &crate::models::responses::StreamChoice,
+    ) -> Vec<FunctionStreamEvent> {
+        let mut events = Vec::new();
+
+        for (_, builder) in function_calls.drain() {
+            if let Some(call) = builder.build() {
+                events.push(FunctionStreamEvent::FunctionCallCompleted { call });
+            }
+        }
+
+        let response = Self::create_completion_response(chunk, choice);
+        events.push(FunctionStreamEvent::Completed { response });
+
+        events
+    }
+
+    /// Create completion response from stream
+    fn create_completion_response(
+        chunk: &StreamChunk,
+        choice: &crate::models::responses::StreamChoice,
+    ) -> ResponseResult {
+        ResponseResult {
+            id: Some(chunk.id.clone()),
+            object: chunk.object.clone(),
+            created: chunk.created,
+            model: chunk.model.clone(),
+            choices: vec![ResponseChoice {
+                index: choice.index,
+                message: ResponseOutput {
+                    content: None,
+                    tool_calls: None,
+                    function_calls: None,
+                    structured_data: None,
+                    schema_validation: None,
+                },
+                finish_reason: choice.finish_reason.clone(),
+            }],
+            usage: Some(Usage {
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+                prompt_tokens_details: None,
+                completion_tokens_details: None,
+            }),
+        }
     }
 }
 

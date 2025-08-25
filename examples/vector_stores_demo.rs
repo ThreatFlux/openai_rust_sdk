@@ -41,23 +41,9 @@ use std::env;
 use std::time::Duration;
 use tokio::time;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    println!("🚀 OpenAI Vector Stores API Demo");
-    println!("=================================\n");
-
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        OpenAIError::Authentication("Please set OPENAI_API_KEY environment variable".to_string())
-    })?;
-
-    // Initialize APIs
-    let vector_stores_api = VectorStoresApi::new(&api_key)?;
-    let files_api = FilesApi::new(&api_key)?;
-
-    println!("✅ Initialized Vector Stores and Files APIs\n");
-
-    // Demo 1: Basic Vector Store Creation
+async fn demo_basic_vector_store(
+    vector_stores_api: &VectorStoresApi,
+) -> Result<openai_rust_sdk::models::vector_stores::VectorStore> {
     println!("📦 Demo 1: Creating a Basic Vector Store");
     println!("----------------------------------------");
 
@@ -73,7 +59,12 @@ async fn main() -> Result<()> {
     println!("   Status: {:?}", basic_store.status);
     println!("   Usage: {}\n", basic_store.usage_human_readable());
 
-    // Demo 2: Vector Store with Expiration Policy
+    Ok(basic_store)
+}
+
+async fn demo_expiring_vector_store(
+    vector_stores_api: &VectorStoresApi,
+) -> Result<openai_rust_sdk::models::vector_stores::VectorStore> {
     println!("⏰ Demo 2: Vector Store with Expiration Policy");
     println!("----------------------------------------------");
 
@@ -95,11 +86,13 @@ async fn main() -> Result<()> {
     );
     println!("   Chunking strategy: Static (512 tokens, 50 overlap)\n");
 
-    // Demo 3: Upload Files for Vector Store
+    Ok(expiring_store)
+}
+
+async fn demo_file_upload(files_api: &FilesApi) -> Result<Vec<String>> {
     println!("📁 Demo 3: Uploading Files for Vector Store");
     println!("-------------------------------------------");
 
-    // Create sample files (in real usage, these would be your actual documents)
     let sample_files = vec![
         (
             "knowledge_base_1.txt",
@@ -136,17 +129,23 @@ async fn main() -> Result<()> {
     }
 
     println!("   Total files uploaded: {}\n", uploaded_file_ids.len());
+    Ok(uploaded_file_ids)
+}
 
-    // Demo 4: Add Files to Vector Store (Individual)
+async fn demo_individual_file_add(
+    vector_stores_api: &VectorStoresApi,
+    store_id: &str,
+    file_ids: &[String],
+) -> Result<()> {
     println!("🔗 Demo 4: Adding Files to Vector Store (Individual)");
     println!("----------------------------------------------------");
 
-    if let Some(first_file_id) = uploaded_file_ids.first() {
+    if let Some(first_file_id) = file_ids.first() {
         let file_request = VectorStoreFileRequest::new(first_file_id)
             .with_chunking_strategy(ChunkingStrategy::static_chunking(256, 25));
 
         let vector_store_file = vector_stores_api
-            .create_vector_store_file(&basic_store.id, file_request)
+            .create_vector_store_file(store_id, file_request)
             .await?;
 
         println!("✅ Added file to vector store: {}", vector_store_file.id);
@@ -155,81 +154,97 @@ async fn main() -> Result<()> {
         println!("   Usage: {} bytes\n", vector_store_file.usage_bytes);
     }
 
-    // Demo 5: Batch File Upload
+    Ok(())
+}
+
+async fn demo_batch_upload(
+    vector_stores_api: &VectorStoresApi,
+    store_id: &str,
+    file_ids: &[String],
+) -> Result<()> {
     println!("📦 Demo 5: Batch File Upload");
     println!("----------------------------");
 
-    if uploaded_file_ids.len() > 1 {
-        let batch_file_ids = uploaded_file_ids[1..].to_vec(); // Use remaining files
+    if file_ids.len() > 1 {
+        let batch_file_ids = file_ids[1..].to_vec();
         let batch_request = VectorStoreFileBatchRequest::new(batch_file_ids.clone())
             .with_chunking_strategy(ChunkingStrategy::auto());
 
         let file_batch = vector_stores_api
-            .create_vector_store_file_batch_with_request(&basic_store.id, batch_request)
+            .create_vector_store_file_batch_with_request(store_id, batch_request)
             .await?;
 
         println!("✅ Created file batch: {}", file_batch.id);
         println!("   Files in batch: {}", file_batch.file_counts.total);
         println!("   Batch status: {:?}\n", file_batch.status);
 
-        // Demo 6: Monitor Batch Processing
-        println!("⏳ Demo 6: Monitoring Batch Processing");
-        println!("-------------------------------------");
-
-        // Poll batch status until completion (with timeout)
-        let mut attempts = 0;
-        const MAX_ATTEMPTS: u8 = 12; // 1 minute with 5-second intervals
-
-        loop {
-            let current_batch = vector_stores_api
-                .retrieve_vector_store_file_batch(&basic_store.id, &file_batch.id)
-                .await?;
-
-            println!("   Batch status: {:?}", current_batch.status);
-            println!(
-                "   Progress: {}/{} completed, {}/{} failed",
-                current_batch.file_counts.completed,
-                current_batch.file_counts.total,
-                current_batch.file_counts.failed,
-                current_batch.file_counts.total
-            );
-
-            if current_batch.file_counts.is_processing_complete() {
-                println!("✅ Batch processing completed!");
-                println!(
-                    "   Success rate: {:.1}%\n",
-                    current_batch.file_counts.completion_percentage()
-                );
-                break;
-            }
-
-            attempts += 1;
-            if attempts >= MAX_ATTEMPTS {
-                println!("⏰ Timeout waiting for batch to complete\n");
-                break;
-            }
-
-            time::sleep(Duration::from_secs(5)).await;
-        }
+        demo_monitor_batch_processing(vector_stores_api, store_id, &file_batch.id).await?;
     }
 
-    // Demo 7: List and Filter Files
+    Ok(())
+}
+
+async fn demo_monitor_batch_processing(
+    vector_stores_api: &VectorStoresApi,
+    store_id: &str,
+    batch_id: &str,
+) -> Result<()> {
+    println!("⏳ Demo 6: Monitoring Batch Processing");
+    println!("-------------------------------------");
+
+    let mut attempts = 0;
+    const MAX_ATTEMPTS: u8 = 12;
+
+    loop {
+        let current_batch = vector_stores_api
+            .retrieve_vector_store_file_batch(store_id, batch_id)
+            .await?;
+
+        println!("   Batch status: {:?}", current_batch.status);
+        println!(
+            "   Progress: {}/{} completed, {}/{} failed",
+            current_batch.file_counts.completed,
+            current_batch.file_counts.total,
+            current_batch.file_counts.failed,
+            current_batch.file_counts.total
+        );
+
+        if current_batch.file_counts.is_processing_complete() {
+            println!("✅ Batch processing completed!");
+            println!(
+                "   Success rate: {:.1}%\n",
+                current_batch.file_counts.completion_percentage()
+            );
+            break;
+        }
+
+        attempts += 1;
+        if attempts >= MAX_ATTEMPTS {
+            println!("⏰ Timeout waiting for batch to complete\n");
+            break;
+        }
+
+        time::sleep(Duration::from_secs(5)).await;
+    }
+
+    Ok(())
+}
+
+async fn demo_list_filter_files(vector_stores_api: &VectorStoresApi, store_id: &str) -> Result<()> {
     println!("📋 Demo 7: Listing and Filtering Files");
     println!("--------------------------------------");
 
-    // List all files in the vector store
     let all_files = vector_stores_api
-        .list_vector_store_files(&basic_store.id, None)
+        .list_vector_store_files(store_id, None)
         .await?;
     println!("✅ Total files in vector store: {}", all_files.data.len());
 
-    // List only completed files
     let completed_params = ListVectorStoreFilesParams::new()
         .with_filter(VectorStoreFileStatus::Completed)
         .with_limit(10);
 
     let completed_files = vector_stores_api
-        .list_vector_store_files(&basic_store.id, Some(completed_params))
+        .list_vector_store_files(store_id, Some(completed_params))
         .await?;
 
     println!("   Completed files: {}", completed_files.data.len());
@@ -243,11 +258,16 @@ async fn main() -> Result<()> {
     }
     println!();
 
-    // Demo 8: Vector Store Management
+    Ok(())
+}
+
+async fn demo_vector_store_management(
+    vector_stores_api: &VectorStoresApi,
+    store_id: &str,
+) -> Result<openai_rust_sdk::models::vector_stores::VectorStore> {
     println!("⚙️ Demo 8: Vector Store Management");
     println!("----------------------------------");
 
-    // Update vector store metadata
     let update_request = VectorStoreRequest::builder()
         .name("Updated Demo Knowledge Base")
         .add_metadata("updated_at", chrono::Utc::now().to_rfc3339())
@@ -255,15 +275,18 @@ async fn main() -> Result<()> {
         .build();
 
     let updated_store = vector_stores_api
-        .modify_vector_store(&basic_store.id, update_request)
+        .modify_vector_store(store_id, update_request)
         .await?;
 
     println!("✅ Updated vector store: {}", updated_store.id);
     println!("   New name: {}", updated_store.name.as_ref().unwrap());
     println!("   Metadata entries: {}\n", updated_store.metadata.len());
 
-    // Demo 9: List All Vector Stores
-    println!("🗂️ Demo 9: Listing All Vector Stores");
+    Ok(updated_store)
+}
+
+async fn demo_list_vector_stores(vector_stores_api: &VectorStoresApi) -> Result<()> {
+    println!("🗺️ Demo 9: Listing All Vector Stores");
     println!("------------------------------------");
 
     let list_params = ListVectorStoresParams::new()
@@ -290,7 +313,10 @@ async fn main() -> Result<()> {
     }
     println!();
 
-    // Demo 10: Usage Statistics
+    Ok(())
+}
+
+async fn demo_usage_statistics(vector_stores_api: &VectorStoresApi) -> Result<()> {
     println!("📊 Demo 10: Usage Statistics");
     println!("----------------------------");
 
@@ -301,11 +327,13 @@ async fn main() -> Result<()> {
     }
     println!();
 
-    // Demo 11: Error Handling Examples
+    Ok(())
+}
+
+async fn demo_error_handling(vector_stores_api: &VectorStoresApi, store_id: &str) -> Result<()> {
     println!("🚨 Demo 11: Error Handling Examples");
     println!("-----------------------------------");
 
-    // Try to retrieve a non-existent vector store
     match vector_stores_api
         .retrieve_vector_store("vs-nonexistent")
         .await
@@ -317,23 +345,25 @@ async fn main() -> Result<()> {
         Err(e) => println!("   Unexpected error: {e}"),
     }
 
-    // Check if vector store exists (convenience method)
-    let exists = vector_stores_api
-        .vector_store_exists(&basic_store.id)
-        .await?;
+    let exists = vector_stores_api.vector_store_exists(store_id).await?;
     println!("✅ Vector store exists check: {exists}");
 
     let not_exists = vector_stores_api.vector_store_exists("vs-fake123").await?;
     println!("✅ Non-existent vector store check: {not_exists}\n");
 
-    // Demo 12: Advanced Features
+    Ok(())
+}
+
+async fn demo_advanced_features(
+    vector_stores_api: &VectorStoresApi,
+    file_ids: &[String],
+) -> Result<openai_rust_sdk::models::vector_stores::VectorStore> {
     println!("🔬 Demo 12: Advanced Features");
     println!("-----------------------------");
 
-    // Create a vector store with all features
     let advanced_request = VectorStoreRequest::builder()
         .name("Advanced Feature Demo")
-        .file_ids(uploaded_file_ids.clone())
+        .file_ids(file_ids.to_vec())
         .expires_after(ExpirationPolicy::new_with_anchor("created_at", 30))
         .chunking_strategy(ChunkingStrategy::static_chunking(1024, 128))
         .metadata({
@@ -353,9 +383,8 @@ async fn main() -> Result<()> {
     println!("   - Custom expiration policy (30 days from creation)");
     println!("   - Large chunk size (1024 tokens, 128 overlap)");
     println!("   - Rich metadata (3 entries)");
-    println!("   - Pre-loaded with {} files\n", uploaded_file_ids.len());
+    println!("   - Pre-loaded with {} files\n", file_ids.len());
 
-    // Wait for processing to complete
     println!("⏳ Waiting for advanced vector store to be ready...");
     match vector_stores_api
         .wait_for_vector_store_ready(&advanced_store.id, Some(60), Some(5))
@@ -375,12 +404,19 @@ async fn main() -> Result<()> {
     }
     println!();
 
-    // Demo 13: Cleanup
+    Ok(advanced_store)
+}
+
+async fn demo_cleanup(
+    files_api: &FilesApi,
+    vector_stores_api: &VectorStoresApi,
+    file_ids: &[String],
+    store_ids: &[&str],
+) -> Result<()> {
     println!("🧹 Demo 13: Cleanup");
     println!("-------------------");
 
-    // Delete uploaded files
-    for file_id in &uploaded_file_ids {
+    for file_id in file_ids {
         match files_api.delete_file(file_id).await {
             Ok(delete_response) if delete_response.deleted => {
                 println!("✅ Deleted file: {file_id}");
@@ -390,11 +426,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Delete vector stores
-    let stores_to_delete = vec![&basic_store.id, &expiring_store.id, &advanced_store.id];
-
-    for store_id in stores_to_delete {
-        match vector_stores_api.delete_vector_store(store_id).await {
+    for store_id in store_ids {
+        match vector_stores_api.delete_vector_store(*store_id).await {
             Ok(delete_response) if delete_response.deleted => {
                 println!("✅ Deleted vector store: {store_id}");
             }
@@ -421,6 +454,66 @@ async fn main() -> Result<()> {
     println!("• Setting up alerts for processing failures");
     println!("• Implementing proper pagination for large datasets");
     println!("• Adding input validation and sanitization");
+
+    Ok(())
+}
+
+async fn demo_file_operations(
+    vector_stores_api: &VectorStoresApi,
+    store_id: &str,
+    file_ids: &[String],
+) -> Result<()> {
+    demo_individual_file_add(vector_stores_api, store_id, file_ids).await?;
+    demo_batch_upload(vector_stores_api, store_id, file_ids).await?;
+    demo_list_filter_files(vector_stores_api, store_id).await?;
+    Ok(())
+}
+
+async fn demo_store_management(
+    vector_stores_api: &VectorStoresApi,
+    store_id: &str,
+) -> Result<openai_rust_sdk::models::vector_stores::VectorStore> {
+    let updated_store = demo_vector_store_management(vector_stores_api, store_id).await?;
+    demo_list_vector_stores(vector_stores_api).await?;
+    demo_usage_statistics(vector_stores_api).await?;
+    demo_error_handling(vector_stores_api, &updated_store.id).await?;
+    Ok(updated_store)
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    println!("🚀 OpenAI Vector Stores API Demo");
+    println!("=================================\n");
+
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        OpenAIError::Authentication("Please set OPENAI_API_KEY environment variable".to_string())
+    })?;
+
+    let vector_stores_api = VectorStoresApi::new(&api_key)?;
+    let files_api = FilesApi::new(&api_key)?;
+
+    println!("✅ Initialized Vector Stores and Files APIs\n");
+
+    let basic_store = demo_basic_vector_store(&vector_stores_api).await?;
+    let expiring_store = demo_expiring_vector_store(&vector_stores_api).await?;
+    let uploaded_file_ids = demo_file_upload(&files_api).await?;
+
+    demo_file_operations(&vector_stores_api, &basic_store.id, &uploaded_file_ids).await?;
+    let _updated_store = demo_store_management(&vector_stores_api, &basic_store.id).await?;
+    let advanced_store = demo_advanced_features(&vector_stores_api, &uploaded_file_ids).await?;
+
+    let store_ids = vec![
+        basic_store.id.as_str(),
+        expiring_store.id.as_str(),
+        advanced_store.id.as_str(),
+    ];
+    demo_cleanup(
+        &files_api,
+        &vector_stores_api,
+        &uploaded_file_ids,
+        &store_ids,
+    )
+    .await?;
 
     Ok(())
 }
@@ -453,7 +546,6 @@ mod tests {
 
     #[test]
     fn test_demo_configuration() {
-        // Test that the demo configurations are valid
         let basic_request = VectorStoreRequest::builder()
             .name("Demo Knowledge Base")
             .add_metadata("purpose", "demo")

@@ -24,17 +24,7 @@ use std::env;
 use std::path::Path;
 use tokio::fs;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🎵 OpenAI Audio API Demo");
-    println!("========================\n");
-
-    // Initialize the API client
-    let api_key =
-        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable must be set");
-    let audio_api = AudioApi::new(api_key)?;
-
-    // Demo 1: Text-to-Speech with different voices
+async fn demo_voice_generation(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🗣️  Demo 1: Text-to-Speech with Different Voices");
     println!("=================================================");
 
@@ -55,14 +45,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("✅ Saved {} ({} bytes)", filename, response.data().len());
 
-        // Calculate estimated cost
         let cost = AudioUtils::estimate_tts_cost(sample_text, AudioModels::TTS_1);
         println!("💰 Estimated cost: ${cost:.6}");
     }
 
     println!();
+    Ok(())
+}
 
-    // Demo 2: High-Quality Text-to-Speech with Different Formats
+async fn demo_hq_formats(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎵 Demo 2: High-Quality TTS with Different Formats");
     println!("==================================================");
 
@@ -98,22 +89,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("✅ Saved {} ({} bytes)", filename, response.data().len());
 
-        // Estimate duration
         let duration =
             AudioUtils::estimate_duration_from_size(response.data().len() as u64, &format);
         println!("⏱️  Estimated duration: {duration:.1} seconds");
     }
 
     println!();
+    Ok(())
+}
 
-    // Demo 3: Streaming Text-to-Speech
+async fn demo_streaming_audio(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("📡 Demo 3: Streaming Text-to-Speech");
     println!("===================================");
 
     let streaming_text = "This demonstrates streaming audio generation where audio data is received in chunks as it's generated.";
 
     let request = SpeechBuilder::tts_1(streaming_text, Voice::Fable)
-        .opus() // Opus is good for streaming
+        .opus()
         .build();
 
     println!("🌊 Starting streaming audio generation...");
@@ -131,7 +123,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("📦 Received chunk: {chunk_len} bytes (total: {total_bytes} bytes)");
     }
 
-    // Combine chunks and save
     let combined_data: Vec<u8> = chunks.into_iter().flatten().collect();
     fs::write("streaming_output.opus", &combined_data).await?;
     println!(
@@ -140,8 +131,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     println!();
+    Ok(())
+}
 
-    // Demo 4: Voice Recommendations
+async fn demo_voice_recommendations(
+    audio_api: &AudioApi,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎭 Demo 4: Voice Recommendations for Different Use Cases");
     println!("========================================================");
 
@@ -162,7 +157,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let demo_text = format!("This is a {use_case} voice demonstration.");
 
-        // Generate a short sample
         let response = audio_api
             .generate_speech(demo_text, recommended_voice, Some(AudioModels::TTS_1))
             .await?;
@@ -173,23 +167,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!();
+    Ok(())
+}
 
-    // Demo 5: Audio File Validation and Transcription (if audio files exist)
+async fn demo_transcription(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎙️  Demo 5: Speech-to-Text Transcription");
     println!("=========================================");
 
-    // Check if we have any generated audio files to transcribe
     let test_files = vec!["output_voice_alloy.mp3", "hq_output.mp3"];
 
     for file_path in test_files {
         if Path::new(file_path).exists() {
             println!("🔍 Transcribing {file_path}...");
 
-            // Validate format
             if AudioApi::is_supported_format(file_path) {
                 println!("✅ File format is supported");
 
-                // Simple transcription
                 match audio_api.transcribe(file_path, Some("en")).await {
                     Ok(transcription) => {
                         println!("📝 Transcription: \"{transcription}\"");
@@ -199,7 +192,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
 
-                // Detailed transcription with timestamps
                 let detailed_request = TranscriptionBuilder::whisper(file_path)
                     .language("en")
                     .verbose_json()
@@ -228,7 +220,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
 
-                        // Calculate transcription cost
                         if let Some(duration) = response.duration() {
                             let cost = AudioUtils::estimate_whisper_cost(duration);
                             println!("   💰 Estimated cost: ${cost:.6}");
@@ -247,7 +238,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!();
     }
 
-    // Demo 6: Different Response Formats
+    Ok(())
+}
+
+async fn demo_response_formats(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("📄 Demo 6: Different Transcription Response Formats");
     println!("===================================================");
 
@@ -306,8 +300,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!();
+    Ok(())
+}
 
-    // Demo 7: Audio Information and Utilities
+async fn demo_audio_info() {
     println!("ℹ️  Demo 7: Audio Information and Utilities");
     println!("===========================================");
 
@@ -326,7 +322,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("   • {voice:?}");
     }
 
-    // Cost estimates
     println!("\n💰 Cost Estimates:");
     let sample_text = "This is a sample text for cost estimation.";
     println!(
@@ -345,19 +340,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     println!();
+}
 
-    // Demo 8: Error Handling
+async fn demo_error_handling(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("⚠️  Demo 8: Error Handling Examples");
     println!("===================================");
 
-    // Test with invalid file
     println!("🔍 Testing with non-existent file...");
     match audio_api.transcribe("nonexistent.mp3", None).await {
         Ok(_) => println!("😱 Unexpected success!"),
         Err(e) => println!("✅ Expected error: {e}"),
     }
 
-    // Test with unsupported format
     println!("🔍 Testing format validation...");
     if AudioApi::is_supported_format("test.txt") {
         println!("❌ Should not support .txt files");
@@ -366,8 +360,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!();
+    Ok(())
+}
 
-    // Cleanup information
+fn demo_cleanup() {
     println!("🧹 Demo Complete!");
     println!("=================");
     println!("Generated files:");
@@ -405,6 +401,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   • Use streaming for real-time applications");
     println!("   • Consider cost when processing large amounts of text/audio");
     println!("   • Use verbose_json for detailed transcription metadata");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("🎵 OpenAI Audio API Demo");
+    println!("========================\n");
+
+    let api_key =
+        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable must be set");
+    let audio_api = AudioApi::new(api_key)?;
+
+    demo_voice_generation(&audio_api).await?;
+    demo_hq_formats(&audio_api).await?;
+    demo_streaming_audio(&audio_api).await?;
+    demo_voice_recommendations(&audio_api).await?;
+    demo_transcription(&audio_api).await?;
+    demo_response_formats(&audio_api).await?;
+    demo_audio_info().await;
+    demo_error_handling(&audio_api).await?;
+    demo_cleanup();
 
     Ok(())
 }

@@ -18,18 +18,7 @@ use openai_rust_sdk::{
 
 mod common;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let api_key = common::get_api_key_or_default("test-key");
-
-    println!("\n🚀 Testing GPT-5 API Capabilities\n");
-    println!("{}", "=".repeat(60));
-
-    // Initialize GPT-5 API
-    let gpt5_api = GPT5Api::new(api_key)?;
-    println!("✅ GPT-5 API initialized successfully");
-
-    // Test 1: Basic GPT-5 Request with Minimal Reasoning
+async fn demo_basic_request(gpt5_api: &GPT5Api) {
     println!("\n📝 Test 1: Basic GPT-5 Request (Minimal Reasoning)");
     println!("{}", "-".repeat(60));
 
@@ -60,8 +49,9 @@ async fn main() -> Result<()> {
             }
         }
     }
+}
 
-    // Test 2: Fast Response with Low Verbosity
+async fn demo_fast_response(gpt5_api: &GPT5Api) {
     println!("\n⚡ Test 2: Fast Response (Low Reasoning, Low Verbosity)");
     println!("{}", "-".repeat(60));
 
@@ -92,8 +82,9 @@ async fn main() -> Result<()> {
             println!("❌ Fast response failed: {e}");
         }
     }
+}
 
-    // Test 3: Different Reasoning Levels
+async fn demo_reasoning_levels(gpt5_api: &GPT5Api) {
     println!("\n🧠 Test 3: Different Reasoning Levels");
     println!("{}", "-".repeat(60));
 
@@ -105,7 +96,6 @@ async fn main() -> Result<()> {
         ),
     }];
 
-    // Test different reasoning levels
     let reasoning_levels = vec![
         ("Low", ReasoningEffort::Low),
         ("Medium", ReasoningEffort::Medium),
@@ -145,8 +135,9 @@ async fn main() -> Result<()> {
             }
         }
     }
+}
 
-    // Test 4: Complex Reasoning
+async fn demo_complex_reasoning(gpt5_api: &GPT5Api) {
     println!("\n🔬 Test 4: Complex Reasoning Task");
     println!("{}", "-".repeat(60));
 
@@ -170,7 +161,6 @@ async fn main() -> Result<()> {
             println!("✅ Complex reasoning successful!");
             if let Some(usage) = &response.usage {
                 println!("   Total tokens: {}", usage.total_tokens);
-                // Note: reasoning_tokens field may be added in future versions
                 println!("   Prompt tokens: {}", usage.prompt_tokens);
                 println!("   Completion tokens: {}", usage.completion_tokens);
             }
@@ -189,8 +179,9 @@ async fn main() -> Result<()> {
             println!("❌ Complex reasoning failed: {e}");
         }
     }
+}
 
-    // Test 5: Coding Task
+async fn demo_coding_task(gpt5_api: &GPT5Api) {
     println!("\n💻 Test 5: Coding Task");
     println!("{}", "-".repeat(60));
 
@@ -218,8 +209,9 @@ async fn main() -> Result<()> {
             println!("❌ Coding response failed: {e}");
         }
     }
+}
 
-    // Test 6: Frontend Development
+async fn demo_frontend_development(gpt5_api: &GPT5Api) {
     println!("\n🎨 Test 6: Frontend Development Task");
     println!("{}", "-".repeat(60));
 
@@ -252,12 +244,12 @@ async fn main() -> Result<()> {
             println!("❌ Frontend response failed: {e}");
         }
     }
+}
 
-    // Test 7: Conversation Continuation (CoT)
+async fn demo_conversation_continuation(gpt5_api: &GPT5Api) {
     println!("\n🔗 Test 7: Conversation Continuation");
     println!("{}", "-".repeat(60));
 
-    // First message
     let first_messages = vec![Message {
         role: MessageRole::User,
         content: MessageContentInput::Text(
@@ -291,7 +283,6 @@ async fn main() -> Result<()> {
                 }
             }
 
-            // Continue the conversation
             let followup_messages = vec![Message {
                 role: MessageRole::User,
                 content: MessageContentInput::Text(
@@ -331,6 +322,25 @@ async fn main() -> Result<()> {
             println!("❌ First conversation turn failed: {e}");
         }
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let api_key = common::get_api_key_or_default("test-key");
+
+    println!("\n🚀 Testing GPT-5 API Capabilities\n");
+    println!("{}", "=".repeat(60));
+
+    let gpt5_api = GPT5Api::new(api_key)?;
+    println!("✅ GPT-5 API initialized successfully");
+
+    demo_basic_request(&gpt5_api).await;
+    demo_fast_response(&gpt5_api).await;
+    demo_reasoning_levels(&gpt5_api).await;
+    demo_complex_reasoning(&gpt5_api).await;
+    demo_coding_task(&gpt5_api).await;
+    demo_frontend_development(&gpt5_api).await;
+    demo_conversation_continuation(&gpt5_api).await;
 
     println!("\n{}", "=".repeat(60));
     println!("✅ GPT-5 API testing complete!");

@@ -21,20 +21,7 @@ use openai_rust_sdk::{
 use std::{env, path::Path};
 use tokio::fs;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
-
-    println!("🐍 Code Interpreter Demo");
-    println!("=======================");
-
-    let containers_api = ContainersApi::new(api_key.clone())?;
-    let responses_api = ResponsesApi::new(api_key)?;
-
-    // Example 1: Auto Mode - Let the model manage containers automatically
+async fn demo_auto_mode(responses_api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🤖 Example 1: Auto Mode (Model manages containers)");
     println!("──────────────────────────────────────────────────");
 
@@ -65,7 +52,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("✅ Auto Mode Response:");
             println!("{}", response.output_text());
 
-            // Check for created files in response
             if let Some(first_choice) = response.choices.first() {
                 if let Some(tool_calls) = &first_choice.message.tool_calls {
                     println!("\n📁 Files created during execution:");
@@ -80,11 +66,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 2: Explicit Mode - Create and manage container manually
+    Ok(())
+}
+
+async fn demo_explicit_mode(
+    containers_api: &ContainersApi,
+    responses_api: &ResponsesApi,
+) -> Result<openai_rust_sdk::models::containers::Container, Box<dyn std::error::Error>> {
     println!("\n🎯 Example 2: Explicit Mode (Manual container management)");
     println!("────────────────────────────────────────────────────────");
 
-    // Create a container explicitly
     let container_config = ContainerBuilder::new()
         .name("data-science-container")
         .python_version("3.11")
@@ -104,7 +95,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Python: {}", container.python_version);
     println!("   Libraries: {:?}", container.libraries);
 
-    // Upload a data file to the container
+    upload_sample_data(containers_api, &container.id).await?;
+    analyze_with_container(responses_api, &container.id).await?;
+
+    Ok(container)
+}
+
+async fn upload_sample_data(
+    containers_api: &ContainersApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📤 Uploading sample data to container...");
     let sample_data = r"date,value,category
 2024-01-01,100,A
@@ -120,16 +120,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let file = containers_api
         .upload_file_content(
-            &container.id,
+            container_id,
             "sample_data.csv",
             sample_data.as_bytes().to_vec(),
         )
         .await?;
     println!("✅ File uploaded: {} ({})", file.filename, file.id);
 
-    // Use the container with Code Interpreter
+    Ok(())
+}
+
+async fn analyze_with_container(
+    responses_api: &ResponsesApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let explicit_code_tool = ToolBuilder::code_interpreter()
-        .container_id(&container.id)
+        .container_id(container_id)
         .include_citations(true)
         .persist_container(true)
         .build();
@@ -154,7 +160,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 3: Direct Code Execution
+    Ok(())
+}
+
+async fn demo_direct_code_execution(
+    containers_api: &ContainersApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n⚡ Example 3: Direct Code Execution in Container");
     println!("────────────────────────────────────────────────");
 
@@ -189,7 +201,7 @@ print("\nResults saved to fibonacci_results.txt")
 
     println!("🧮 Executing Fibonacci analysis...");
     let execution_result = containers_api
-        .execute_code_with_timeout(&container.id, fibonacci_code, 5000)
+        .execute_code_with_timeout(container_id, fibonacci_code, 5000)
         .await?;
 
     println!("✅ Execution completed!");
@@ -209,17 +221,22 @@ print("\nResults saved to fibonacci_results.txt")
         }
     }
 
-    // Example 4: List and Download Files
+    Ok(())
+}
+
+async fn demo_file_management(
+    containers_api: &ContainersApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📥 Example 4: File Management");
     println!("────────────────────────────");
 
-    let files = containers_api.list_files(&container.id).await?;
+    let files = containers_api.list_files(container_id).await?;
     println!("📂 Files in container:");
     for file in &files.data {
         println!("  - {} ({} bytes) [{}]", file.filename, file.size, file.id);
     }
 
-    // Download a generated file
     if let Some(result_file) = files
         .data
         .iter()
@@ -227,28 +244,31 @@ print("\nResults saved to fibonacci_results.txt")
     {
         println!("\n⬇️ Downloading fibonacci_results.txt...");
         let content = containers_api
-            .download_file(&container.id, &result_file.id)
+            .download_file(container_id, &result_file.id)
             .await?;
         let content_str = String::from_utf8(content)?;
         println!("📄 File contents:\n{content_str}");
 
-        // Save to local filesystem
         let output_path = Path::new("downloaded_fibonacci_results.txt");
         fs::write(output_path, content_str).await?;
         println!("💾 Saved to: {}", output_path.display());
     }
 
-    // Example 5: Container Lifecycle Management
+    Ok(())
+}
+
+async fn demo_container_lifecycle(
+    containers_api: &ContainersApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n♻️ Example 5: Container Lifecycle");
     println!("──────────────────────────────────");
 
-    // Keep container alive
     println!("🔄 Keeping container alive...");
-    containers_api.keep_alive(&container.id).await?;
+    containers_api.keep_alive(container_id).await?;
     println!("✅ Container lifetime extended");
 
-    // Get container status
-    let updated_container = containers_api.get_container(&container.id).await?;
+    let updated_container = containers_api.get_container(container_id).await?;
     println!("📊 Container status:");
     println!("   Status: {:?}", updated_container.status);
     println!("   Last activity: {}", updated_container.last_activity_at);
@@ -260,12 +280,18 @@ print("\nResults saved to fibonacci_results.txt")
         println!("   CPU usage: {cpu:.1}%");
     }
 
-    // Example 6: Multi-Step Analysis with Citations
+    Ok(())
+}
+
+async fn demo_multi_step_analysis(
+    responses_api: &ResponsesApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔬 Example 6: Multi-Step Analysis with Citations");
     println!("────────────────────────────────────────────────");
 
     let analysis_code_tool = ToolBuilder::code_interpreter()
-        .container_id(&container.id)
+        .container_id(container_id)
         .include_citations(true)
         .persist_container(true)
         .build();
@@ -288,7 +314,6 @@ print("\nResults saved to fibonacci_results.txt")
             println!("✅ Analysis Response:");
             println!("{}", response.output_text());
 
-            // Check for citations
             if let Some(first_choice) = response.choices.first() {
                 if let Some(tool_calls) = &first_choice.message.tool_calls {
                     if !tool_calls.is_empty() {
@@ -305,22 +330,30 @@ print("\nResults saved to fibonacci_results.txt")
         }
     }
 
-    // Cleanup
+    Ok(())
+}
+
+async fn demo_cleanup(
+    containers_api: &ContainersApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🧹 Cleanup");
     println!("──────────");
 
-    // List all containers
     let container_list = containers_api.list_containers(None).await?;
     println!("📦 Active containers: {}", container_list.data.len());
     for c in &container_list.data {
         println!("  - {} ({:?})", c.id, c.status);
     }
 
-    // Optional: Delete the container
-    println!("\n🗑️ Deleting container {}...", container.id);
-    containers_api.delete_container(&container.id).await?;
+    println!("\n🗑️ Deleting container {container_id}...");
+    containers_api.delete_container(container_id).await?;
     println!("✅ Container deleted");
 
+    Ok(())
+}
+
+fn print_demo_summary() {
     println!("\n✨ Code Interpreter Demo Complete!");
     println!("💡 Key Takeaways:");
     println!("   • Auto mode creates and manages containers automatically");
@@ -329,6 +362,28 @@ print("\nResults saved to fibonacci_results.txt")
     println!("   • Code execution includes citations for transparency");
     println!("   • Containers expire after 20 minutes of inactivity");
     println!("   • Files can be uploaded/downloaded for data exchange");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
+    })?;
+
+    println!("🐍 Code Interpreter Demo");
+    println!("=======================");
+
+    let containers_api = ContainersApi::new(api_key.clone())?;
+    let responses_api = ResponsesApi::new(api_key)?;
+
+    demo_auto_mode(&responses_api).await?;
+    let container = demo_explicit_mode(&containers_api, &responses_api).await?;
+    demo_direct_code_execution(&containers_api, &container.id).await?;
+    demo_file_management(&containers_api, &container.id).await?;
+    demo_container_lifecycle(&containers_api, &container.id).await?;
+    demo_multi_step_analysis(&responses_api, &container.id).await?;
+    demo_cleanup(&containers_api, &container.id).await?;
+    print_demo_summary();
 
     Ok(())
 }

@@ -107,6 +107,8 @@ jobs:
       - name: Determine version bump
         id: version
         if: steps.check.outputs.should_release == 'true'
+        env:
+          GITHUB_EVENT_VERSION_BUMP: ${{ github.event.inputs.version_bump }}
         run: |
           # Get current version from Cargo.toml
           CURRENT_VERSION=$(grep "^version = " Cargo.toml | sed 's/version = "\(.*\)"/\1/')
@@ -117,7 +119,7 @@ jobs:
           
           # Determine bump type
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            BUMP_TYPE="${{ github.event.inputs.version_bump }}"
+            BUMP_TYPE="$GITHUB_EVENT_VERSION_BUMP"
           else
             # Auto-determine based on commits
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -303,7 +305,7 @@ jobs:
           git push origin "v$VERSION"
       
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8  # v2.0.9
         with:
           tag_name: v${{ needs.check-for-release.outputs.next_version }}
           name: Release v${{ needs.check-for-release.outputs.next_version }}

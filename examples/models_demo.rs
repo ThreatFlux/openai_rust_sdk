@@ -25,26 +25,13 @@ use openai_rust_sdk::{
 use std::collections::HashMap;
 use std::env;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
-
-    println!("🤖 OpenAI Models API Demo");
-    println!("=========================");
-
-    let api = ModelsApi::new(api_key)?;
-
-    // Example 1: List All Models
+async fn demo_list_all_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📋 Example 1: List All Available Models");
     println!("──────────────────────────────────────");
 
     let models_response = api.list_models().await?;
     println!("Total models available: {}", models_response.data.len());
 
-    // Show first few models
     println!("\nFirst 5 models:");
     for (i, model) in models_response.data.iter().take(5).enumerate() {
         let family = model.family();
@@ -63,57 +50,67 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Example 2: Retrieve Specific Model Details
+    Ok(())
+}
+
+async fn demo_retrieve_specific_model(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔍 Example 2: Retrieve Specific Model Details");
     println!("─────────────────────────────────────────────");
 
     let model_id = "gpt-4";
     match api.retrieve_model(model_id).await {
         Ok(model) => {
-            println!("Model: {}", model.id);
-            println!("Owner: {}", model.owned_by);
-            println!(
-                "Created: {}",
-                chrono::DateTime::from_timestamp(model.created as i64, 0)
-                    .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-                    .unwrap_or_else(|| model.created.to_string())
-            );
-
-            let capabilities = model.capabilities();
-            println!("\nCapabilities:");
-            println!("  Family: {:?}", capabilities.family);
-            println!("  Tier: {:?}", capabilities.tier);
-            if let Some(max_tokens) = capabilities.max_tokens {
-                println!("  Max Tokens: {max_tokens}");
-            }
-            if let Some(cutoff) = &capabilities.training_cutoff {
-                println!("  Training Cutoff: {cutoff}");
-            }
-            println!("  Completion Types: {:?}", capabilities.completion_types);
-            println!(
-                "  Function Calling: {}",
-                capabilities.supports_function_calling
-            );
-            println!("  Vision: {}", capabilities.supports_vision);
-            println!(
-                "  Code Interpreter: {}",
-                capabilities.supports_code_interpreter
-            );
-
-            if let (Some(input_cost), Some(output_cost)) = (
-                capabilities.input_cost_per_1m_tokens,
-                capabilities.output_cost_per_1m_tokens,
-            ) {
-                println!("  Input Cost: ${input_cost:.2}/1M tokens");
-                println!("  Output Cost: ${output_cost:.2}/1M tokens");
-            }
+            print_model_details(&model);
         }
         Err(e) => println!("Error retrieving model {model_id}: {e}"),
     }
 
-    // Example 3: Group Models by Family
+    Ok(())
+}
+
+fn print_model_details(model: &Model) {
+    println!("Model: {}", model.id);
+    println!("Owner: {}", model.owned_by);
+    println!(
+        "Created: {}",
+        chrono::DateTime::from_timestamp(model.created as i64, 0)
+            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_else(|| model.created.to_string())
+    );
+
+    let capabilities = model.capabilities();
+    println!("\nCapabilities:");
+    println!("  Family: {:?}", capabilities.family);
+    println!("  Tier: {:?}", capabilities.tier);
+    if let Some(max_tokens) = capabilities.max_tokens {
+        println!("  Max Tokens: {max_tokens}");
+    }
+    if let Some(cutoff) = &capabilities.training_cutoff {
+        println!("  Training Cutoff: {cutoff}");
+    }
+    println!("  Completion Types: {:?}", capabilities.completion_types);
+    println!(
+        "  Function Calling: {}",
+        capabilities.supports_function_calling
+    );
+    println!("  Vision: {}", capabilities.supports_vision);
+    println!(
+        "  Code Interpreter: {}",
+        capabilities.supports_code_interpreter
+    );
+
+    if let (Some(input_cost), Some(output_cost)) = (
+        capabilities.input_cost_per_1m_tokens,
+        capabilities.output_cost_per_1m_tokens,
+    ) {
+        println!("  Input Cost: ${input_cost:.2}/1M tokens");
+        println!("  Output Cost: ${output_cost:.2}/1M tokens");
+    }
+}
+
+async fn demo_group_models_by_family(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n👨‍👩‍👧‍👦 Example 3: Group Models by Family");
-    println!("──────────────────────────────────────────");
+    println!("──────────────────────────────────────");
 
     let grouped_models = api.group_models_by_family().await?;
 
@@ -121,7 +118,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !models.is_empty() {
             println!("\n{:?} Family ({} models):", family, models.len());
             for model in models.iter().take(3) {
-                // Show first 3 of each family
                 let deprecated = if model.is_deprecated() {
                     " (DEPRECATED)"
                 } else {
@@ -135,7 +131,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 4: Filter Models by Completion Type
+    Ok(())
+}
+
+async fn demo_filter_by_completion_type(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎯 Example 4: Filter Models by Completion Type");
     println!("──────────────────────────────────────────────");
 
@@ -169,9 +168,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 5: Find Available (Non-Deprecated) Models
+    Ok(())
+}
+
+async fn demo_available_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n✅ Example 5: Available (Non-Deprecated) Models");
-    println!("───────────────────────────────────────────────");
+    println!("───────────────────────────────────────────");
 
     let available_models = api.list_available_models().await?;
     println!("Available models: {}", available_models.len());
@@ -185,7 +187,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  {:?}: {} models", family, models.len());
     }
 
-    // Example 6: Get Latest Models from Each Family
+    Ok(())
+}
+
+async fn demo_latest_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🆕 Example 6: Latest Models from Each Family");
     println!("─────────────────────────────────────────────");
 
@@ -202,9 +207,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Example 7: Find Models for Specific Use Cases
+    Ok(())
+}
+
+async fn demo_find_models_for_use_cases(
+    api: &ModelsApi,
+) -> Result<Vec<(&'static str, ModelRequirements)>, Box<dyn std::error::Error>> {
     println!("\n🔎 Example 7: Find Models for Specific Use Cases");
-    println!("────────────────────────────────────────────────");
+    println!("────────────────────────────────────────────");
 
     let use_cases = [
         ("Basic Chat", ModelRequirements::chat()),
@@ -234,11 +244,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 8: Get Recommended Models
-    println!("\n⭐ Example 8: Get Recommended Models for Use Cases");
-    println!("─────────────────────────────────────────────────");
+    Ok(use_cases.to_vec())
+}
 
-    for (use_case, requirements) in &use_cases {
+async fn demo_remaining_examples(
+    api: &ModelsApi,
+    use_cases: &[(&str, ModelRequirements)],
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("\n⭐ Example 8: Get Recommended Models for Use Cases");
+    println!("─────────────────────────────────────────────");
+
+    for (use_case, requirements) in use_cases {
         if let Some(recommended) = api.get_recommended_model(requirements).await? {
             let caps = recommended.capabilities();
             println!("{}: {} ({:?} tier)", use_case, recommended.id, caps.tier);
@@ -247,13 +263,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 9: Cost Comparison
+    let monthly_input_tokens = 1_000_000u64;
+    let monthly_output_tokens = 500_000u64;
+
+    demo_cost_comparison(api, monthly_input_tokens, monthly_output_tokens).await?;
+    demo_models_sorted_by_cost(api, monthly_input_tokens, monthly_output_tokens).await?;
+    demo_model_statistics(api).await?;
+    demo_model_utility_functions();
+    demo_model_availability_check(api).await?;
+    demo_advanced_model_filtering(api).await?;
+
+    Ok(())
+}
+
+async fn demo_cost_comparison(
+    api: &ModelsApi,
+    monthly_input_tokens: u64,
+    monthly_output_tokens: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n💰 Example 9: Model Cost Comparison");
     println!("───────────────────────────────────");
 
     let chat_models = ["gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"];
-    let monthly_input_tokens = 1_000_000u64; // 1M input tokens per month
-    let monthly_output_tokens = 500_000u64; // 500k output tokens per month
 
     println!(
         "Estimated monthly costs for {}M input + {}k output tokens:",
@@ -274,7 +305,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 10: Get Models Sorted by Cost
+    Ok(())
+}
+
+async fn demo_models_sorted_by_cost(
+    api: &ModelsApi,
+    monthly_input_tokens: u64,
+    monthly_output_tokens: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📊 Example 10: Models Sorted by Cost (Cheapest First)");
     println!("─────────────────────────────────────────────────────");
 
@@ -295,7 +333,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 11: Model Statistics
+    Ok(())
+}
+
+async fn demo_model_statistics(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📈 Example 11: Model Statistics and Analytics");
     println!("─────────────────────────────────────────────");
 
@@ -326,11 +367,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  {completion_type}: {count} models");
     }
 
-    // Example 12: Model Utility Functions
+    Ok(())
+}
+
+fn demo_model_utility_functions() {
     println!("\n🛠️ Example 12: Model Utility Functions");
     println!("──────────────────────────────────────");
 
-    // Extract base model names
     let versioned_models = ["gpt-3.5-turbo-0613", "gpt-4-32k", "text-davinci-003"];
     println!("Base model name extraction:");
     for model_id in &versioned_models {
@@ -338,7 +381,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  {model_id} → {base_name}");
     }
 
-    // Check family relationships
     println!("\nFamily relationship checks:");
     let model_pairs = [
         ("gpt-4", "gpt-4-turbo"),
@@ -359,8 +401,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         );
     }
+}
 
-    // Example 13: Model Availability Check
+async fn demo_model_availability_check(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔍 Example 13: Check Model Availability");
     println!("──────────────────────────────────────");
 
@@ -385,11 +428,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 14: Advanced Model Filtering
+    Ok(())
+}
+
+async fn demo_advanced_model_filtering(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎯 Example 14: Advanced Model Filtering");
     println!("─────────────────────────────────────────");
 
-    // Custom requirements for a specific use case
     let advanced_requirements = ModelRequirements {
         completion_types: vec![CompletionType::Chat],
         min_max_tokens: Some(32_000),
@@ -413,7 +458,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Summary
+    Ok(())
+}
+
+fn print_demo_summary() {
     println!("\n✨ Models API Summary");
     println!("────────────────────");
     println!("• List and retrieve detailed model information");
@@ -430,6 +478,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("• Migration planning for deprecated models");
     println!("• Performance benchmarking setup");
     println!("• Feature compatibility checking");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
+    })?;
+
+    println!("🤖 OpenAI Models API Demo");
+    println!("=========================");
+
+    let api = ModelsApi::new(api_key)?;
+
+    demo_list_all_models(&api).await?;
+    demo_retrieve_specific_model(&api).await?;
+    demo_group_models_by_family(&api).await?;
+    demo_filter_by_completion_type(&api).await?;
+    demo_available_models(&api).await?;
+    demo_latest_models(&api).await?;
+    let use_cases = demo_find_models_for_use_cases(&api).await?;
+    demo_remaining_examples(&api, &use_cases).await?;
+    print_demo_summary();
 
     Ok(())
 }
