@@ -24,7 +24,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::threads::ThreadsApi;
+//! use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
 //! use openai_rust_sdk::models::threads::{ThreadRequest, MessageRequest, MessageRole};
 //!
 //! # tokio_test::block_on(async {
@@ -90,7 +90,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     ///
     /// let api = ThreadsApi::with_base_url("your-api-key", "https://custom-api.example.com")?;
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
@@ -116,7 +116,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::threads::ThreadRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -151,7 +151,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
@@ -180,7 +180,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::threads::ThreadRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -220,7 +220,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
@@ -251,7 +251,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::threads::{MessageRequest, MessageRole};
     ///
     /// # tokio_test::block_on(async {
@@ -293,7 +293,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
@@ -328,7 +328,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::threads::{MessageRequest, MessageRole};
     ///
     /// # tokio_test::block_on(async {
@@ -373,7 +373,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::threads::{ListMessagesParams, SortOrder};
     ///
     /// # tokio_test::block_on(async {
@@ -422,7 +422,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;
@@ -457,7 +457,7 @@ impl ThreadsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::threads::ThreadsApi;
+    /// use openai_rust_sdk::api::{threads::ThreadsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = ThreadsApi::new("your-api-key")?;

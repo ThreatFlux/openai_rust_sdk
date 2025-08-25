@@ -5,8 +5,9 @@
 
 use openai_rust_sdk::{
     api::{
-        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi, images::ImagesApi, models::ModelsApi,
-        moderations::ModerationsApi, responses::ResponsesApi, streaming::StreamingApi,
+        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi,
+        images::ImagesApi, models::ModelsApi, moderations::ModerationsApi, responses::ResponsesApi,
+        streaming::StreamingApi,
     },
     models::{
         audio::{AudioSpeechRequest, Voice},

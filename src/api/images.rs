@@ -28,6 +28,76 @@ impl crate::api::common::ApiClientConstructors for ImagesApi {
 }
 
 impl ImagesApi {
+    /// Create a multipart form with an image part
+    fn create_image_multipart_form(
+        &self,
+        field_name: &'static str,
+        image_data: Vec<u8>,
+        file_name: &str,
+        model: &str,
+    ) -> Result<multipart::Form> {
+        let form = multipart::Form::new()
+            .part(
+                field_name,
+                multipart::Part::bytes(image_data)
+                    .file_name(file_name.to_string())
+                    .mime_str("image/png")
+                    .map_err(|e| {
+                        OpenAIError::InvalidRequest(format!("Invalid {}: {}", field_name, e))
+                    })?,
+            )
+            .text("model", model.to_string());
+        Ok(form)
+    }
+
+    /// Add an image part to an existing form
+    fn add_image_part(
+        &self,
+        form: multipart::Form,
+        field_name: &'static str,
+        image_data: Vec<u8>,
+        file_name: &str,
+    ) -> Result<multipart::Form> {
+        Ok(form.part(
+            field_name,
+            multipart::Part::bytes(image_data)
+                .file_name(file_name.to_string())
+                .mime_str("image/png")
+                .map_err(|e| {
+                    OpenAIError::InvalidRequest(format!("Invalid {}: {}", field_name, e))
+                })?,
+        ))
+    }
+
+    /// Extract filename from path with default fallback
+    fn extract_filename(path: impl AsRef<Path>, default: &str) -> String {
+        path.as_ref()
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(default)
+            .to_string()
+    }
+
+    /// Build an image generation request with optional parameters
+    fn build_generation_request(
+        model: &str,
+        prompt: impl Into<String>,
+        size: Option<ImageSize>,
+        quality: Option<ImageQuality>,
+    ) -> ImageGenerationRequest {
+        let mut request = ImageGenerationRequest::new(model, prompt);
+
+        if let Some(size) = size {
+            request = request.with_size(size);
+        }
+
+        if let Some(quality) = quality {
+            request = request.with_quality(quality);
+        }
+
+        request
+    }
+
     /// Helper to add optional form fields
     fn add_optional_form_fields(
         mut form: multipart::Form,
@@ -84,26 +154,13 @@ impl ImagesApi {
         mask_data: Option<Vec<u8>>,
     ) -> Result<ImageResponse> {
         // Create multipart form
-        let mut form = multipart::Form::new()
-            .part(
-                "image",
-                multipart::Part::bytes(image_data)
-                    .file_name(request.image.clone())
-                    .mime_str("image/png")
-                    .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid image: {e}")))?,
-            )
-            .text("model", request.model.clone())
+        let mut form = self
+            .create_image_multipart_form("image", image_data, &request.image, &request.model)?
             .text("prompt", request.prompt.clone());
 
         // Add mask if provided
         if let (Some(mask_bytes), Some(mask_name)) = (mask_data, &request.mask) {
-            form = form.part(
-                "mask",
-                multipart::Part::bytes(mask_bytes)
-                    .file_name(mask_name.clone())
-                    .mime_str("image/png")
-                    .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid mask: {e}")))?,
-            );
+            form = self.add_image_part(form, "mask", mask_bytes, mask_name)?;
         }
 
         form = Self::add_optional_form_fields(
@@ -126,15 +183,8 @@ impl ImagesApi {
         image_data: Vec<u8>,
     ) -> Result<ImageResponse> {
         // Create multipart form
-        let mut form = multipart::Form::new()
-            .part(
-                "image",
-                multipart::Part::bytes(image_data)
-                    .file_name(request.image.clone())
-                    .mime_str("image/png")
-                    .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid image: {e}")))?,
-            )
-            .text("model", request.model.clone());
+        let mut form =
+            self.create_image_multipart_form("image", image_data, &request.image, &request.model)?;
 
         form = Self::add_optional_form_fields(
             form,
@@ -198,16 +248,7 @@ impl ImagesApi {
         quality: Option<ImageQuality>,
     ) -> Result<ImageResponse> {
         let model = model.unwrap_or(ImageModels::DALL_E_3);
-        let mut request = ImageGenerationRequest::new(model, prompt);
-
-        if let Some(size) = size {
-            request = request.with_size(size);
-        }
-
-        if let Some(quality) = quality {
-            request = request.with_quality(quality);
-        }
-
+        let request = Self::build_generation_request(model, prompt, size, quality);
         self.create_image(&request).await
     }
 
@@ -222,16 +263,8 @@ impl ImagesApi {
         count: Option<u32>,
     ) -> Result<Vec<String>> {
         let model = model.unwrap_or(ImageModels::DALL_E_2); // Use DALL-E 2 for multiple images
-        let mut request = ImageGenerationRequest::new(model, prompt)
+        let mut request = Self::build_generation_request(model, prompt, size, quality)
             .with_response_format(ImageResponseFormat::B64Json);
-
-        if let Some(size) = size {
-            request = request.with_size(size);
-        }
-
-        if let Some(quality) = quality {
-            request = request.with_quality(quality);
-        }
 
         if let Some(count) = count {
             request = request.with_n(count);
@@ -306,22 +339,12 @@ impl ImagesApi {
         model: Option<&str>,
     ) -> Result<ImageResponse> {
         let model = model.unwrap_or(ImageModels::DALL_E_2);
-        let image_filename = image_path
-            .as_ref()
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("image.png")
-            .to_string();
+        let image_filename = Self::extract_filename(&image_path, "image.png");
 
         let mut request = ImageEditRequest::new(model, image_filename, prompt);
 
         if let Some(mask_path) = &mask_path {
-            let mask_filename = mask_path
-                .as_ref()
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("mask.png")
-                .to_string();
+            let mask_filename = Self::extract_filename(mask_path, "mask.png");
             request = request.with_mask(mask_filename);
         }
 
@@ -338,12 +361,7 @@ impl ImagesApi {
         model: Option<&str>,
     ) -> Result<ImageResponse> {
         let model = model.unwrap_or(ImageModels::DALL_E_2);
-        let image_filename = image_path
-            .as_ref()
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("image.png")
-            .to_string();
+        let image_filename = Self::extract_filename(&image_path, "image.png");
 
         let mut request = ImageVariationRequest::new(model, image_filename);
 
@@ -718,6 +736,13 @@ mod tests {
         assert!(ImageUtils::is_square_image(&size_path).await.unwrap());
     }
 
+    fn assert_json_contains(json: &str, expected_fields: &[(&str, &str)]) {
+        for (key, value) in expected_fields {
+            let expected = format!("\"{}\":\"{}\"", key, value);
+            assert!(json.contains(&expected), "JSON should contain {}", expected);
+        }
+    }
+
     #[tokio::test]
     async fn test_request_serialization() {
         let request = ImageGenerationRequest::new("dall-e-3", "A beautiful landscape")
@@ -727,12 +752,30 @@ mod tests {
             .with_response_format(ImageResponseFormat::Url);
 
         let json = serde_json::to_string(&request).unwrap();
-        assert!(json.contains("\"model\":\"dall-e-3\""));
-        assert!(json.contains("\"prompt\":\"A beautiful landscape\""));
-        assert!(json.contains("\"quality\":\"hd\""));
-        assert!(json.contains("\"size\":\"1024x1024\""));
-        assert!(json.contains("\"style\":\"natural\""));
-        assert!(json.contains("\"response_format\":\"url\""));
+        assert_json_contains(
+            &json,
+            &[
+                ("model", "dall-e-3"),
+                ("prompt", "A beautiful landscape"),
+                ("quality", "hd"),
+                ("size", "1024x1024"),
+                ("style", "natural"),
+                ("response_format", "url"),
+            ],
+        );
+    }
+
+    fn validate_image_response(
+        response: &ImageResponse,
+        expected_created: u64,
+        expected_url: &str,
+        expected_data_count: usize,
+    ) {
+        assert_eq!(response.created, expected_created);
+        assert_eq!(response.data.len(), expected_data_count);
+        if expected_data_count > 0 {
+            assert_eq!(response.data[0].url, Some(expected_url.to_string()));
+        }
     }
 
     #[tokio::test]
@@ -748,12 +791,7 @@ mod tests {
         }"#;
 
         let response: ImageResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(response.created, 1_234_567_890);
-        assert_eq!(response.data.len(), 1);
-        assert_eq!(
-            response.data[0].url,
-            Some("https://example.com/image.png".to_string())
-        );
+        validate_image_response(&response, 1_234_567_890, "https://example.com/image.png", 1);
         assert!(response.has_urls());
         assert!(!response.has_b64_json());
     }

@@ -21,7 +21,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+//! use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
 //! use openai_rust_sdk::models::fine_tuning::{FineTuningJobRequest, Hyperparameters};
 //!
 //! # tokio_test::block_on(async {
@@ -102,7 +102,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust
-    /// use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     ///
     /// let api = FineTuningApi::with_base_url("your-api-key", "https://api.openai.com")?;
     /// # Ok::<(), openai_rust_sdk::error::OpenAIError>(())
@@ -132,7 +132,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use openai_rust_sdk::models::fine_tuning::{FineTuningJobRequest, Hyperparameters};
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
@@ -172,7 +172,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use openai_rust_sdk::models::fine_tuning::ListFineTuningJobsParams;
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
@@ -214,7 +214,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
     ///
@@ -246,7 +246,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
     ///
@@ -282,7 +282,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use openai_rust_sdk::models::fine_tuning::ListFineTuningJobEventsParams;
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
@@ -329,7 +329,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use openai_rust_sdk::models::fine_tuning::ListFineTuningJobCheckpointsParams;
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
@@ -380,7 +380,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use std::time::Duration;
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
@@ -456,7 +456,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use std::time::Duration;
     /// # tokio_test::block_on(async {
     /// let api = FineTuningApi::new("your-api-key")?;
@@ -498,7 +498,7 @@ impl FineTuningApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use openai_rust_sdk::api::fine_tuning::FineTuningApi;
+    /// # use openai_rust_sdk::api::{fine_tuning::FineTuningApi, common::ApiClientConstructors};
     /// # use openai_rust_sdk::models::fine_tuning::FineTuningJobRequest;
     /// # use std::time::Duration;
     /// # tokio_test::block_on(async {

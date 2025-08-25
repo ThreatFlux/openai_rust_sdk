@@ -21,7 +21,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::assistants::AssistantsApi;
+//! use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
 //! use openai_rust_sdk::models::assistants::{AssistantRequest, AssistantTool};
 //!
 //! # tokio_test::block_on(async {
@@ -103,7 +103,7 @@ impl AssistantsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::assistants::AssistantsApi;
+    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::assistants::{AssistantRequest, AssistantTool};
     ///
     /// # tokio_test::block_on(async {
@@ -142,7 +142,7 @@ impl AssistantsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::assistants::AssistantsApi;
+    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = AssistantsApi::new("your-api-key")?;
@@ -171,7 +171,7 @@ impl AssistantsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::assistants::AssistantsApi;
+    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::assistants::AssistantRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -213,7 +213,7 @@ impl AssistantsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::assistants::AssistantsApi;
+    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = AssistantsApi::new("your-api-key")?;
@@ -246,7 +246,7 @@ impl AssistantsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::assistants::AssistantsApi;
+    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::assistants::{ListAssistantsParams, SortOrder};
     ///
     /// # tokio_test::block_on(async {

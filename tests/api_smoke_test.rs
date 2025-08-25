@@ -80,8 +80,8 @@ fn test_error_types_exist() {
 fn test_all_apis_imported_together() {
     // This ensures there are no naming conflicts when importing all APIs
     use openai_rust_sdk::api::{
-        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi, files::FilesApi, images::ImagesApi,
-        models::ModelsApi, moderations::ModerationsApi,
+        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi, files::FilesApi,
+        images::ImagesApi, models::ModelsApi, moderations::ModerationsApi,
     };
 
     // All can coexist in the same scope

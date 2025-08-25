@@ -21,7 +21,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+//! use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
 //! use openai_rust_sdk::models::vector_stores::{VectorStoreRequest, ExpirationPolicy};
 //!
 //! # tokio_test::block_on(async {
@@ -95,7 +95,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::{VectorStoreRequest, ExpirationPolicy};
     ///
     /// # tokio_test::block_on(async {
@@ -126,7 +126,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::ListVectorStoresParams;
     ///
     /// # tokio_test::block_on(async {
@@ -171,7 +171,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -204,7 +204,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::VectorStoreRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -241,7 +241,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -275,7 +275,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::{VectorStoreFileRequest, ChunkingStrategy};
     ///
     /// # tokio_test::block_on(async {
@@ -311,7 +311,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::{ListVectorStoreFilesParams, VectorStoreFileStatus};
     ///
     /// # tokio_test::block_on(async {
@@ -362,7 +362,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -396,7 +396,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -432,7 +432,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -467,7 +467,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::{VectorStoreFileBatchRequest, ChunkingStrategy};
     ///
     /// # tokio_test::block_on(async {
@@ -504,7 +504,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -539,7 +539,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -576,7 +576,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::vector_stores::{ListVectorStoreFilesParams, VectorStoreFileStatus};
     ///
     /// # tokio_test::block_on(async {
@@ -632,7 +632,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -690,7 +690,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -749,7 +749,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;
@@ -809,7 +809,7 @@ impl VectorStoresApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+    /// use openai_rust_sdk::api::{vector_stores::VectorStoresApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = VectorStoresApi::new("your-api-key")?;

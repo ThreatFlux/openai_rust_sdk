@@ -5,9 +5,9 @@
 
 use openai_rust_sdk::{
     api::{
-        assistants::AssistantsApi, audio::AudioApi, common::ApiClientConstructors, files::FilesApi, fine_tuning::FineTuningApi,
-        moderations::ModerationsApi, runs::RunsApi, threads::ThreadsApi,
-        vector_stores::VectorStoresApi,
+        assistants::AssistantsApi, audio::AudioApi, common::ApiClientConstructors, files::FilesApi,
+        fine_tuning::FineTuningApi, moderations::ModerationsApi, runs::RunsApi,
+        threads::ThreadsApi, vector_stores::VectorStoresApi,
     },
     error::Result,
     models::{

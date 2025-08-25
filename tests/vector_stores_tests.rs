@@ -5,7 +5,7 @@
 //! covering all major functionality including CRUD operations, file management,
 //! batch operations, and error handling.
 
-use openai_rust_sdk::api::vector_stores::VectorStoresApi;
+use openai_rust_sdk::api::{common::ApiClientConstructors, vector_stores::VectorStoresApi};
 use openai_rust_sdk::models::vector_stores::{
     ChunkingStrategy, ExpirationPolicy, FileCounts, ListVectorStoreFilesParams,
     ListVectorStoresParams, VectorStore, VectorStoreDeleteResponse, VectorStoreFile,

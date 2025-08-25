@@ -176,6 +176,72 @@ pub struct ImageData {
     pub revised_prompt: Option<String>,
 }
 
+/// Common trait for image request builders
+trait ImageRequestCommon {
+    /// Set the number of images to generate
+    fn set_n(&mut self, n: u32);
+    /// Set the response format
+    fn set_response_format(&mut self, format: ImageResponseFormat);
+    /// Set the image size
+    fn set_size(&mut self, size: ImageSize);
+    /// Set the user identifier
+    fn set_user(&mut self, user: String);
+}
+
+impl ImageRequestCommon for ImageGenerationRequest {
+    fn set_n(&mut self, n: u32) {
+        self.n = Some(n.clamp(1, 10));
+    }
+
+    fn set_response_format(&mut self, format: ImageResponseFormat) {
+        self.response_format = Some(format);
+    }
+
+    fn set_size(&mut self, size: ImageSize) {
+        self.size = Some(size);
+    }
+
+    fn set_user(&mut self, user: String) {
+        self.user = Some(user);
+    }
+}
+
+impl ImageRequestCommon for ImageEditRequest {
+    fn set_n(&mut self, n: u32) {
+        self.n = Some(n.clamp(1, 10));
+    }
+
+    fn set_response_format(&mut self, format: ImageResponseFormat) {
+        self.response_format = Some(format);
+    }
+
+    fn set_size(&mut self, size: ImageSize) {
+        self.size = Some(size);
+    }
+
+    fn set_user(&mut self, user: String) {
+        self.user = Some(user);
+    }
+}
+
+impl ImageRequestCommon for ImageVariationRequest {
+    fn set_n(&mut self, n: u32) {
+        self.n = Some(n.clamp(1, 10));
+    }
+
+    fn set_response_format(&mut self, format: ImageResponseFormat) {
+        self.response_format = Some(format);
+    }
+
+    fn set_size(&mut self, size: ImageSize) {
+        self.size = Some(size);
+    }
+
+    fn set_user(&mut self, user: String) {
+        self.user = Some(user);
+    }
+}
+
 impl ImageGenerationRequest {
     /// Create a new image generation request
     pub fn new(model: impl Into<String>, prompt: impl Into<String>) -> Self {
@@ -194,7 +260,7 @@ impl ImageGenerationRequest {
     /// Set the number of images to generate
     #[must_use]
     pub fn with_n(mut self, n: u32) -> Self {
-        self.n = Some(n.clamp(1, 10));
+        self.set_n(n);
         self
     }
 
@@ -208,14 +274,14 @@ impl ImageGenerationRequest {
     /// Set the response format
     #[must_use]
     pub fn with_response_format(mut self, format: ImageResponseFormat) -> Self {
-        self.response_format = Some(format);
+        self.set_response_format(format);
         self
     }
 
     /// Set the image size
     #[must_use]
     pub fn with_size(mut self, size: ImageSize) -> Self {
-        self.size = Some(size);
+        self.set_size(size);
         self
     }
 
@@ -228,7 +294,7 @@ impl ImageGenerationRequest {
 
     /// Set the user identifier
     pub fn with_user(mut self, user: impl Into<String>) -> Self {
-        self.user = Some(user.into());
+        self.set_user(user.into());
         self
     }
 
@@ -294,27 +360,27 @@ impl ImageEditRequest {
     /// Set the number of images to generate
     #[must_use]
     pub fn with_n(mut self, n: u32) -> Self {
-        self.n = Some(n.clamp(1, 10));
+        self.set_n(n);
         self
     }
 
     /// Set the response format
     #[must_use]
     pub fn with_response_format(mut self, format: ImageResponseFormat) -> Self {
-        self.response_format = Some(format);
+        self.set_response_format(format);
         self
     }
 
     /// Set the image size
     #[must_use]
     pub fn with_size(mut self, size: ImageSize) -> Self {
-        self.size = Some(size);
+        self.set_size(size);
         self
     }
 
     /// Set the user identifier
     pub fn with_user(mut self, user: impl Into<String>) -> Self {
-        self.user = Some(user.into());
+        self.set_user(user.into());
         self
     }
 }
@@ -335,27 +401,27 @@ impl ImageVariationRequest {
     /// Set the number of images to generate
     #[must_use]
     pub fn with_n(mut self, n: u32) -> Self {
-        self.n = Some(n.clamp(1, 10));
+        self.set_n(n);
         self
     }
 
     /// Set the response format
     #[must_use]
     pub fn with_response_format(mut self, format: ImageResponseFormat) -> Self {
-        self.response_format = Some(format);
+        self.set_response_format(format);
         self
     }
 
     /// Set the image size
     #[must_use]
     pub fn with_size(mut self, size: ImageSize) -> Self {
-        self.size = Some(size);
+        self.set_size(size);
         self
     }
 
     /// Set the user identifier
     pub fn with_user(mut self, user: impl Into<String>) -> Self {
-        self.user = Some(user.into());
+        self.set_user(user.into());
         self
     }
 }
@@ -492,7 +558,7 @@ impl ImageGenerationBuilder {
     /// Set number of images (1-10 for DALL-E 2, only 1 for DALL-E 3)
     #[must_use]
     pub fn n(mut self, n: u32) -> Self {
-        self.request.n = Some(n.clamp(1, 10));
+        self.request.set_n(n);
         self
     }
 
@@ -513,49 +579,50 @@ impl ImageGenerationBuilder {
     /// Return URLs
     #[must_use]
     pub fn url_format(mut self) -> Self {
-        self.request.response_format = Some(ImageResponseFormat::Url);
+        self.request.set_response_format(ImageResponseFormat::Url);
         self
     }
 
     /// Return base64 JSON
     #[must_use]
     pub fn b64_json_format(mut self) -> Self {
-        self.request.response_format = Some(ImageResponseFormat::B64Json);
+        self.request
+            .set_response_format(ImageResponseFormat::B64Json);
         self
     }
 
     /// Set size to 256x256
     #[must_use]
     pub fn size_256x256(mut self) -> Self {
-        self.request.size = Some(ImageSize::Size256x256);
+        self.request.set_size(ImageSize::Size256x256);
         self
     }
 
     /// Set size to 512x512
     #[must_use]
     pub fn size_512x512(mut self) -> Self {
-        self.request.size = Some(ImageSize::Size512x512);
+        self.request.set_size(ImageSize::Size512x512);
         self
     }
 
     /// Set size to 1024x1024
     #[must_use]
     pub fn size_1024x1024(mut self) -> Self {
-        self.request.size = Some(ImageSize::Size1024x1024);
+        self.request.set_size(ImageSize::Size1024x1024);
         self
     }
 
     /// Set size to 1792x1024 (landscape)
     #[must_use]
     pub fn size_1792x1024(mut self) -> Self {
-        self.request.size = Some(ImageSize::Size1792x1024);
+        self.request.set_size(ImageSize::Size1792x1024);
         self
     }
 
     /// Set size to 1024x1792 (portrait)
     #[must_use]
     pub fn size_1024x1792(mut self) -> Self {
-        self.request.size = Some(ImageSize::Size1024x1792);
+        self.request.set_size(ImageSize::Size1024x1792);
         self
     }
 
@@ -575,7 +642,7 @@ impl ImageGenerationBuilder {
 
     /// Set user identifier
     pub fn user(mut self, user: impl Into<String>) -> Self {
-        self.request.user = Some(user.into());
+        self.request.set_user(user.into());
         self
     }
 
@@ -618,34 +685,35 @@ impl ImageEditBuilder {
     /// Set number of images
     #[must_use]
     pub fn n(mut self, n: u32) -> Self {
-        self.request.n = Some(n.clamp(1, 10));
+        self.request.set_n(n);
         self
     }
 
     /// Return URLs
     #[must_use]
     pub fn url_format(mut self) -> Self {
-        self.request.response_format = Some(ImageResponseFormat::Url);
+        self.request.set_response_format(ImageResponseFormat::Url);
         self
     }
 
     /// Return base64 JSON
     #[must_use]
     pub fn b64_json_format(mut self) -> Self {
-        self.request.response_format = Some(ImageResponseFormat::B64Json);
+        self.request
+            .set_response_format(ImageResponseFormat::B64Json);
         self
     }
 
     /// Set size
     #[must_use]
     pub fn size(mut self, size: ImageSize) -> Self {
-        self.request.size = Some(size);
+        self.request.set_size(size);
         self
     }
 
     /// Set user identifier
     pub fn user(mut self, user: impl Into<String>) -> Self {
-        self.request.user = Some(user.into());
+        self.request.set_user(user.into());
         self
     }
 
@@ -678,34 +746,35 @@ impl ImageVariationBuilder {
     /// Set number of images
     #[must_use]
     pub fn n(mut self, n: u32) -> Self {
-        self.request.n = Some(n.clamp(1, 10));
+        self.request.set_n(n);
         self
     }
 
     /// Return URLs
     #[must_use]
     pub fn url_format(mut self) -> Self {
-        self.request.response_format = Some(ImageResponseFormat::Url);
+        self.request.set_response_format(ImageResponseFormat::Url);
         self
     }
 
     /// Return base64 JSON
     #[must_use]
     pub fn b64_json_format(mut self) -> Self {
-        self.request.response_format = Some(ImageResponseFormat::B64Json);
+        self.request
+            .set_response_format(ImageResponseFormat::B64Json);
         self
     }
 
     /// Set size
     #[must_use]
     pub fn size(mut self, size: ImageSize) -> Self {
-        self.request.size = Some(size);
+        self.request.set_size(size);
         self
     }
 
     /// Set user identifier
     pub fn user(mut self, user: impl Into<String>) -> Self {
-        self.request.user = Some(user.into());
+        self.request.set_user(user.into());
         self
     }
 

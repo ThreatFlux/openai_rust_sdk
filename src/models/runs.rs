@@ -57,6 +57,51 @@ use crate::models::assistants::AssistantTool;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Common trait for list parameter types
+trait ListParams {
+    /// Get the limit parameter
+    fn get_limit(&self) -> Option<u32>;
+    /// Get the order parameter
+    fn get_order(&self) -> Option<&String>;
+    /// Get the after cursor parameter
+    fn get_after(&self) -> Option<&String>;
+    /// Get the before cursor parameter
+    fn get_before(&self) -> Option<&String>;
+
+    /// Build query parameters for the API request
+    fn build_query_params(&self) -> Vec<(String, String)> {
+        let mut params = Vec::new();
+        if let Some(limit) = self.get_limit() {
+            params.push(("limit".to_string(), limit.to_string()));
+        }
+        if let Some(order) = self.get_order() {
+            params.push(("order".to_string(), order.clone()));
+        }
+        if let Some(after) = self.get_after() {
+            params.push(("after".to_string(), after.clone()));
+        }
+        if let Some(before) = self.get_before() {
+            params.push(("before".to_string(), before.clone()));
+        }
+        params
+    }
+}
+
+/// Common fields for run configuration
+#[allow(dead_code)]
+trait RunConfiguration {
+    /// Get the model field
+    fn get_model(&self) -> Option<&String>;
+    /// Get the instructions field
+    fn get_instructions(&self) -> Option<&String>;
+    /// Get the tools field
+    fn get_tools(&self) -> Option<&Vec<AssistantTool>>;
+    /// Get the file_ids field
+    fn get_file_ids(&self) -> Option<&Vec<String>>;
+    /// Get the metadata field
+    fn get_metadata(&self) -> Option<&HashMap<String, String>>;
+}
+
 /// A run represents an execution of an Assistant on a Thread
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Run {
@@ -430,6 +475,24 @@ pub struct ListRunsParams {
     pub before: Option<String>,
 }
 
+impl ListParams for ListRunsParams {
+    fn get_limit(&self) -> Option<u32> {
+        self.limit
+    }
+
+    fn get_order(&self) -> Option<&String> {
+        self.order.as_ref()
+    }
+
+    fn get_after(&self) -> Option<&String> {
+        self.after.as_ref()
+    }
+
+    fn get_before(&self) -> Option<&String> {
+        self.before.as_ref()
+    }
+}
+
 /// Response containing a list of run steps
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ListRunStepsResponse {
@@ -462,6 +525,24 @@ pub struct ListRunStepsParams {
     pub before: Option<String>,
 }
 
+impl ListParams for ListRunStepsParams {
+    fn get_limit(&self) -> Option<u32> {
+        self.limit
+    }
+
+    fn get_order(&self) -> Option<&String> {
+        self.order.as_ref()
+    }
+
+    fn get_after(&self) -> Option<&String> {
+        self.after.as_ref()
+    }
+
+    fn get_before(&self) -> Option<&String> {
+        self.before.as_ref()
+    }
+}
+
 /// Usage statistics for a run or run step
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Usage {
@@ -479,6 +560,77 @@ pub struct ModifyRunRequest {
     /// Set of 16 key-value pairs that can be attached to an object
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<HashMap<String, String>>,
+}
+
+/// Trait for common run configuration builder methods
+#[allow(dead_code)]
+trait RunConfigurationBuilder: Sized {
+    /// Get mutable reference to the model field
+    fn get_model_mut(&mut self) -> &mut Option<String>;
+
+    /// Get mutable reference to the instructions field
+    fn get_instructions_mut(&mut self) -> &mut Option<String>;
+
+    /// Get mutable reference to the tools field
+    fn get_tools_mut(&mut self) -> &mut Option<Vec<AssistantTool>>;
+
+    /// Get mutable reference to the file_ids field
+    fn get_file_ids_mut(&mut self) -> &mut Option<Vec<String>>;
+
+    /// Get mutable reference to the metadata field
+    fn get_metadata_mut(&mut self) -> &mut Option<HashMap<String, String>>;
+
+    /// Set the model
+    fn model<S: Into<String>>(mut self, model: S) -> Self {
+        *self.get_model_mut() = Some(model.into());
+        self
+    }
+
+    /// Set the instructions
+    fn instructions<S: Into<String>>(mut self, instructions: S) -> Self {
+        *self.get_instructions_mut() = Some(instructions.into());
+        self
+    }
+
+    /// Add a tool
+    fn tool(mut self, tool: AssistantTool) -> Self {
+        self.get_tools_mut().get_or_insert_with(Vec::new).push(tool);
+        self
+    }
+
+    /// Set tools
+    fn tools(mut self, tools: Vec<AssistantTool>) -> Self {
+        *self.get_tools_mut() = Some(tools);
+        self
+    }
+
+    /// Add a file ID
+    fn file_id<S: Into<String>>(mut self, file_id: S) -> Self {
+        self.get_file_ids_mut()
+            .get_or_insert_with(Vec::new)
+            .push(file_id.into());
+        self
+    }
+
+    /// Set file IDs
+    fn file_ids(mut self, file_ids: Vec<String>) -> Self {
+        *self.get_file_ids_mut() = Some(file_ids);
+        self
+    }
+
+    /// Add metadata key-value pair
+    fn metadata_pair<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
+        self.get_metadata_mut()
+            .get_or_insert_with(HashMap::new)
+            .insert(key.into(), value.into());
+        self
+    }
+
+    /// Set metadata
+    fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        *self.get_metadata_mut() = Some(metadata);
+        self
+    }
 }
 
 /// Builder for `RunRequest`
@@ -507,6 +659,28 @@ pub struct RunRequestBuilder {
     metadata: Option<HashMap<String, String>>,
 }
 
+impl RunConfigurationBuilder for RunRequestBuilder {
+    fn get_model_mut(&mut self) -> &mut Option<String> {
+        &mut self.model
+    }
+
+    fn get_instructions_mut(&mut self) -> &mut Option<String> {
+        &mut self.instructions
+    }
+
+    fn get_tools_mut(&mut self) -> &mut Option<Vec<AssistantTool>> {
+        &mut self.tools
+    }
+
+    fn get_file_ids_mut(&mut self) -> &mut Option<Vec<String>> {
+        &mut self.file_ids
+    }
+
+    fn get_metadata_mut(&mut self) -> &mut Option<HashMap<String, String>> {
+        &mut self.metadata
+    }
+}
+
 impl RunRequestBuilder {
     /// Set the assistant ID
     pub fn assistant_id<S: Into<String>>(mut self, assistant_id: S) -> Self {
@@ -515,58 +689,46 @@ impl RunRequestBuilder {
     }
 
     /// Set the model
-    pub fn model<S: Into<String>>(mut self, model: S) -> Self {
-        self.model = Some(model.into());
-        self
+    pub fn model<S: Into<String>>(self, model: S) -> Self {
+        RunConfigurationBuilder::model(self, model)
     }
 
     /// Set the instructions
-    pub fn instructions<S: Into<String>>(mut self, instructions: S) -> Self {
-        self.instructions = Some(instructions.into());
-        self
+    pub fn instructions<S: Into<String>>(self, instructions: S) -> Self {
+        RunConfigurationBuilder::instructions(self, instructions)
     }
 
     /// Add a tool
-    pub fn tool(mut self, tool: AssistantTool) -> Self {
-        self.tools.get_or_insert_with(Vec::new).push(tool);
-        self
+    pub fn tool(self, tool: AssistantTool) -> Self {
+        RunConfigurationBuilder::tool(self, tool)
     }
 
     /// Set tools
     #[must_use]
-    pub fn tools(mut self, tools: Vec<AssistantTool>) -> Self {
-        self.tools = Some(tools);
-        self
+    pub fn tools(self, tools: Vec<AssistantTool>) -> Self {
+        RunConfigurationBuilder::tools(self, tools)
     }
 
     /// Add a file ID
-    pub fn file_id<S: Into<String>>(mut self, file_id: S) -> Self {
-        self.file_ids
-            .get_or_insert_with(Vec::new)
-            .push(file_id.into());
-        self
+    pub fn file_id<S: Into<String>>(self, file_id: S) -> Self {
+        RunConfigurationBuilder::file_id(self, file_id)
     }
 
     /// Set file IDs
     #[must_use]
-    pub fn file_ids(mut self, file_ids: Vec<String>) -> Self {
-        self.file_ids = Some(file_ids);
-        self
+    pub fn file_ids(self, file_ids: Vec<String>) -> Self {
+        RunConfigurationBuilder::file_ids(self, file_ids)
     }
 
     /// Add metadata key-value pair
-    pub fn metadata_pair<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
-        self.metadata
-            .get_or_insert_with(HashMap::new)
-            .insert(key.into(), value.into());
-        self
+    pub fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
+        RunConfigurationBuilder::metadata_pair(self, key, value)
     }
 
     /// Set metadata
     #[must_use]
-    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
-        self.metadata = Some(metadata);
-        self
+    pub fn metadata(self, metadata: HashMap<String, String>) -> Self {
+        RunConfigurationBuilder::metadata(self, metadata)
     }
 
     /// Build the `RunRequest`
@@ -612,6 +774,28 @@ pub struct CreateThreadAndRunRequestBuilder {
     metadata: Option<HashMap<String, String>>,
 }
 
+impl RunConfigurationBuilder for CreateThreadAndRunRequestBuilder {
+    fn get_model_mut(&mut self) -> &mut Option<String> {
+        &mut self.model
+    }
+
+    fn get_instructions_mut(&mut self) -> &mut Option<String> {
+        &mut self.instructions
+    }
+
+    fn get_tools_mut(&mut self) -> &mut Option<Vec<AssistantTool>> {
+        &mut self.tools
+    }
+
+    fn get_file_ids_mut(&mut self) -> &mut Option<Vec<String>> {
+        &mut self.file_ids
+    }
+
+    fn get_metadata_mut(&mut self) -> &mut Option<HashMap<String, String>> {
+        &mut self.metadata
+    }
+}
+
 impl CreateThreadAndRunRequestBuilder {
     /// Set the assistant ID
     pub fn assistant_id<S: Into<String>>(mut self, assistant_id: S) -> Self {
@@ -627,58 +811,46 @@ impl CreateThreadAndRunRequestBuilder {
     }
 
     /// Set the model
-    pub fn model<S: Into<String>>(mut self, model: S) -> Self {
-        self.model = Some(model.into());
-        self
+    pub fn model<S: Into<String>>(self, model: S) -> Self {
+        RunConfigurationBuilder::model(self, model)
     }
 
     /// Set the instructions
-    pub fn instructions<S: Into<String>>(mut self, instructions: S) -> Self {
-        self.instructions = Some(instructions.into());
-        self
+    pub fn instructions<S: Into<String>>(self, instructions: S) -> Self {
+        RunConfigurationBuilder::instructions(self, instructions)
     }
 
     /// Add a tool
-    pub fn tool(mut self, tool: AssistantTool) -> Self {
-        self.tools.get_or_insert_with(Vec::new).push(tool);
-        self
+    pub fn tool(self, tool: AssistantTool) -> Self {
+        RunConfigurationBuilder::tool(self, tool)
     }
 
     /// Set tools
     #[must_use]
-    pub fn tools(mut self, tools: Vec<AssistantTool>) -> Self {
-        self.tools = Some(tools);
-        self
+    pub fn tools(self, tools: Vec<AssistantTool>) -> Self {
+        RunConfigurationBuilder::tools(self, tools)
     }
 
     /// Add a file ID
-    pub fn file_id<S: Into<String>>(mut self, file_id: S) -> Self {
-        self.file_ids
-            .get_or_insert_with(Vec::new)
-            .push(file_id.into());
-        self
+    pub fn file_id<S: Into<String>>(self, file_id: S) -> Self {
+        RunConfigurationBuilder::file_id(self, file_id)
     }
 
     /// Set file IDs
     #[must_use]
-    pub fn file_ids(mut self, file_ids: Vec<String>) -> Self {
-        self.file_ids = Some(file_ids);
-        self
+    pub fn file_ids(self, file_ids: Vec<String>) -> Self {
+        RunConfigurationBuilder::file_ids(self, file_ids)
     }
 
     /// Add metadata key-value pair
-    pub fn metadata_pair<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
-        self.metadata
-            .get_or_insert_with(HashMap::new)
-            .insert(key.into(), value.into());
-        self
+    pub fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
+        RunConfigurationBuilder::metadata_pair(self, key, value)
     }
 
     /// Set metadata
     #[must_use]
-    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
-        self.metadata = Some(metadata);
-        self
+    pub fn metadata(self, metadata: HashMap<String, String>) -> Self {
+        RunConfigurationBuilder::metadata(self, metadata)
     }
 
     /// Build the `CreateThreadAndRunRequest`
@@ -697,13 +869,19 @@ impl CreateThreadAndRunRequestBuilder {
     }
 }
 
+/// Create default list parameters
+fn create_default_list_params() -> (Option<u32>, Option<String>, Option<String>, Option<String>) {
+    (Some(20), Some("desc".to_string()), None, None)
+}
+
 impl Default for ListRunsParams {
     fn default() -> Self {
+        let (limit, order, after, before) = create_default_list_params();
         Self {
-            limit: Some(20),
-            order: Some("desc".to_string()),
-            after: None,
-            before: None,
+            limit,
+            order,
+            after,
+            before,
         }
     }
 }
@@ -712,30 +890,18 @@ impl ListRunsParams {
     /// Build query parameters for the API request
     #[must_use]
     pub fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
-        }
-        if let Some(order) = &self.order {
-            params.push(("order".to_string(), order.clone()));
-        }
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-        if let Some(before) = &self.before {
-            params.push(("before".to_string(), before.clone()));
-        }
-        params
+        self.build_query_params()
     }
 }
 
 impl Default for ListRunStepsParams {
     fn default() -> Self {
+        let (limit, order, after, before) = create_default_list_params();
         Self {
-            limit: Some(20),
-            order: Some("desc".to_string()),
-            after: None,
-            before: None,
+            limit,
+            order,
+            after,
+            before,
         }
     }
 }
@@ -744,19 +910,6 @@ impl ListRunStepsParams {
     /// Build query parameters for the API request
     #[must_use]
     pub fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
-        }
-        if let Some(order) = &self.order {
-            params.push(("order".to_string(), order.clone()));
-        }
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-        if let Some(before) = &self.before {
-            params.push(("before".to_string(), before.clone()));
-        }
-        params
+        self.build_query_params()
     }
 }

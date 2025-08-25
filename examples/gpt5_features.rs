@@ -9,7 +9,7 @@
 //! - Optimal settings for different tasks
 
 use openai_rust_sdk::{
-    api::{common::ApiClientConstructors, GPT5Api, GPT5RequestBuilder},
+    api::{GPT5Api, GPT5RequestBuilder},
     models::gpt5::{models, GPT5ModelSelector, ReasoningEffort, Verbosity},
 };
 use std::env;

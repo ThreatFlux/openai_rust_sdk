@@ -14,7 +14,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::batch::{BatchApi, BatchStatus};
+//! use openai_rust_sdk::api::{batch::{BatchApi, BatchStatus}, common::ApiClientConstructors};
 //! use std::path::Path;
 //!
 //! # tokio_test::block_on(async {
@@ -359,7 +359,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     /// use std::path::Path;
     ///
     /// # tokio_test::block_on(async {
@@ -413,7 +413,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
@@ -463,7 +463,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
@@ -494,7 +494,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
@@ -536,7 +536,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     /// use std::path::Path;
     ///
     /// # tokio_test::block_on(async {
@@ -581,7 +581,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     /// use std::path::Path;
     ///
     /// # tokio_test::block_on(async {
@@ -629,7 +629,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     /// use std::path::Path;
     ///
     /// # tokio_test::block_on(async {
@@ -681,7 +681,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     /// use std::path::Path;
     ///
     /// # tokio_test::block_on(async {
@@ -975,7 +975,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
@@ -1006,7 +1006,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;
@@ -1051,7 +1051,7 @@ impl BatchApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::batch::BatchApi;
+    /// use openai_rust_sdk::api::{batch::BatchApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = BatchApi::new("your-api-key")?;

@@ -13,8 +13,8 @@
 
 use openai_rust_sdk::api::{
     batch::{
-        Batch, BatchApi, BatchList, BatchReport, BatchRequestCounts, BatchStatus, CreateBatchRequest,
-        FileUploadResponse,
+        Batch, BatchApi, BatchList, BatchReport, BatchRequestCounts, BatchStatus,
+        CreateBatchRequest, FileUploadResponse,
     },
     common::ApiClientConstructors,
 };

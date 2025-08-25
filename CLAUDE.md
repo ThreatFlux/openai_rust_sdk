@@ -1,134 +1,58 @@
-# CLAUDE.md
+---
+# Codacy Rules
+Configuration for AI behavior when interacting with Codacy's MCP Server
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## using any tool that accepts the arguments: `provider`, `organization`, or `repository`
+- Use `git remote -v` to determine the correct values dynamically
+- Extract provider, organization, and repository from the git remote URL
+- Provider mapping:
+  - GitHub repositories: provider = "gh"
+  - Bitbucket repositories: provider = "bb"
+  - GitLab repositories: provider = "gl"
+- Parse the organization and repository name from the remote URL
 
-## Project Overview
-This is the OpenAI Rust SDK (`openai_rust_sdk`) - a comprehensive Rust library providing complete OpenAI API integration with specialized YARA rule validation capabilities. It's designed for cost-effective, large-scale testing using OpenAI's Batch API. 
+## After ANY successful `edit_file` or `reapply` operation
+- YOU MUST IMMEDIATELY run the `codacy_cli_analyze` tool from Codacy's MCP Server for each file that was edited, with:
+- `rootPath`: set to the workspace path
+- `file`: set to the path of the edited file
+- `tool`: leave empty or unset
+- If any issues are found in the new edits, propose and apply fixes for them.
+- > NOTE: Failure to follow this rule is considered a critical error.
 
-Developed by Wyatt Roersma and Claude Code.
-Repository: https://github.com/threatflux/openai_rust_sdk
+## CRITICAL: Dependencies and Security Checks
+- IMMEDIATELY after ANY of these actions:
+- Running npm/yarn/pnpm install
+- Adding dependencies to package.json
+- Adding requirements to requirements.txt
+- Adding dependencies to pom.xml
+- Adding dependencies to build.gradle
+- Any other package manager operations
+- You MUST run the `codacy_cli_analyze` tool with:
+- `rootPath`: set to the workspace path
+- `tool`: set to "trivy"
+- `file`: leave empty or unset
+- If any vulnerabilities are found because of the newly added packages:
+- Stop all other operations
+- Propose and apply fixes for the security issues
+- Only continue with the original task after security issues are resolved
+- EXAMPLE:
+- After: npm install react-markdown
+- Do: Run codacy_cli_analyze with trivy
+- Before: Continuing with any other tasks
 
-## Essential Commands
+## General
+- Repeat the relevant steps for each modified file.
+- "Propose fixes" means to both suggest and, if possible, automatically apply the fixes.
+- You MUST NOT wait for the user to ask for analysis or remind you to run the tool.
+- Do not run `codacy_cli_analyze` looking for changes in duplicated code or code complexity metrics.
+- Do not run `codacy_cli_analyze` looking for changes in code coverage.
+- Do not try to manually install Codacy CLI using either brew, npm, npx, or any other package manager.
+- If the Codacy CLI is not installed, just run the `codacy_cli_analyze` tool from Codacy's MCP Server.
+- When calling `codacy_cli_analyze`, only send provider, organization and repository if the project is a git repository.
 
-### Build & Development
-```bash
-# Quick development cycle
-make dev                    # Format + lint + test
-make all                    # Full CI-like checks
-
-# Standard Rust commands
-cargo build --release --all-features
-cargo run --example chat_completion
-```
-
-### Testing
-```bash
-# Run all tests (528+ tests)
-cargo test --verbose
-
-# Test with OpenAI API (requires OPENAI_API_KEY env var)
-make test-openai
-
-# Coverage reports
-make coverage              # Generate HTML + LCOV reports
-make coverage-open        # Open HTML report in browser
-```
-
-### Code Quality
-```bash
-# Before committing
-cargo fmt                  # Format code
-cargo clippy --all-features -- -W warnings  # Lint
-cargo audit               # Security audit
-```
-
-### Running Examples
-```bash
-# Set API key first
-export OPENAI_API_KEY=your_api_key_here
-
-# Run specific examples
-cargo run --example chat_completion
-cargo run --example function_calling
-cargo run --example streaming_chat
-```
-
-## High-Level Architecture
-
-### Core Structure
-The SDK follows a modular design with clear separation:
-- `src/api/` - API client implementations (19 modules)
-- `src/models/` - Request/response models (18 modules)  
-- `src/builders/` - Fluent builder patterns for complex requests
-- `src/testing/` - YARA validation framework
-- `src/client.rs` - Main OpenAI client orchestrating all APIs
-
-### Key Architectural Patterns
-
-1. **HttpClient Pattern**: Shared HTTP client across 13/19 APIs reduces code duplication by 77%. All API modules follow consistent request/response patterns.
-
-2. **Builder Pattern**: Complex requests use builders for type-safe construction:
-   - Function builders for tool definitions
-   - Schema builders for JSON validation
-   - Request builders for API calls
-
-3. **Async Everything**: Full async/await using Tokio runtime. All API calls are async, with streaming support via Server-Sent Events.
-
-4. **Type Safety**: Extensive use of Rust's type system with generic response parsing, compile-time validation, and safe error handling.
-
-### API Module Organization
-Each API module typically contains:
-- Request/response models in `src/models/`
-- API client implementation in `src/api/`
-- Builder patterns where applicable
-- Comprehensive examples in `examples/`
-- Integration tests in `tests/`
-
-### GPT-5 Support
-Full GPT-5 family support with advanced features:
-- Reasoning effort control via `reasoning_effort` parameter
-- Verbosity settings for output control
-- Chain-of-thought reasoning support
-- Model-specific optimizations
-
-### YARA Integration
-The SDK includes a unique YARA rule validation system:
-- Real-time validation using yara-x engine
-- Batch job generation for testing AI model outputs
-- Performance metrics and feature detection
-- Test suites in `test_data/yara_rules/`
-
-## Important Configuration
-
-### Environment Variables
-```bash
-OPENAI_API_KEY=your_api_key_here  # Required for all API calls
-```
-
-### Key Dependencies
-- `tokio`: Async runtime (full features)
-- `reqwest`: HTTP client with streaming support
-- `serde/serde_json`: JSON serialization
-- `yara-x`: YARA rule validation
-- `eventsource-stream`: SSE streaming
-
-## Development Guidelines
-
-### When Adding New Features
-1. Follow the existing HttpClient pattern for new API modules
-2. Add models in `src/models/`, API client in `src/api/`
-3. Include comprehensive examples in `examples/`
-4. Write integration tests in `tests/`
-5. Update FEATURES.md with implementation status
-
-### Testing Requirements
-- Unit tests for all new functionality
-- Integration tests for API interactions (use mock responses when possible)
-- Examples demonstrating real usage
-- Current coverage: 65%, target: 80%
-
-### Performance Considerations
-- Use streaming for large responses (reduces memory by 90%)
-- Implement connection pooling for multiple requests
-- Add benchmarks for performance-critical paths in `benches/`
-- Current benchmarks: <1ms JSON parsing, <100ms YARA validation
+## Whenever a call to a Codacy tool that uses `repository` or `organization` as a parameter returns a 404 error
+- Offer to run the `codacy_setup_repository` tool to add the repository to Codacy
+- If the user accepts, run the `codacy_setup_repository` tool
+- Do not ever try to run the `codacy_setup_repository` tool on your own
+- After setup, immediately retry the action that failed (only retry once)
+---

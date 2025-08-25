@@ -8,7 +8,7 @@
 //! - Enhanced tools and function calling
 
 use openai_rust_sdk::{
-    api::{common::ApiClientConstructors, gpt5::GPT5Api},
+    api::gpt5::GPT5Api,
     error::Result,
     models::{
         gpt5::{models, ReasoningEffort, Verbosity},

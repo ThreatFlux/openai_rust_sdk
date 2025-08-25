@@ -9,8 +9,8 @@
 
 use openai_rust_sdk::{
     api::{
-        audio::AudioApi, embeddings::EmbeddingsApi, files::FilesApi, images::ImagesApi,
-        models::ModelsApi, moderations::ModerationsApi,
+        audio::AudioApi, common::ApiClientConstructors, embeddings::EmbeddingsApi, files::FilesApi,
+        images::ImagesApi, models::ModelsApi, moderations::ModerationsApi,
     },
     models::{
         audio::{AudioFormat, AudioSpeechRequest, AudioTranscriptionRequest, Voice},

@@ -98,26 +98,25 @@ impl HttpClient {
         Ok(api_key)
     }
 
-    /// Create a new HTTP client with the given API key
-    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
+    /// Internal function to create an HTTP client
+    fn create_client<S: Into<String>>(api_key: S, base_url: Option<String>) -> Result<Self> {
         let api_key = Self::validate_api_key(api_key)?;
         let client = reqwest::Client::new();
         Ok(Self {
             client,
             api_key,
-            base_url: DEFAULT_BASE_URL.to_string(),
+            base_url: base_url.unwrap_or_else(|| DEFAULT_BASE_URL.to_string()),
         })
+    }
+
+    /// Create a new HTTP client with the given API key
+    pub fn new<S: Into<String>>(api_key: S) -> Result<Self> {
+        Self::create_client(api_key, None)
     }
 
     /// Create a new HTTP client with custom base URL
     pub fn new_with_base_url<S: Into<String>>(api_key: S, base_url: S) -> Result<Self> {
-        let api_key = Self::validate_api_key(api_key)?;
-        let client = reqwest::Client::new();
-        Ok(Self {
-            client,
-            api_key,
-            base_url: base_url.into(),
-        })
+        Self::create_client(api_key, Some(base_url.into()))
     }
 
     /// Get the API key
@@ -183,14 +182,26 @@ impl HttpClient {
         }
     }
 
+    /// Internal GET request with configurable headers
+    async fn get_internal<T>(&self, path: &str, use_beta: bool) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        let url = self.build_simple_url(path);
+        let headers = if use_beta {
+            self.build_headers_with_beta()?
+        } else {
+            self.build_headers()?
+        };
+        self.execute_get_request(&url, headers).await
+    }
+
     /// Make a GET request to the specified path
     pub async fn get<T>(&self, path: &str) -> Result<T>
     where
         T: DeserializeOwned,
     {
-        let url = self.build_simple_url(path);
-        let headers = self.build_headers()?;
-        self.execute_get_request(&url, headers).await
+        self.get_internal(path, false).await
     }
 
     /// Make a GET request with beta headers to the specified path
@@ -198,9 +209,22 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
+        self.get_internal(path, true).await
+    }
+
+    /// Internal POST request with configurable headers
+    async fn post_internal<T, B>(&self, path: &str, body: &B, use_beta: bool) -> Result<T>
+    where
+        T: DeserializeOwned,
+        B: serde::Serialize,
+    {
         let url = self.build_simple_url(path);
-        let headers = self.build_headers_with_beta()?;
-        self.execute_get_request(&url, headers).await
+        let headers = if use_beta {
+            self.build_headers_with_beta()?
+        } else {
+            self.build_headers()?
+        };
+        self.execute_post_request(&url, headers, body).await
     }
 
     /// Make a POST request with JSON body to the specified path
@@ -210,9 +234,7 @@ impl HttpClient {
         T: DeserializeOwned,
         B: serde::Serialize,
     {
-        let url = self.build_simple_url(path);
-        let headers = self.build_headers()?;
-        self.execute_post_request(&url, headers, body).await
+        self.post_internal(path, body, false).await
     }
 
     /// Make a POST request with JSON body and beta headers to the specified path
@@ -222,9 +244,21 @@ impl HttpClient {
         T: DeserializeOwned,
         B: serde::Serialize,
     {
+        self.post_internal(path, body, true).await
+    }
+
+    /// Internal DELETE request with configurable headers
+    async fn delete_internal<T>(&self, path: &str, use_beta: bool) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
         let url = self.build_simple_url(path);
-        let headers = self.build_headers_with_beta()?;
-        self.execute_post_request(&url, headers, body).await
+        let headers = if use_beta {
+            self.build_headers_with_beta()?
+        } else {
+            self.build_headers()?
+        };
+        self.execute_delete_request(&url, headers).await
     }
 
     /// Make a DELETE request to the specified path
@@ -232,9 +266,7 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = self.build_simple_url(path);
-        let headers = self.build_headers()?;
-        self.execute_delete_request(&url, headers).await
+        self.delete_internal(path, false).await
     }
 
     /// Make a DELETE request with beta headers to the specified path
@@ -242,9 +274,7 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = self.build_simple_url(path);
-        let headers = self.build_headers_with_beta()?;
-        self.execute_delete_request(&url, headers).await
+        self.delete_internal(path, true).await
     }
 
     /// Build URL with path and optional query parameters
@@ -265,6 +295,25 @@ impl HttpClient {
         url
     }
 
+    /// Internal GET request with query parameters and configurable headers
+    async fn get_with_query_internal<T>(
+        &self,
+        path: &str,
+        query_params: &[(String, String)],
+        use_beta: bool,
+    ) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        let url = self.build_url(path, query_params);
+        let headers = if use_beta {
+            self.build_headers_with_beta()?
+        } else {
+            self.build_headers()?
+        };
+        self.execute_get_request(&url, headers).await
+    }
+
     /// Make a GET request with query parameters
     pub async fn get_with_query<T>(
         &self,
@@ -274,9 +323,8 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = self.build_url(path, query_params);
-        let headers = self.build_headers()?;
-        self.execute_get_request(&url, headers).await
+        self.get_with_query_internal(path, query_params, false)
+            .await
     }
 
     /// Make a GET request with query parameters and beta headers
@@ -288,9 +336,7 @@ impl HttpClient {
     where
         T: DeserializeOwned,
     {
-        let url = self.build_url(path, query_params);
-        let headers = self.build_headers_with_beta()?;
-        self.execute_get_request(&url, headers).await
+        self.get_with_query_internal(path, query_params, true).await
     }
 
     /// Make a POST request with multipart form data
@@ -312,21 +358,45 @@ impl HttpClient {
         self.handle_response(response).await
     }
 
+    /// Extract raw content from a successful response
+    async fn extract_raw_content<F, R>(
+        &self,
+        response: reqwest::Response,
+        status: reqwest::StatusCode,
+        extractor: F,
+        error_context: &str,
+    ) -> Result<R>
+    where
+        F: FnOnce(
+            reqwest::Response,
+        )
+            -> futures::future::BoxFuture<'static, std::result::Result<R, reqwest::Error>>,
+        R: 'static,
+    {
+        if status.is_success() {
+            extractor(response)
+                .await
+                .map_err(|e| OpenAIError::RequestError(format!("{}: {}", error_context, e)))
+        } else {
+            self.handle_error_response(response, status).await
+        }
+    }
+
     /// Make a GET request and return raw text content
     pub async fn get_text(&self, path: &str) -> Result<String> {
         let url = self.build_simple_url(path);
         let headers = self.build_headers()?;
 
         let response = self.client.get(&url).headers(headers).send().await?;
-
         let status = response.status();
-        if status.is_success() {
-            response.text().await.map_err(|e| {
-                OpenAIError::RequestError(format!("Failed to read response text: {e}"))
-            })
-        } else {
-            self.handle_error_response(response, status).await
-        }
+
+        self.extract_raw_content(
+            response,
+            status,
+            |r| Box::pin(async move { r.text().await }),
+            "Failed to read response text",
+        )
+        .await
     }
 
     /// Make a GET request and return raw bytes
@@ -335,16 +405,15 @@ impl HttpClient {
         let headers = self.build_headers()?;
 
         let response = self.client.get(&url).headers(headers).send().await?;
-
         let status = response.status();
-        if status.is_success() {
-            let bytes = response.bytes().await.map_err(|e| {
-                OpenAIError::RequestError(format!("Failed to read response bytes: {e}"))
-            })?;
-            Ok(bytes.to_vec())
-        } else {
-            self.handle_error_response(response, status).await
-        }
+
+        self.extract_raw_content(
+            response,
+            status,
+            |r| Box::pin(async move { r.bytes().await.map(|b| b.to_vec()) }),
+            "Failed to read response bytes",
+        )
+        .await
     }
 
     /// Make a POST request and return raw bytes with content type
@@ -423,20 +492,30 @@ pub fn map_parse_error(e: &serde_json::Error, context: &str) -> OpenAIError {
     OpenAIError::ParseError(format!("{context}: {e}"))
 }
 
+/// Helper function to extract error text from response
+async fn extract_error_text(response: reqwest::Response) -> String {
+    response
+        .text()
+        .await
+        .unwrap_or_else(|_| "Unknown error".to_string())
+}
+
+/// Create API error from status and message
+fn create_api_error(status: reqwest::StatusCode, message: String) -> OpenAIError {
+    OpenAIError::ApiError {
+        status: status.as_u16(),
+        message,
+    }
+}
+
 /// Handle simple error responses with text extraction (for legacy code)
 pub async fn handle_simple_error_response(response: reqwest::Response) -> Result<()> {
     let status = response.status();
     if status.is_success() {
         Ok(())
     } else {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown error".to_string());
-        Err(OpenAIError::ApiError {
-            status: status.as_u16(),
-            message: error_text,
-        })
+        let error_text = extract_error_text(response).await;
+        Err(create_api_error(status, error_text))
     }
 }
 
@@ -452,14 +531,8 @@ where
             .await
             .map_err(|e| OpenAIError::ParseError(e.to_string()))
     } else {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown error".to_string());
-        Err(OpenAIError::ApiError {
-            status: status.as_u16(),
-            message: error_text,
-        })
+        let error_text = extract_error_text(response).await;
+        Err(create_api_error(status, error_text))
     }
 }
 

@@ -23,6 +23,7 @@ use std::env;
 /// let api_key = get_api_key();
 /// println!("API key loaded successfully");
 /// ```
+#[allow(dead_code)]
 pub fn get_api_key() -> String {
     env::var("OPENAI_API_KEY").expect(
         "OPENAI_API_KEY environment variable must be set. \
@@ -44,6 +45,7 @@ pub fn get_api_key() -> String {
 ///
 /// Panics if the `OPENAI_API_KEY` environment variable is not set or is empty,
 /// displaying the custom error message
+#[allow(dead_code)]
 pub fn get_api_key_with_message(error_message: &str) -> String {
     env::var("OPENAI_API_KEY").expect(error_message)
 }
@@ -68,6 +70,7 @@ pub fn get_api_key_with_message(error_message: &str) -> String {
 ///     }
 /// }
 /// ```
+#[allow(dead_code)]
 pub fn try_get_api_key() -> Result<String, String> {
     env::var("OPENAI_API_KEY").map_err(|_| {
         "OPENAI_API_KEY environment variable not set. \
@@ -88,6 +91,7 @@ pub fn try_get_api_key() -> Result<String, String> {
 /// # Returns
 ///
 /// Returns the API key from the environment variable, or the default key if not set
+#[allow(dead_code)]
 pub fn get_api_key_or_default(default_key: &str) -> String {
     env::var("OPENAI_API_KEY").unwrap_or_else(|_| default_key.to_string())
 }

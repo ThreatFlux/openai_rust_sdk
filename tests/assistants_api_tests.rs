@@ -8,7 +8,7 @@
 //! - Error handling and validation
 //! - Pagination and filtering
 
-use openai_rust_sdk::api::assistants::AssistantsApi;
+use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
 use openai_rust_sdk::models::assistants::{
     Assistant, AssistantRequest, AssistantTool, DeletionStatus, ListAssistantsParams,
     ListAssistantsResponse, SortOrder,

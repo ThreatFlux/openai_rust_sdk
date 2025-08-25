@@ -23,7 +23,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::files::FilesApi;
+//! use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
 //! use openai_rust_sdk::models::files::{FileUploadRequest, FilePurpose};
 //! use std::path::Path;
 //!
@@ -104,7 +104,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::files::{FileUploadRequest, FilePurpose};
     /// use std::path::Path;
     ///
@@ -153,7 +153,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::files::{ListFilesParams, FilePurpose};
     ///
     /// # tokio_test::block_on(async {
@@ -196,7 +196,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
@@ -222,7 +222,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
@@ -252,7 +252,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
@@ -281,7 +281,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     /// use std::path::Path;
     ///
     /// # tokio_test::block_on(async {
@@ -324,7 +324,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
@@ -357,7 +357,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::files::FilePurpose;
     ///
     /// # tokio_test::block_on(async {
@@ -390,7 +390,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
@@ -430,7 +430,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::files::FilePurpose;
     ///
     /// # tokio_test::block_on(async {
@@ -479,7 +479,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = FilesApi::new("your-api-key")?;
@@ -515,7 +515,7 @@ impl FilesApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::files::FilesApi;
+    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::files::{FileUploadRequest, FilePurpose};
     ///
     /// # tokio_test::block_on(async {

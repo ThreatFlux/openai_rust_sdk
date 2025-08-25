@@ -24,7 +24,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::api::runs::RunsApi;
+//! use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
 //! use openai_rust_sdk::models::runs::{RunRequest, ToolOutput, SubmitToolOutputsRequest};
 //!
 //! # tokio_test::block_on(async {
@@ -109,7 +109,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     ///
     /// let api = RunsApi::with_base_url("your-api-key", "https://api.openai.com")?;
     /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
@@ -130,7 +130,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::RunRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -167,7 +167,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::CreateThreadAndRunRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -198,7 +198,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = RunsApi::new("your-api-key")?;
@@ -232,7 +232,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::ModifyRunRequest;
     /// use std::collections::HashMap;
     ///
@@ -275,7 +275,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::ListRunsParams;
     ///
     /// # tokio_test::block_on(async {
@@ -315,7 +315,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::{SubmitToolOutputsRequest, ToolOutput};
     ///
     /// # tokio_test::block_on(async {
@@ -362,7 +362,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = RunsApi::new("your-api-key")?;
@@ -401,7 +401,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::ListRunStepsParams;
     ///
     /// # tokio_test::block_on(async {
@@ -446,7 +446,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     ///
     /// # tokio_test::block_on(async {
     /// let api = RunsApi::new("your-api-key")?;
@@ -481,7 +481,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::{SubmitToolOutputsRequest, ToolOutput};
     ///
     /// # tokio_test::block_on(async {
@@ -529,7 +529,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::RunRequest;
     ///
     /// # tokio_test::block_on(async {
@@ -567,7 +567,7 @@ impl RunsApi {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use openai_rust_sdk::api::runs::RunsApi;
+    /// use openai_rust_sdk::api::{runs::RunsApi, common::ApiClientConstructors};
     /// use openai_rust_sdk::models::runs::CreateThreadAndRunRequest;
     ///
     /// # tokio_test::block_on(async {

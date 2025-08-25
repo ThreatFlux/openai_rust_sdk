@@ -47,6 +47,49 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Common validation functions for threads and messages
+mod validation {
+    use std::collections::HashMap;
+
+    /// Validate metadata constraints
+    pub fn validate_metadata(metadata: &HashMap<String, String>) -> Result<(), String> {
+        // Validate metadata count
+        if metadata.len() > 16 {
+            return Err("Cannot have more than 16 metadata pairs".to_string());
+        }
+
+        // Validate metadata key/value lengths
+        for (key, value) in metadata {
+            if key.len() > 64 {
+                return Err("Metadata key cannot exceed 64 characters".to_string());
+            }
+            if value.len() > 512 {
+                return Err("Metadata value cannot exceed 512 characters".to_string());
+            }
+        }
+
+        Ok(())
+    }
+}
+
+use validation::validate_metadata;
+
+/// Common trait for builders that support metadata
+trait MetadataBuilder {
+    /// Get mutable reference to the metadata HashMap
+    fn get_metadata_mut(&mut self) -> &mut HashMap<String, String>;
+
+    /// Add a metadata key-value pair
+    fn add_metadata_pair(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.get_metadata_mut().insert(key.into(), value.into());
+    }
+
+    /// Set all metadata
+    fn set_metadata(&mut self, metadata: HashMap<String, String>) {
+        *self.get_metadata_mut() = metadata;
+    }
+}
+
 /// A conversation thread that can contain multiple messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Thread {
@@ -95,20 +138,8 @@ impl ThreadRequest {
 
     /// Validate the thread request
     pub fn validate(&self) -> Result<(), String> {
-        // Validate metadata count
-        if self.metadata.len() > 16 {
-            return Err("Thread cannot have more than 16 metadata pairs".to_string());
-        }
-
-        // Validate metadata key/value lengths
-        for (key, value) in &self.metadata {
-            if key.len() > 64 {
-                return Err("Metadata key cannot exceed 64 characters".to_string());
-            }
-            if value.len() > 512 {
-                return Err("Metadata value cannot exceed 512 characters".to_string());
-            }
-        }
+        // Validate metadata using common function
+        validate_metadata(&self.metadata).map_err(|e| format!("Thread {}", e))?;
 
         // Validate messages
         for message in &self.messages {
@@ -134,6 +165,12 @@ pub struct ThreadRequestBuilder {
     metadata: HashMap<String, String>,
 }
 
+impl MetadataBuilder for ThreadRequestBuilder {
+    fn get_metadata_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.metadata
+    }
+}
+
 impl ThreadRequestBuilder {
     /// Create a new builder
     #[must_use]
@@ -157,14 +194,14 @@ impl ThreadRequestBuilder {
 
     /// Add metadata
     pub fn metadata_pair(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata.insert(key.into(), value.into());
+        self.add_metadata_pair(key, value);
         self
     }
 
     /// Set all metadata
     #[must_use]
     pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
-        self.metadata = metadata;
+        self.set_metadata(metadata);
         self
     }
 
@@ -386,20 +423,8 @@ impl MessageRequest {
             return Err("Message cannot have more than 10 file IDs".to_string());
         }
 
-        // Validate metadata count
-        if self.metadata.len() > 16 {
-            return Err("Message cannot have more than 16 metadata pairs".to_string());
-        }
-
-        // Validate metadata key/value lengths
-        for (key, value) in &self.metadata {
-            if key.len() > 64 {
-                return Err("Metadata key cannot exceed 64 characters".to_string());
-            }
-            if value.len() > 512 {
-                return Err("Metadata value cannot exceed 512 characters".to_string());
-            }
-        }
+        // Validate metadata using common function
+        validate_metadata(&self.metadata).map_err(|e| format!("Message {}", e))?;
 
         Ok(())
     }
@@ -416,6 +441,12 @@ pub struct MessageRequestBuilder {
     file_ids: Vec<String>,
     /// Set of key-value pairs to attach to this message
     metadata: HashMap<String, String>,
+}
+
+impl MetadataBuilder for MessageRequestBuilder {
+    fn get_metadata_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.metadata
+    }
 }
 
 impl MessageRequestBuilder {
@@ -458,14 +489,14 @@ impl MessageRequestBuilder {
 
     /// Add metadata
     pub fn metadata_pair(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata.insert(key.into(), value.into());
+        self.add_metadata_pair(key, value);
         self
     }
 
     /// Set all metadata
     #[must_use]
     pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
-        self.metadata = metadata;
+        self.set_metadata(metadata);
         self
     }
 
