@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.2] - 2025-08-26
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: resolve clippy pedantic lints and formatting issues (65db59d)
+- fix: reduce duplicate code and improve documentation (c19095d)
+- fix: remove duplicate clones across 12 main source code files an a few examples (3faec6a)
+- fix: resolve Dockerfile.ci COPY command syntax errors and complete refactoring (07932f7)
+
+### 📊 Statistics
+
+- **Version**: 1.2.1 → 1.2.2
+- **Date**: 2025-08-26
+- **Commits**: 4
+- **Contributors**: 1
+
+
 ## [1.2.1] - 2025-08-24
 
 
