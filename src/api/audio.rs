@@ -5,6 +5,9 @@
 
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
+use crate::api::shared_utilities::{
+    AudioResponseHandler, FormBuilder, MultipartRequestExecutor, RequestValidator,
+};
 use crate::error::{OpenAIError, Result};
 use crate::models::audio::{
     AudioFormat, AudioModels, AudioSpeechRequest, AudioSpeechResponse, AudioTranscriptionRequest,
@@ -15,7 +18,6 @@ use crate::models::audio::{
     SpeechBuilder, TranscriptionBuilder, TranscriptionFormat, TranslationBuilder,
 };
 use bytes::Bytes;
-use reqwest::multipart;
 use std::path::Path;
 use tokio::fs;
 use tokio_stream::StreamExt;
@@ -72,170 +74,42 @@ impl AudioApi {
         request: &AudioTranscriptionRequest,
         file_data: Vec<u8>,
     ) -> Result<AudioTranscriptionResponse> {
-        let form = self.build_transcription_form(request, file_data)?;
-        let response = self.send_transcription_request(form).await?;
-        self.handle_transcription_response(response).await
-    }
+        // Validate inputs
+        RequestValidator::validate_file_not_empty(&file_data)?;
+        RequestValidator::validate_required_string(&request.model, "model")?;
+        RequestValidator::validate_temperature(request.temperature)?;
 
-    /// Build multipart form for transcription request
-    fn build_transcription_form(
-        &self,
-        request: &AudioTranscriptionRequest,
-        file_data: Vec<u8>,
-    ) -> Result<multipart::Form> {
-        let mut form = multipart::Form::new()
-            .part(
-                "file",
-                multipart::Part::bytes(file_data)
-                    .file_name(request.file.clone())
-                    .mime_str("audio/*")
-                    .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid file: {e}")))?,
-            )
-            .text("model", request.model.clone());
+        // Build form using shared utilities
+        let form = FormBuilder::build_transcription_form(
+            file_data,
+            request.file.clone(),
+            request.model.clone(),
+            request.language.as_ref(),
+            request.prompt.as_ref(),
+            request.response_format.as_ref(),
+            request.temperature,
+            request.timestamp_granularities.as_ref(),
+        )?;
 
-        form = self.add_optional_transcription_fields(form, request)?;
-        Ok(form)
-    }
+        // Send request using shared utilities
+        let response = MultipartRequestExecutor::send_multipart_request(
+            &self.http_client,
+            "/v1/audio/transcriptions",
+            form,
+        )
+        .await?;
 
-    /// Add optional fields to transcription form
-    fn add_optional_transcription_fields(
-        &self,
-        mut form: multipart::Form,
-        request: &AudioTranscriptionRequest,
-    ) -> Result<multipart::Form> {
-        if let Some(language) = &request.language {
-            form = form.text("language", language.clone());
-        }
-
-        if let Some(prompt) = &request.prompt {
-            form = form.text("prompt", prompt.clone());
-        }
-
-        form = self.add_response_format_field(form, &request.response_format)?;
-        form = self.add_temperature_field(form, request.temperature);
-        form = self.add_timestamp_granularities_field(form, &request.timestamp_granularities)?;
-
-        Ok(form)
-    }
-
-    /// Add response format field to form
-    fn add_response_format_field(
-        &self,
-        mut form: multipart::Form,
-        response_format: &Option<crate::models::audio::TranscriptionFormat>,
-    ) -> Result<multipart::Form> {
-        if let Some(format) = response_format {
-            form = form.text(
-                "response_format",
-                serde_json::to_string(format)
-                    .map_err(|e| OpenAIError::ParseError(e.to_string()))?
-                    .trim_matches('"')
-                    .to_string(),
-            );
-        }
-        Ok(form)
-    }
-
-    /// Add temperature field to form
-    fn add_temperature_field(
-        &self,
-        mut form: multipart::Form,
-        temperature: Option<f32>,
-    ) -> multipart::Form {
-        if let Some(temp) = temperature {
-            form = form.text("temperature", temp.to_string());
-        }
-        form
-    }
-
-    /// Add timestamp granularities field to form
-    fn add_timestamp_granularities_field(
-        &self,
-        mut form: multipart::Form,
-        granularities: &Option<Vec<crate::models::audio::TimestampGranularity>>,
-    ) -> Result<multipart::Form> {
-        if let Some(granularities) = granularities {
-            for granularity in granularities {
-                form = form.text(
-                    "timestamp_granularities[]",
-                    serde_json::to_string(granularity)
-                        .map_err(|e| OpenAIError::ParseError(e.to_string()))?
-                        .trim_matches('"')
-                        .to_string(),
-                );
+        // Handle response using shared utilities
+        AudioResponseHandler::handle_flexible_response(response, |text| {
+            AudioTranscriptionResponse {
+                text,
+                language: None,
+                duration: None,
+                words: None,
+                segments: None,
             }
-        }
-        Ok(form)
-    }
-
-    /// Send transcription request to API
-    async fn send_transcription_request(&self, form: multipart::Form) -> Result<reqwest::Response> {
-        let url = format!("{}/v1/audio/transcriptions", self.http_client.base_url());
-        let headers = self.http_client.build_auth_headers()?;
-
-        let response = self
-            .http_client
-            .client()
-            .post(&url)
-            .headers(headers)
-            .multipart(form)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        Ok(response)
-    }
-
-    /// Handle transcription response from API
-    async fn handle_transcription_response(
-        &self,
-        response: reqwest::Response,
-    ) -> Result<AudioTranscriptionResponse> {
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("application/json");
-
-        if content_type.contains("application/json") {
-            response
-                .json::<AudioTranscriptionResponse>()
-                .await
-                .map_err(|e| OpenAIError::ParseError(e.to_string()))
-        } else {
-            self.handle_non_json_response(response).await
-        }
-    }
-
-    /// Handle non-JSON transcription response
-    async fn handle_non_json_response(
-        &self,
-        response: reqwest::Response,
-    ) -> Result<AudioTranscriptionResponse> {
-        let text = response
-            .text()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))?;
-
-        Ok(AudioTranscriptionResponse {
-            text,
-            language: None,
-            duration: None,
-            words: None,
-            segments: None,
         })
+        .await
     }
 
     /// Transcribe audio from file path
@@ -257,143 +131,36 @@ impl AudioApi {
         request: &AudioTranslationRequest,
         file_data: Vec<u8>,
     ) -> Result<AudioTranslationResponse> {
-        let form = self.build_translation_form(request, file_data)?;
-        let response = self.send_translation_request(form).await?;
-        self.handle_translation_response(response).await
-    }
+        // Validate inputs
+        RequestValidator::validate_file_not_empty(&file_data)?;
+        RequestValidator::validate_required_string(&request.model, "model")?;
+        RequestValidator::validate_temperature(request.temperature)?;
 
-    /// Build multipart form for translation request
-    fn build_translation_form(
-        &self,
-        request: &AudioTranslationRequest,
-        file_data: Vec<u8>,
-    ) -> Result<multipart::Form> {
-        let mut form = multipart::Form::new()
-            .part(
-                "file",
-                multipart::Part::bytes(file_data)
-                    .file_name(request.file.clone())
-                    .mime_str("audio/*")
-                    .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid file: {e}")))?,
-            )
-            .text("model", request.model.clone());
+        // Build form using shared utilities
+        let form = FormBuilder::build_translation_form(
+            file_data,
+            request.file.clone(),
+            request.model.clone(),
+            request.prompt.as_ref(),
+            request.response_format.as_ref(),
+            request.temperature,
+        )?;
 
-        form = self.add_optional_translation_fields(form, request)?;
-        Ok(form)
-    }
+        // Send request using shared utilities
+        let response = MultipartRequestExecutor::send_multipart_request(
+            &self.http_client,
+            "/v1/audio/translations",
+            form,
+        )
+        .await?;
 
-    /// Add optional fields to translation form
-    fn add_optional_translation_fields(
-        &self,
-        mut form: multipart::Form,
-        request: &AudioTranslationRequest,
-    ) -> Result<multipart::Form> {
-        if let Some(prompt) = &request.prompt {
-            form = form.text("prompt", prompt.clone());
-        }
-
-        form = self.add_translation_response_format_field(form, &request.response_format)?;
-        form = self.add_translation_temperature_field(form, request.temperature);
-
-        Ok(form)
-    }
-
-    /// Add response format field to translation form
-    fn add_translation_response_format_field(
-        &self,
-        mut form: multipart::Form,
-        response_format: &Option<crate::models::audio::TranscriptionFormat>,
-    ) -> Result<multipart::Form> {
-        if let Some(format) = response_format {
-            form = form.text(
-                "response_format",
-                serde_json::to_string(format)
-                    .map_err(|e| OpenAIError::ParseError(e.to_string()))?
-                    .trim_matches('"')
-                    .to_string(),
-            );
-        }
-        Ok(form)
-    }
-
-    /// Add temperature field to translation form
-    fn add_translation_temperature_field(
-        &self,
-        mut form: multipart::Form,
-        temperature: Option<f32>,
-    ) -> multipart::Form {
-        if let Some(temp) = temperature {
-            form = form.text("temperature", temp.to_string());
-        }
-        form
-    }
-
-    /// Send translation request to API
-    async fn send_translation_request(&self, form: multipart::Form) -> Result<reqwest::Response> {
-        let url = format!("{}/v1/audio/translations", self.http_client.base_url());
-        let headers = self.http_client.build_auth_headers()?;
-
-        let response = self
-            .http_client
-            .client()
-            .post(&url)
-            .headers(headers)
-            .multipart(form)
-            .send()
-            .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(OpenAIError::ApiError {
-                status: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        Ok(response)
-    }
-
-    /// Handle translation response from API
-    async fn handle_translation_response(
-        &self,
-        response: reqwest::Response,
-    ) -> Result<AudioTranslationResponse> {
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("application/json");
-
-        if content_type.contains("application/json") {
-            response
-                .json::<AudioTranslationResponse>()
-                .await
-                .map_err(|e| OpenAIError::ParseError(e.to_string()))
-        } else {
-            self.handle_non_json_translation_response(response).await
-        }
-    }
-
-    /// Handle non-JSON translation response
-    async fn handle_non_json_translation_response(
-        &self,
-        response: reqwest::Response,
-    ) -> Result<AudioTranslationResponse> {
-        let text = response
-            .text()
-            .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))?;
-
-        Ok(AudioTranslationResponse {
+        // Handle response using shared utilities
+        AudioResponseHandler::handle_flexible_response(response, |text| AudioTranslationResponse {
             text,
             duration: None,
             segments: None,
         })
+        .await
     }
 
     /// Translate audio from file path

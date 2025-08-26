@@ -1,5 +1,6 @@
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
+use crate::api::shared_utilities::EnumConverter;
 use crate::error::{OpenAIError, Result};
 use crate::models::responses::{
     Message, MessageRole, ResponseInput, ResponseRequest, ResponseResult,
@@ -48,7 +49,8 @@ impl ResponsesApi {
     pub fn to_openai_format(&self, request: &ResponseRequest) -> Result<serde_json::Value> {
         use serde_json::json;
 
-        let messages = self.convert_input_to_messages(&request.input, &request.instructions);
+        let messages =
+            self.convert_input_to_messages(&request.input, request.instructions.as_ref());
 
         let mut openai_request = json!({
             "model": request.model,
@@ -56,7 +58,7 @@ impl ResponsesApi {
         });
 
         self.add_optional_parameters(&mut openai_request, request);
-        self.add_response_format(&mut openai_request, &request.response_format);
+        self.add_response_format(&mut openai_request, request.response_format.as_ref());
 
         Ok(openai_request)
     }
@@ -65,7 +67,7 @@ impl ResponsesApi {
     fn convert_input_to_messages(
         &self,
         input: &ResponseInput,
-        instructions: &Option<String>,
+        instructions: Option<&String>,
     ) -> Vec<serde_json::Value> {
         match input {
             ResponseInput::Text(text) => self.convert_text_to_messages(text, instructions),
@@ -77,7 +79,7 @@ impl ResponsesApi {
     fn convert_text_to_messages(
         &self,
         text: &str,
-        instructions: &Option<String>,
+        instructions: Option<&String>,
     ) -> Vec<serde_json::Value> {
         use serde_json::json;
 
@@ -111,12 +113,7 @@ impl ResponsesApi {
 
     /// Convert message role to string
     fn convert_message_role(&self, role: &MessageRole) -> &'static str {
-        match role {
-            MessageRole::Developer => "system",
-            MessageRole::User => "user",
-            MessageRole::Assistant => "assistant",
-            MessageRole::System => "system",
-        }
+        EnumConverter::message_role_to_string(role)
     }
 
     /// Convert message content to JSON value
@@ -178,11 +175,7 @@ impl ResponsesApi {
 
     /// Convert image detail to string
     fn convert_image_detail(&self, detail: &crate::models::responses::ImageDetail) -> &'static str {
-        match detail {
-            crate::models::responses::ImageDetail::Auto => "auto",
-            crate::models::responses::ImageDetail::Low => "low",
-            crate::models::responses::ImageDetail::High => "high",
-        }
+        EnumConverter::image_detail_to_string(detail)
     }
 
     /// Add optional parameters to request
@@ -217,7 +210,7 @@ impl ResponsesApi {
     fn add_response_format(
         &self,
         openai_request: &mut serde_json::Value,
-        response_format: &Option<crate::models::responses::ResponseFormat>,
+        response_format: Option<&crate::models::responses::ResponseFormat>,
     ) {
         use serde_json::json;
 

@@ -1,5 +1,7 @@
 /// Common utilities for API clients
 pub mod common;
+/// Shared utilities to reduce code duplication across API clients
+pub mod shared_utilities;
 
 /// Assistants API for AI assistant creation and management
 pub mod assistants;

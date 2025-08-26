@@ -4,6 +4,7 @@
 //! editing, and creating variations of images using DALL-E models.
 
 use crate::api::base::HttpClient;
+use crate::api::shared_utilities::{FormBuilder, MultipartFormBuilder, RequestValidator};
 use crate::error::{OpenAIError, Result};
 #[cfg(test)]
 use crate::models::images::{ImageEditBuilder, ImageGenerationBuilder, ImageVariationBuilder};
@@ -28,45 +29,42 @@ impl crate::api::common::ApiClientConstructors for ImagesApi {
 }
 
 impl ImagesApi {
-    /// Create a multipart form with an image part
+    /// Create a multipart form with an image part using shared utilities
     fn create_image_multipart_form(
         &self,
-        field_name: &'static str,
+        field_name: &str,
         image_data: Vec<u8>,
         file_name: &str,
         model: &str,
     ) -> Result<multipart::Form> {
-        let form = multipart::Form::new()
-            .part(
-                field_name,
-                multipart::Part::bytes(image_data)
-                    .file_name(file_name.to_string())
-                    .mime_str("image/png")
-                    .map_err(|e| {
-                        OpenAIError::InvalidRequest(format!("Invalid {}: {}", field_name, e))
-                    })?,
-            )
-            .text("model", model.to_string());
-        Ok(form)
+        // Validate inputs
+        RequestValidator::validate_file_not_empty(&image_data)?;
+        RequestValidator::validate_required_string(model, "model")?;
+
+        let form = FormBuilder::create_base_image_form(model.to_string());
+        FormBuilder::add_png_image_part(
+            form,
+            field_name.to_string(),
+            image_data,
+            file_name.to_string(),
+        )
     }
 
-    /// Add an image part to an existing form
+    /// Add an image part to an existing form using shared utilities
     fn add_image_part(
         &self,
         form: multipart::Form,
-        field_name: &'static str,
+        field_name: &str,
         image_data: Vec<u8>,
         file_name: &str,
     ) -> Result<multipart::Form> {
-        Ok(form.part(
-            field_name,
-            multipart::Part::bytes(image_data)
-                .file_name(file_name.to_string())
-                .mime_str("image/png")
-                .map_err(|e| {
-                    OpenAIError::InvalidRequest(format!("Invalid {}: {}", field_name, e))
-                })?,
-        ))
+        RequestValidator::validate_file_not_empty(&image_data)?;
+        FormBuilder::add_png_image_part(
+            form,
+            field_name.to_string(),
+            image_data,
+            file_name.to_string(),
+        )
     }
 
     /// Extract filename from path with default fallback
@@ -98,7 +96,7 @@ impl ImagesApi {
         request
     }
 
-    /// Helper to add optional form fields
+    /// Helper to add optional form fields using shared utilities
     fn add_optional_form_fields(
         mut form: multipart::Form,
         n: Option<u32>,
@@ -106,33 +104,25 @@ impl ImagesApi {
         size: Option<&ImageSize>,
         user: Option<&String>,
     ) -> Result<multipart::Form> {
-        if let Some(n) = n {
-            form = form.text("n", n.to_string());
-        }
+        form = FormBuilder::add_optional_numeric_field(form, "n".to_string(), n);
 
-        if let Some(format) = response_format {
-            form = form.text(
-                "response_format",
-                serde_json::to_string(format)
-                    .map_err(|e| OpenAIError::ParseError(e.to_string()))?
-                    .trim_matches('"')
-                    .to_string(),
-            );
-        }
+        // Convert borrowed options to owned options for serialization
+        let response_format_owned = response_format.cloned();
+        form = FormBuilder::add_optional_serializable_field(
+            form,
+            "response_format".to_string(),
+            response_format_owned.as_ref(),
+        )?;
 
-        if let Some(size) = size {
-            form = form.text(
-                "size",
-                serde_json::to_string(size)
-                    .map_err(|e| OpenAIError::ParseError(e.to_string()))?
-                    .trim_matches('"')
-                    .to_string(),
-            );
-        }
+        let size_owned = size.cloned();
+        form = FormBuilder::add_optional_serializable_field(
+            form,
+            "size".to_string(),
+            size_owned.as_ref(),
+        )?;
 
-        if let Some(user) = user {
-            form = form.text("user", user.clone());
-        }
+        let user_owned = user.cloned();
+        form = FormBuilder::add_optional_text_field(form, "user".to_string(), user_owned.as_ref());
 
         Ok(form)
     }
