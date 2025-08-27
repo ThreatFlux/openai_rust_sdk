@@ -36,23 +36,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>> {
     let api = GPT5Api::new(api_key)?;
 
-    // Example 1: Minimal reasoning for fastest response
+    demo_minimal_reasoning(&api).await?;
+    demo_fast_response(&api).await?;
+    demo_complex_reasoning(&api).await?;
+    demo_coding_task(&api).await?;
+    demo_cost_optimized(&api).await?;
+    demo_high_throughput(&api).await?;
+    demo_multi_turn_conversation(&api).await?;
+    demo_request_builder()?;
+    demo_model_selection();
+    demo_migration_recommendations();
+
+    Ok(())
+}
+
+async fn demo_minimal_reasoning(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("1. Minimal Reasoning (Fastest Response)");
     println!("----------------------------------------");
     let response = api
         .create_minimal_response(models::GPT_5, "Write a haiku about code.")
         .await?;
     println!("Response: {}\n", response.output_text());
+    Ok(())
+}
 
-    // Example 2: Low latency with custom verbosity
+async fn demo_fast_response(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("2. Fast Response with Low Verbosity");
     println!("------------------------------------");
     let response = api
         .create_fast_response(models::GPT_5, "What is 42?", Verbosity::Low)
         .await?;
     println!("Response: {}\n", response.output_text());
+    Ok(())
+}
 
-    // Example 3: Complex reasoning task
+async fn demo_complex_reasoning(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("3. Complex Reasoning Task");
     println!("-------------------------");
     let response = api
@@ -62,8 +80,10 @@ async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>>
         )
         .await?;
     println!("Response: {}\n", response.output_text());
+    Ok(())
+}
 
-    // Example 4: Coding task with optimal settings
+async fn demo_coding_task(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("4. Coding Task");
     println!("--------------");
     let response = api
@@ -73,24 +93,30 @@ async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>>
         )
         .await?;
     println!("Response:\n{}\n", response.output_text());
+    Ok(())
+}
 
-    // Example 5: Cost-optimized response with GPT-5-mini
+async fn demo_cost_optimized(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("5. Cost-Optimized Response (GPT-5-mini)");
     println!("----------------------------------------");
     let response = api
         .create_cost_optimized_response("Explain photosynthesis in simple terms.")
         .await?;
     println!("Response: {}\n", response.output_text());
+    Ok(())
+}
 
-    // Example 6: High-throughput response with GPT-5-nano
+async fn demo_high_throughput(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("6. High-Throughput Response (GPT-5-nano)");
     println!("-----------------------------------------");
     let response = api
         .create_high_throughput_response("Classify this sentiment: 'I love this product!'")
         .await?;
     println!("Response: {}\n", response.output_text());
+    Ok(())
+}
 
-    // Example 7: Multi-turn conversation with CoT
+async fn demo_multi_turn_conversation(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
     println!("7. Multi-turn Conversation with Chain of Thought");
     println!("-------------------------------------------------");
     let first_response = api
@@ -115,8 +141,10 @@ async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>>
             .await?;
         println!("Follow-up: {}\n", followup.output_text());
     }
+    Ok(())
+}
 
-    // Example 8: Using the request builder
+fn demo_request_builder() -> Result<(), Box<dyn std::error::Error>> {
     println!("8. Request Builder Pattern");
     println!("--------------------------");
     let request = GPT5RequestBuilder::new()
@@ -132,8 +160,10 @@ async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>>
     println!("Built request for model: {}", request.model);
     println!("Reasoning: {:?}", request.reasoning);
     println!("Text config: {:?}\n", request.text);
+    Ok(())
+}
 
-    // Example 9: Model selection based on use case
+fn demo_model_selection() {
     println!("9. Model Selection Helper");
     println!("-------------------------");
     println!(
@@ -150,7 +180,9 @@ async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>>
     );
     println!("For coding: {}", GPT5ModelSelector::for_coding());
     println!("For chat: {}", GPT5ModelSelector::for_chat());
+}
 
+fn demo_migration_recommendations() {
     println!("\n10. Migration Recommendations");
     println!("------------------------------");
     println!("From o3 → {}", GPT5ModelSelector::migration_from("o3"));
@@ -166,8 +198,6 @@ async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>>
         "From gpt-3.5-turbo → {}",
         GPT5ModelSelector::migration_from("gpt-3.5-turbo")
     );
-
-    Ok(())
 }
 
 fn demo_mode() {

@@ -423,19 +423,25 @@ impl FunctionStreamProcessor {
                     }
                 };
 
+                // Process each choice in the chunk
                 for choice in &chunk.choices {
-                    if let Some(content) = &choice.delta.content {
-                        yield Ok(FunctionStreamEvent::ContentDelta { content: content.clone() });
-                    }
-
-                    if let Some(tool_calls) = &choice.delta.tool_calls {
-                        for event in Self::process_tool_calls(&mut processor.function_calls, tool_calls.clone()) {
+                    // Yield content delta events
+                    if let Some(events) = Self::process_content_delta(choice) {
+                        for event in events {
                             yield Ok(event);
                         }
                     }
 
-                    if choice.finish_reason.is_some() {
-                        for event in Self::handle_completion(&mut processor.function_calls, &chunk, choice) {
+                    // Yield tool call events
+                    if let Some(events) = Self::process_choice_tool_calls(&mut processor.function_calls, choice) {
+                        for event in events {
+                            yield Ok(event);
+                        }
+                    }
+
+                    // Handle completion
+                    if let Some(events) = Self::process_choice_completion(&mut processor.function_calls, &chunk, choice) {
+                        for event in events {
                             yield Ok(event);
                         }
                         break;
@@ -443,6 +449,44 @@ impl FunctionStreamProcessor {
                 }
             }
         })
+    }
+
+    /// Process content delta from choice
+    fn process_content_delta(
+        choice: &crate::models::responses::StreamChoice,
+    ) -> Option<Vec<FunctionStreamEvent>> {
+        if let Some(content) = &choice.delta.content {
+            Some(vec![FunctionStreamEvent::ContentDelta {
+                content: content.clone(),
+            }])
+        } else {
+            None
+        }
+    }
+
+    /// Process tool calls from choice
+    fn process_choice_tool_calls(
+        function_calls: &mut std::collections::HashMap<u32, FunctionCallBuilder>,
+        choice: &crate::models::responses::StreamChoice,
+    ) -> Option<Vec<FunctionStreamEvent>> {
+        choice
+            .delta
+            .tool_calls
+            .as_ref()
+            .map(|tool_calls| Self::process_tool_calls(function_calls, tool_calls.clone()))
+    }
+
+    /// Process choice completion
+    fn process_choice_completion(
+        function_calls: &mut std::collections::HashMap<u32, FunctionCallBuilder>,
+        chunk: &StreamChunk,
+        choice: &crate::models::responses::StreamChoice,
+    ) -> Option<Vec<FunctionStreamEvent>> {
+        if choice.finish_reason.is_some() {
+            Some(Self::handle_completion(function_calls, chunk, choice))
+        } else {
+            None
+        }
     }
 
     /// Process tool calls from stream delta

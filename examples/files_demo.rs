@@ -37,7 +37,9 @@
 //! 6. Clean up by deleting demo files
 
 use openai_rust_sdk::api::{common::ApiClientConstructors, files::FilesApi};
-use openai_rust_sdk::models::files::{FilePurpose, FileUploadRequest, ListFilesParams, SortOrder};
+use openai_rust_sdk::models::files::{
+    File, FilePurpose, FileUploadRequest, ListFilesParams, SortOrder,
+};
 use std::env;
 use std::path::Path;
 use tokio::fs;
@@ -208,84 +210,76 @@ async fn create_sample_files(demo_files: &mut DemoFiles) -> Result<(), Box<dyn s
     Ok(())
 }
 
+/// Helper function to upload a single file with error handling
+async fn upload_file_with_logging(
+    files_api: &FilesApi,
+    file_path: &str,
+    purpose: FilePurpose,
+    description: &str,
+    demo_files: &mut DemoFiles,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("   📤 Uploading {}...", description);
+    let request = FileUploadRequest::from_file_path(Path::new(file_path), purpose).await?;
+
+    match files_api.upload_file(request).await {
+        Ok(file) => {
+            println!(
+                "      ✅ {} uploaded: {} ({})",
+                description,
+                file.id,
+                file.size_human_readable()
+            );
+            demo_files.add_uploaded(file.id);
+        }
+        Err(e) => println!("      ❌ Failed to upload {}: {}", description, e),
+    }
+    Ok(())
+}
+
 /// Demonstrate uploading files with different purposes
 async fn upload_demo_files(
     files_api: &FilesApi,
     demo_files: &mut DemoFiles,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Upload fine-tuning file
-    println!("   📤 Uploading fine-tuning data...");
-    let fine_tune_request = FileUploadRequest::from_file_path(
-        Path::new("demo_fine_tune_data.jsonl"),
+    upload_file_with_logging(
+        files_api,
+        "demo_fine_tune_data.jsonl",
         FilePurpose::FineTune,
+        "fine-tuning data",
+        demo_files,
     )
     .await?;
 
-    match files_api.upload_file(fine_tune_request).await {
-        Ok(file) => {
-            println!(
-                "      ✅ Fine-tuning file uploaded: {} ({})",
-                file.id,
-                file.size_human_readable()
-            );
-            demo_files.add_uploaded(file.id);
-        }
-        Err(e) => println!("      ❌ Failed to upload fine-tuning file: {}", e),
-    }
-
     // Upload batch file
-    println!("   📤 Uploading batch processing data...");
-    let batch_request =
-        FileUploadRequest::from_file_path(Path::new("demo_batch_data.jsonl"), FilePurpose::Batch)
-            .await?;
-
-    match files_api.upload_file(batch_request).await {
-        Ok(file) => {
-            println!(
-                "      ✅ Batch file uploaded: {} ({})",
-                file.id,
-                file.size_human_readable()
-            );
-            demo_files.add_uploaded(file.id);
-        }
-        Err(e) => println!("      ❌ Failed to upload batch file: {}", e),
-    }
+    upload_file_with_logging(
+        files_api,
+        "demo_batch_data.jsonl",
+        FilePurpose::Batch,
+        "batch processing data",
+        demo_files,
+    )
+    .await?;
 
     // Upload assistants document
-    println!("   📤 Uploading assistants document...");
-    let doc_request =
-        FileUploadRequest::from_file_path(Path::new("demo_document.md"), FilePurpose::Assistants)
-            .await?;
-
-    match files_api.upload_file(doc_request).await {
-        Ok(file) => {
-            println!(
-                "      ✅ Assistants document uploaded: {} ({})",
-                file.id,
-                file.size_human_readable()
-            );
-            demo_files.add_uploaded(file.id);
-        }
-        Err(e) => println!("      ❌ Failed to upload assistants document: {}", e),
-    }
+    upload_file_with_logging(
+        files_api,
+        "demo_document.md",
+        FilePurpose::Assistants,
+        "assistants document",
+        demo_files,
+    )
+    .await?;
 
     // Upload user data file
-    println!("   📤 Uploading user data file...");
-    let text_request =
-        FileUploadRequest::from_file_path(Path::new("demo_text.txt"), FilePurpose::UserData)
-            .await?;
-
-    match files_api.upload_file(text_request).await {
-        Ok(file) => {
-            println!(
-                "      ✅ User data file uploaded: {} ({})",
-                file.id,
-                file.size_human_readable()
-            );
-            demo_files.add_uploaded(file.id);
-        }
-        Err(e) => println!("      ❌ Failed to upload user data file: {}", e),
-    }
+    upload_file_with_logging(
+        files_api,
+        "demo_text.txt",
+        FilePurpose::UserData,
+        "user data file",
+        demo_files,
+    )
+    .await?;
 
     Ok(())
 }
@@ -372,61 +366,52 @@ async fn list_files_demo(files_api: &FilesApi) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-/// Demonstrate retrieving file information and content
-async fn retrieve_file_demo(
+/// Display file metadata in a formatted way
+fn display_file_metadata(file: &File) {
+    println!("      ✅ File metadata:");
+    println!("         • ID: {}", file.id);
+    println!("         • Filename: {}", file.filename);
+    println!("         • Purpose: {}", file.purpose);
+    println!("         • Size: {}", file.size_human_readable());
+    println!("         • Status: {}", file.status);
+    println!("         • Created: {}", file.created_at_formatted());
+
+    if let Some(details) = &file.status_details {
+        println!("         • Status Details: {}", details);
+    }
+}
+
+/// Display a preview of file content
+fn display_file_content_preview(content: &str) {
+    println!(
+        "      ✅ File content retrieved ({} characters)",
+        content.len()
+    );
+
+    // Show first few lines of content
+    let lines: Vec<&str> = content.lines().take(3).collect();
+    for (i, line) in lines.iter().enumerate() {
+        let display_line = if line.len() > 80 {
+            format!("{}...", &line[..77])
+        } else {
+            line.to_string()
+        };
+        println!("         Line {}: {}", i + 1, display_line);
+    }
+
+    if content.lines().count() > 3 {
+        println!(
+            "         ... and {} more lines",
+            content.lines().count() - 3
+        );
+    }
+}
+
+/// Check and report file existence status
+async fn check_and_report_file_existence(
     files_api: &FilesApi,
     file_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Retrieve file metadata
-    println!("   📄 Retrieving file metadata for {}...", file_id);
-    match files_api.retrieve_file(file_id).await {
-        Ok(file) => {
-            println!("      ✅ File metadata:");
-            println!("         • ID: {}", file.id);
-            println!("         • Filename: {}", file.filename);
-            println!("         • Purpose: {}", file.purpose);
-            println!("         • Size: {}", file.size_human_readable());
-            println!("         • Status: {}", file.status);
-            println!("         • Created: {}", file.created_at_formatted());
-
-            if let Some(details) = &file.status_details {
-                println!("         • Status Details: {}", details);
-            }
-        }
-        Err(e) => println!("      ❌ Failed to retrieve file metadata: {}", e),
-    }
-
-    // Retrieve file content
-    println!("   📄 Retrieving file content for {}...", file_id);
-    match files_api.retrieve_file_content(file_id).await {
-        Ok(content) => {
-            println!(
-                "      ✅ File content retrieved ({} characters)",
-                content.len()
-            );
-
-            // Show first few lines of content
-            let lines: Vec<&str> = content.lines().take(3).collect();
-            for (i, line) in lines.iter().enumerate() {
-                let display_line = if line.len() > 80 {
-                    format!("{}...", &line[..77])
-                } else {
-                    line.to_string()
-                };
-                println!("         Line {}: {}", i + 1, display_line);
-            }
-
-            if content.lines().count() > 3 {
-                println!(
-                    "         ... and {} more lines",
-                    content.lines().count() - 3
-                );
-            }
-        }
-        Err(e) => println!("      ❌ Failed to retrieve file content: {}", e),
-    }
-
-    // Check if file exists
     println!("   🔍 Checking if file exists...");
     match files_api.file_exists(file_id).await {
         Ok(exists) => {
@@ -438,6 +423,30 @@ async fn retrieve_file_demo(
         }
         Err(e) => println!("      ❌ Failed to check file existence: {}", e),
     }
+    Ok(())
+}
+
+/// Demonstrate retrieving file information and content
+async fn retrieve_file_demo(
+    files_api: &FilesApi,
+    file_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Retrieve file metadata
+    println!("   📄 Retrieving file metadata for {}...", file_id);
+    match files_api.retrieve_file(file_id).await {
+        Ok(file) => display_file_metadata(&file),
+        Err(e) => println!("      ❌ Failed to retrieve file metadata: {}", e),
+    }
+
+    // Retrieve file content
+    println!("   📄 Retrieving file content for {}...", file_id);
+    match files_api.retrieve_file_content(file_id).await {
+        Ok(content) => display_file_content_preview(&content),
+        Err(e) => println!("      ❌ Failed to retrieve file content: {}", e),
+    }
+
+    // Check if file exists
+    check_and_report_file_existence(files_api, file_id).await?;
 
     Ok(())
 }

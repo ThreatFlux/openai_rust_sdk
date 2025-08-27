@@ -182,48 +182,7 @@ fn benchmark_feature_analysis(c: &mut Criterion) {
     let validator = YaraValidator::new();
     let mut group = c.benchmark_group("feature_analysis");
 
-    let rules = vec![
-        ("minimal", "rule minimal { condition: true }"),
-        (
-            "with_metadata",
-            r#"
-            rule with_metadata {
-                meta:
-                    author = "test"
-                    description = "test rule"
-                condition: true
-            }
-        "#,
-        ),
-        (
-            "with_strings",
-            r#"
-            rule with_strings {
-                strings:
-                    $s1 = "test1"
-                    $s2 = "test2"
-                condition: any of them
-            }
-        "#,
-        ),
-        (
-            "comprehensive",
-            r#"
-            import "pe"
-            rule comprehensive {
-                meta:
-                    author = "test"
-                    version = "1.0"
-                strings:
-                    $str = "test"
-                    $hex = { 4D 5A }
-                    $regex = /test[0-9]+/
-                condition:
-                    filesize > 100 and any of them
-            }
-        "#,
-        ),
-    ];
+    let rules = get_feature_analysis_rules();
 
     // Note: analyze_features is now private, so we'll benchmark validate instead
     for (rule_type, rule) in rules {
@@ -304,6 +263,53 @@ fn generate_rule_with_strings(string_count: usize) -> String {
 }",
     );
     rule
+}
+
+// Helper function to get test rules for feature analysis benchmarks
+#[cfg(feature = "yara")]
+fn get_feature_analysis_rules() -> Vec<(&'static str, &'static str)> {
+    vec![
+        ("minimal", "rule minimal { condition: true }"),
+        (
+            "with_metadata",
+            r#"
+            rule with_metadata {
+                meta:
+                    author = "test"
+                    description = "test rule"
+                condition: true
+            }
+        "#,
+        ),
+        (
+            "with_strings",
+            r#"
+            rule with_strings {
+                strings:
+                    $s1 = "test1"
+                    $s2 = "test2"
+                condition: any of them
+            }
+        "#,
+        ),
+        (
+            "comprehensive",
+            r#"
+            import "pe"
+            rule comprehensive {
+                meta:
+                    author = "test"
+                    version = "1.0"
+                strings:
+                    $str = "test"
+                    $hex = { 4D 5A }
+                    $regex = /test[0-9]+/
+                condition:
+                    filesize > 100 and any of them
+            }
+        "#,
+        ),
+    ]
 }
 
 #[cfg(feature = "yara")]

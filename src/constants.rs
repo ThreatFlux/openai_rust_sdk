@@ -390,11 +390,19 @@ mod tests {
 
     #[test]
     fn test_endpoint_construction() {
-        // Assistants endpoints
+        test_assistants_endpoints();
+        test_vector_stores_endpoints();
+        test_threads_endpoints();
+        test_files_endpoints();
+        test_models_endpoints();
+    }
+
+    fn test_assistants_endpoints() {
         assert_eq!(endpoints::assistants::BASE, "/v1/assistants");
         assert_eq!(endpoints::assistants::by_id("test"), "/v1/assistants/test");
+    }
 
-        // Vector stores endpoints
+    fn test_vector_stores_endpoints() {
         assert_eq!(endpoints::vector_stores::BASE, "/v1/vector_stores");
         assert_eq!(
             endpoints::vector_stores::by_id("vs-123"),
@@ -424,8 +432,9 @@ mod tests {
             endpoints::vector_stores::file_batch_files("vs-123", "batch-789"),
             "/v1/vector_stores/vs-123/file_batches/batch-789/files"
         );
+    }
 
-        // Threads endpoints
+    fn test_threads_endpoints() {
         assert_eq!(endpoints::threads::BASE, "/v1/threads");
         assert_eq!(
             endpoints::threads::by_id("thread-123"),
@@ -471,16 +480,18 @@ mod tests {
             endpoints::threads::run_step_by_id("thread-123", "run-456", "step-789"),
             "/v1/threads/thread-123/runs/run-456/steps/step-789"
         );
+    }
 
-        // Files endpoints
+    fn test_files_endpoints() {
         assert_eq!(endpoints::files::BASE, "/v1/files");
         assert_eq!(endpoints::files::by_id("file-123"), "/v1/files/file-123");
         assert_eq!(
             endpoints::files::content("file-123"),
             "/v1/files/file-123/content"
         );
+    }
 
-        // Models endpoints
+    fn test_models_endpoints() {
         assert_eq!(endpoints::models::BASE, "/v1/models");
         assert_eq!(endpoints::models::by_id("gpt-4"), "/v1/models/gpt-4");
     }

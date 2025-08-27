@@ -37,51 +37,80 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize the API client
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        OpenAIError::Authentication("OPENAI_API_KEY environment variable not set".to_string())
-    })?;
-
-    let api = ThreadsApi::new(api_key)?;
+    let api = initialize_api()?;
 
     println!("💬 OpenAI Threads & Messages API Demo");
     println!("=====================================\n");
 
+    let (support_thread, analysis_thread) = run_thread_creation_demos(&api).await?;
+    run_thread_management_demos(&api, &support_thread.id, &analysis_thread.id).await?;
+    run_advanced_demos(&api, &analysis_thread.id).await?;
+    cleanup_threads(&api, vec![support_thread.id, analysis_thread.id]).await?;
+
+    println!("🎉 Demo completed successfully!");
+    Ok(())
+}
+
+/// Initialize the API client
+fn initialize_api() -> Result<ThreadsApi> {
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        OpenAIError::Authentication("OPENAI_API_KEY environment variable not set".to_string())
+    })?;
+
+    ThreadsApi::new(api_key)
+}
+
+/// Run the thread creation demos (demos 1-2)
+async fn run_thread_creation_demos(
+    api: &ThreadsApi,
+) -> Result<(
+    openai_rust_sdk::models::threads::Thread,
+    openai_rust_sdk::models::threads::Thread,
+)> {
     // Demo 1: Create a basic thread and add messages
     println!("🧵 Demo 1: Creating a Customer Support Thread");
-    let support_thread = demo_customer_support_thread(&api).await?;
+    let support_thread = demo_customer_support_thread(api).await?;
     println!("✅ Created thread: {}\n", support_thread.id);
 
     // Demo 2: Create a thread with file attachments
     println!("📎 Demo 2: Creating a Document Analysis Thread");
-    let analysis_thread = demo_document_analysis_thread(&api).await?;
+    let analysis_thread = demo_document_analysis_thread(api).await?;
     println!("✅ Created thread: {}\n", analysis_thread.id);
 
+    Ok((support_thread, analysis_thread))
+}
+
+/// Run the thread management demos (demos 3-4)
+async fn run_thread_management_demos(
+    api: &ThreadsApi,
+    support_thread_id: &str,
+    analysis_thread_id: &str,
+) -> Result<()> {
     // Demo 3: Demonstrate message listing and pagination
     println!("📋 Demo 3: Listing Messages with Pagination");
-    demo_message_pagination(&api, &support_thread.id).await?;
+    demo_message_pagination(api, support_thread_id).await?;
 
     // Demo 4: Demonstrate metadata management
     println!("🏷️  Demo 4: Managing Thread and Message Metadata");
-    demo_metadata_management(&api, &analysis_thread.id).await?;
+    demo_metadata_management(api, analysis_thread_id).await?;
 
+    Ok(())
+}
+
+/// Run the advanced demos (demos 5-7)
+async fn run_advanced_demos(api: &ThreadsApi, analysis_thread_id: &str) -> Result<()> {
     // Demo 5: Demonstrate different content types
     println!("🎨 Demo 5: Working with Different Content Types");
-    demo_content_types(&api).await?;
+    demo_content_types(api).await?;
 
     // Demo 6: Demonstrate message file management
     println!("📁 Demo 6: Managing Message Files");
-    demo_message_files(&api, &analysis_thread.id).await?;
+    demo_message_files(api, analysis_thread_id).await?;
 
     // Demo 7: Demonstrate error handling
     println!("⚠️  Demo 7: Error Handling Examples");
-    demo_error_handling(&api).await?;
+    demo_error_handling(api).await?;
 
-    // Cleanup: Delete the created threads
-    println!("🧹 Cleanup: Deleting Created Threads");
-    cleanup_threads(&api, vec![support_thread.id, analysis_thread.id]).await?;
-
-    println!("🎉 Demo completed successfully!");
     Ok(())
 }
 
