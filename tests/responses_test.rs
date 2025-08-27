@@ -22,7 +22,7 @@ fn test_chat_completion_request_format() {
         .generate_test_suite(temp_file.path(), "basic")
         .unwrap();
 
-    let content = std::fs::read_to_string(temp_file.path()).unwrap();
+    let content = openai_rust_sdk::helpers::read_string_sync(temp_file.path()).unwrap();
     let first_line = content.lines().next().unwrap();
     let request: BatchJobRequest = serde_json::from_str(first_line).unwrap();
 
@@ -120,7 +120,7 @@ fn test_batch_response_processing_pipeline() {
         .unwrap();
 
     // Step 2: Read requests and simulate responses
-    let content = std::fs::read_to_string(temp_file.path()).unwrap();
+    let content = openai_rust_sdk::helpers::read_string_sync(temp_file.path()).unwrap();
     let mut pipeline_results = Vec::new();
 
     for line in content.lines() {
@@ -323,7 +323,7 @@ fn test_batch_request_response_correlation() {
         .generate_test_suite(temp_file.path(), "comprehensive")
         .unwrap();
 
-    let content = std::fs::read_to_string(temp_file.path()).unwrap();
+    let content = openai_rust_sdk::helpers::read_string_sync(temp_file.path()).unwrap();
     let mut request_response_pairs = Vec::new();
 
     for line in content.lines() {

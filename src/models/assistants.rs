@@ -35,12 +35,14 @@
 //!     .build();
 //! ```
 
+use crate::api::base::Validate;
 use crate::models::functions::FunctionTool;
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Tools that can be used by an assistant
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AssistantTool {
     /// Code interpreter tool for executing Python code
@@ -86,7 +88,7 @@ impl AssistantTool {
 
 /// An assistant represents an entity that can be configured to respond to users' messages
 /// using various settings and tools
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct Assistant {
     /// The identifier of the assistant
     pub id: String,
@@ -119,7 +121,7 @@ fn default_object_type() -> String {
 }
 
 /// Request to create or modify an assistant
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct AssistantRequest {
     /// The model used by the assistant
     pub model: String,
@@ -215,6 +217,13 @@ impl AssistantRequest {
     }
 }
 
+/// Implementation of Validate trait for AssistantRequest
+impl Validate for AssistantRequest {
+    fn validate(&self) -> Result<(), String> {
+        self.validate()
+    }
+}
+
 /// Builder for creating assistant requests
 #[derive(Debug, Clone, Default)]
 pub struct AssistantRequestBuilder {
@@ -304,28 +313,19 @@ impl AssistantRequestBuilder {
         self.metadata = metadata;
         self
     }
+}
 
-    /// Build the assistant request
-    pub fn build(self) -> Result<AssistantRequest, String> {
-        let model = self.model.ok_or("Model is required")?;
-
-        let request = AssistantRequest {
-            model,
-            name: self.name,
-            description: self.description,
-            instructions: self.instructions,
-            tools: self.tools,
-            file_ids: self.file_ids,
-            metadata: self.metadata,
-        };
-
-        request.validate()?;
-        Ok(request)
+// Generate the build method for AssistantRequestBuilder
+crate::impl_builder_build! {
+    AssistantRequestBuilder => AssistantRequest {
+        required: [model: "Model is required"],
+        optional: [name, description, instructions, tools, file_ids, metadata],
+        validate: true
     }
 }
 
 /// Response from listing assistants
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListAssistantsResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object")]
@@ -345,7 +345,7 @@ fn default_list_object() -> String {
 }
 
 /// Parameters for listing assistants
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Ser, De)]
 pub struct ListAssistantsParams {
     /// Number of assistants to retrieve (1-100, default: 20)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -440,7 +440,7 @@ impl crate::api::common::ListQueryParams for ListAssistantsParams {
 }
 
 /// Sort order for listing results
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "lowercase")]
 #[derive(Default)]
 pub enum SortOrder {
@@ -452,7 +452,7 @@ pub enum SortOrder {
 }
 
 /// Response from deleting an assistant
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct DeletionStatus {
     /// The ID of the deleted assistant
     pub id: String,

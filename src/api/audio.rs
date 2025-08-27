@@ -63,7 +63,7 @@ impl AudioApi {
 
         let stream = response
             .bytes_stream()
-            .map(|chunk| chunk.map_err(|e| OpenAIError::RequestError(e.to_string())));
+            .map(|chunk| chunk.map_err(crate::request_err!(to_string)));
 
         Ok(stream)
     }
@@ -118,9 +118,7 @@ impl AudioApi {
         file_path: impl AsRef<Path>,
         request: &AudioTranscriptionRequest,
     ) -> Result<AudioTranscriptionResponse> {
-        let file_data = fs::read(file_path)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to read file: {e}")))?;
+        let file_data = crate::helpers::read_bytes(file_path).await?;
 
         self.create_transcription(request, file_data).await
     }
@@ -169,9 +167,7 @@ impl AudioApi {
         file_path: impl AsRef<Path>,
         request: &AudioTranslationRequest,
     ) -> Result<AudioTranslationResponse> {
-        let file_data = fs::read(file_path)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to read file: {e}")))?;
+        let file_data = crate::helpers::read_bytes(file_path).await?;
 
         self.create_translation(request, file_data).await
     }
@@ -210,7 +206,7 @@ impl AudioApi {
         response
             .save_to_file(output_path)
             .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to save audio: {e}")))?;
+            .map_err(crate::file_err!("Failed to save audio: {}"))?;
 
         Ok(())
     }

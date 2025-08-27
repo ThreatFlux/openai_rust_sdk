@@ -54,12 +54,14 @@
 //! # });
 //! ```
 
-use crate::api::base::HttpClient;
+use crate::api::base::{validate_request, HttpClient};
 use crate::api::common::ApiClientConstructors;
+use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::assistants::{
     Assistant, AssistantRequest, DeletionStatus, ListAssistantsParams, ListAssistantsResponse,
 };
+use crate::{http_delete_beta, http_get_beta};
 
 /// `OpenAI` Assistants API client for managing AI assistants
 #[derive(Debug, Clone)]
@@ -122,40 +124,15 @@ impl AssistantsApi {
     /// ```
     pub async fn create_assistant(&self, request: AssistantRequest) -> Result<Assistant> {
         // Validate the request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
 
         self.http_client
             .post_with_beta("/v1/assistants", &request)
             .await
     }
 
-    /// Retrieves an assistant by ID
-    ///
-    /// # Arguments
-    ///
-    /// * `assistant_id` - The ID of the assistant to retrieve
-    ///
-    /// # Returns
-    ///
-    /// Returns the `Assistant` object matching the specified ID
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
-    ///
-    /// # tokio_test::block_on(async {
-    /// let api = AssistantsApi::new("your-api-key")?;
-    /// let assistant = api.retrieve_assistant("asst_abc123").await?;
-    /// println!("Assistant name: {:?}", assistant.name);
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// # });
-    /// ```
-    pub async fn retrieve_assistant(&self, assistant_id: impl Into<String>) -> Result<Assistant> {
-        let assistant_id = assistant_id.into();
-        let path = format!("/v1/assistants/{assistant_id}");
-        self.http_client.get_with_beta(&path).await
-    }
+    // Generate HTTP client methods using macro
+    http_get_beta!(retrieve_assistant, "/v1/assistants/{}", assistant_id: impl Into<String>, Assistant);
 
     /// Modifies an existing assistant
     ///
@@ -193,43 +170,14 @@ impl AssistantsApi {
         request: AssistantRequest,
     ) -> Result<Assistant> {
         // Validate the request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
 
         let assistant_id = assistant_id.into();
-        let path = format!("/v1/assistants/{assistant_id}");
+        let path = endpoints::assistants::by_id(&assistant_id);
         self.http_client.post_with_beta(&path, &request).await
     }
 
-    /// Deletes an assistant
-    ///
-    /// # Arguments
-    ///
-    /// * `assistant_id` - The ID of the assistant to delete
-    ///
-    /// # Returns
-    ///
-    /// Returns a `DeletionStatus` indicating whether the deletion was successful
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use openai_rust_sdk::api::{assistants::AssistantsApi, common::ApiClientConstructors};
-    ///
-    /// # tokio_test::block_on(async {
-    /// let api = AssistantsApi::new("your-api-key")?;
-    /// let result = api.delete_assistant("asst_abc123").await?;
-    /// println!("Deleted: {}", result.deleted);
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// # });
-    /// ```
-    pub async fn delete_assistant(
-        &self,
-        assistant_id: impl Into<String>,
-    ) -> Result<DeletionStatus> {
-        let assistant_id = assistant_id.into();
-        let path = format!("/v1/assistants/{assistant_id}");
-        self.http_client.delete_with_beta(&path).await
-    }
+    http_delete_beta!(delete_assistant, "/v1/assistants/{}", assistant_id: impl Into<String>, DeletionStatus);
 
     /// Lists assistants
     ///

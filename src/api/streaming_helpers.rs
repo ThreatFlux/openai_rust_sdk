@@ -58,7 +58,7 @@ pub async fn process_tool_call_delta(
             if let Some(call_id) = &builder.call_id {
                 events.push(FunctionStreamEvent::FunctionCallArgumentsDelta {
                     call_id: call_id.clone(),
-                    arguments_delta: args_delta,
+                    arguments_delta: args_delta.clone(),
                 });
             }
         }

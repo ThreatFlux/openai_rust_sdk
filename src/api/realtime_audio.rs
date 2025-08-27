@@ -223,7 +223,7 @@ impl RealtimeAudioApi {
             .json(request)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .map_err(crate::request_err!(to_string))?;
 
         let status = response.status();
         if !status.is_success() {
@@ -240,7 +240,7 @@ impl RealtimeAudioApi {
         let session_response: RealtimeSessionResponse = response
             .json()
             .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))?;
+            .map_err(crate::parse_err!(to_string))?;
 
         let session = self
             .create_webrtc_session(session_response, request.config.clone())
@@ -286,7 +286,7 @@ impl RealtimeAudioApi {
         let mut media_engine = MediaEngine::default();
         media_engine
             .register_default_codecs()
-            .map_err(|e| OpenAIError::InvalidRequest(format!("Failed to register codecs: {e}")))?;
+            .map_err(crate::invalid_request_err!("Failed to register codecs: {}"))?;
 
         // Create interceptor registry
         let mut registry = Registry::new();
@@ -420,7 +420,7 @@ impl RealtimeAudioApi {
         let _rtp_sender = peer_connection
             .add_track(audio_track.clone() as Arc<dyn TrackLocal + Send + Sync>)
             .await
-            .map_err(|e| OpenAIError::InvalidRequest(format!("Failed to add audio track: {e}")))?;
+            .map_err(crate::invalid_request_err!("Failed to add audio track: {}"))?;
 
         // Set up track handlers for incoming audio
         let session_for_track = session_weak.clone();
@@ -447,7 +447,7 @@ impl RealtimeAudioApi {
         let offer = peer_connection
             .create_offer(None)
             .await
-            .map_err(|e| OpenAIError::InvalidRequest(format!("Failed to create offer: {e}")))?;
+            .map_err(crate::invalid_request_err!("Failed to create offer: {}"))?;
 
         // Set local description
         peer_connection
@@ -476,13 +476,12 @@ impl RealtimeSession {
     /// Send an event to the server
     pub async fn send_event(&self, event: RealtimeEvent) -> Result<()> {
         if let Some(data_channel) = self.data_channel.lock().await.as_ref() {
-            let json = serde_json::to_string(&event)
-                .map_err(|e| OpenAIError::ParseError(e.to_string()))?;
+            let json = serde_json::to_string(&event).map_err(crate::parse_err!(to_string))?;
 
             data_channel
                 .send_text(json)
                 .await
-                .map_err(|e| OpenAIError::Streaming(format!("Failed to send event: {e}")))?;
+                .map_err(crate::streaming_err!("Failed to send event: {}"))?;
         } else {
             return Err(OpenAIError::InvalidRequest(
                 "Data channel not available".to_string(),
@@ -509,7 +508,7 @@ impl RealtimeSession {
             audio_track
                 .write_sample(&sample)
                 .await
-                .map_err(|e| OpenAIError::Streaming(format!("Failed to send audio: {e}")))?;
+                .map_err(crate::streaming_err!("Failed to send audio: {}"))?;
         } else {
             return Err(OpenAIError::InvalidRequest(
                 "Audio track not available".to_string(),
@@ -757,7 +756,7 @@ impl AudioProcessor {
         let target_rms = 1000.0; // Target RMS level
 
         if rms > 0.0 {
-            let gain = target_rms / rms;
+            let gain: f32 = target_rms / rms;
             let clamped_gain = gain.clamp(0.1, 10.0); // Limit gain range
 
             for sample in &mut audio_buffer.samples {

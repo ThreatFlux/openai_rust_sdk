@@ -6,6 +6,7 @@
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
+use crate::http_get;
 use crate::models::models::{
     CompletionType, ListModelsResponse, Model, ModelCapabilities, ModelFamily, ModelRequirements,
 };
@@ -37,18 +38,9 @@ impl ModelsApi {
         self.http_client.api_key()
     }
 
-    /// List all available models
-    pub async fn list_models(&self) -> Result<ListModelsResponse> {
-        self.http_client.get("/v1/models").await
-    }
-
-    /// Retrieve information about a specific model
-    pub async fn retrieve_model(&self, model_id: impl AsRef<str>) -> Result<Model> {
-        let model_id = model_id.as_ref();
-        self.http_client
-            .get(&format!("/v1/models/{model_id}"))
-            .await
-    }
+    // Generate HTTP client methods using macro
+    http_get!(list_models, "/v1/models", ListModelsResponse);
+    http_get!(retrieve_model, "/v1/models/{}", model_id: impl AsRef<str>, Model);
 
     /// List models filtered by family
     pub async fn list_models_by_family(&self, family: ModelFamily) -> Result<Vec<Model>> {

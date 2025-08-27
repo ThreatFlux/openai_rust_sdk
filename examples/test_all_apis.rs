@@ -85,18 +85,17 @@ async fn test_files_api(api_key: &str) -> Result<()> {
 
     // Create a test file
     let test_content = "This is a test file for OpenAI API testing.";
-    let temp_dir = tempfile::tempdir()
-        .map_err(|e| openai_rust_sdk::error::OpenAIError::InvalidRequest(e.to_string()))?;
+    let temp_dir = tempfile::tempdir().map_err(openai_rust_sdk::invalid_request_err!(to_string))?;
     let temp_file = temp_dir.path().join("test_file.txt");
     fs::write(&temp_file, test_content)
         .await
-        .map_err(|e| openai_rust_sdk::error::OpenAIError::InvalidRequest(e.to_string()))?;
+        .map_err(openai_rust_sdk::invalid_request_err!(to_string))?;
 
     // Test upload
     println!("   📤 Uploading file...");
     let file_bytes = fs::read(&temp_file)
         .await
-        .map_err(|e| openai_rust_sdk::error::OpenAIError::InvalidRequest(e.to_string()))?;
+        .map_err(openai_rust_sdk::invalid_request_err!(to_string))?;
     let upload_request = FileUploadRequest::new(
         file_bytes,
         "test_file.txt".to_string(),
@@ -373,8 +372,8 @@ async fn test_audio_api(api_key: &str) -> Result<()> {
             println!("      Content type: {}", response.content_type);
 
             // Save audio file
-            let audio_dir = tempfile::tempdir()
-                .map_err(|e| openai_rust_sdk::error::OpenAIError::InvalidRequest(e.to_string()))?;
+            let audio_dir =
+                tempfile::tempdir().map_err(openai_rust_sdk::invalid_request_err!(to_string))?;
             let audio_path = audio_dir.path().join("test_speech.mp3");
             match fs::write(&audio_path, &response.audio_data).await {
                 Ok(_) => {

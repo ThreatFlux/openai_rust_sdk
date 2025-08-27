@@ -25,13 +25,13 @@
 //! ```
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize as De, Serialize as Ser};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
 /// A single batch job request for the `OpenAI` Batch API
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct BatchJobRequest {
     /// Custom identifier for tracking this specific request
     pub custom_id: String,
@@ -44,7 +44,7 @@ pub struct BatchJobRequest {
 }
 
 /// Body of a batch job request containing chat completion parameters
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct BatchJobBody {
     /// `OpenAI` model to use (e.g., "gpt-4", "gpt-3.5-turbo")
     pub model: String,
@@ -57,7 +57,7 @@ pub struct BatchJobBody {
 }
 
 /// A single chat message in the conversation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ChatMessage {
     /// Role of the message sender ("system", "user", "assistant")
     pub role: String,
@@ -210,7 +210,6 @@ impl BatchJobGenerator {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use std::fs;
     use tempfile::NamedTempFile;
 
     /// Helper function to create a test generator and temp file
@@ -225,7 +224,7 @@ mod tests {
         let (generator, temp_file) = setup_test();
         let path = temp_file.path();
         generator.generate_test_suite(path, suite_type).unwrap();
-        fs::read_to_string(path).unwrap()
+        std::fs::read_to_string(path).unwrap()
     }
 
     #[test]
@@ -252,7 +251,7 @@ mod tests {
         assert!(result.is_ok());
 
         // Read the generated file
-        let content = fs::read_to_string(path).unwrap();
+        let content = std::fs::read_to_string(path).unwrap();
         let lines: Vec<&str> = content.lines().collect();
 
         // Should have 3 basic test requests
@@ -277,7 +276,7 @@ mod tests {
         let result = generator.generate_test_suite(path, "malware");
         assert!(result.is_ok());
 
-        let content = fs::read_to_string(path).unwrap();
+        let content = std::fs::read_to_string(path).unwrap();
         let lines: Vec<&str> = content.lines().collect();
 
         // Should have 3 malware test requests
@@ -299,7 +298,7 @@ mod tests {
         let result = generator.generate_test_suite(path, "comprehensive");
         assert!(result.is_ok());
 
-        let content = fs::read_to_string(path).unwrap();
+        let content = std::fs::read_to_string(path).unwrap();
         let lines: Vec<&str> = content.lines().collect();
 
         // Should have 10 comprehensive test requests
@@ -381,7 +380,7 @@ mod tests {
 
         generator.generate_test_suite(path, "basic").unwrap();
 
-        let content = fs::read_to_string(path).unwrap();
+        let content = std::fs::read_to_string(path).unwrap();
         let first_line = content.lines().next().unwrap();
         let request: BatchJobRequest = serde_json::from_str(first_line).unwrap();
 
@@ -438,8 +437,8 @@ mod tests {
             .generate_test_suite(malware_file.path(), "malware")
             .unwrap();
 
-        let basic_content = fs::read_to_string(basic_file.path()).unwrap();
-        let malware_content = fs::read_to_string(malware_file.path()).unwrap();
+        let basic_content = std::fs::read_to_string(basic_file.path()).unwrap();
+        let malware_content = std::fs::read_to_string(malware_file.path()).unwrap();
 
         // Should have different content
         assert_ne!(basic_content, malware_content);

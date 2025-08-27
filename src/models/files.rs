@@ -36,12 +36,14 @@
 //! };
 //! ```
 
-use serde::{Deserialize, Serialize};
+use crate::api::base::Validate;
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
 /// Purpose for which a file is being uploaded
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "snake_case")]
 pub enum FilePurpose {
     /// Fine-tuning training data
@@ -133,7 +135,7 @@ impl FilePurpose {
 }
 
 /// Status of a file upload or processing
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "snake_case")]
 pub enum FileStatus {
     /// File has been uploaded successfully
@@ -159,7 +161,7 @@ impl fmt::Display for FileStatus {
 }
 
 /// Represents a file object in `OpenAI`'s system
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct File {
     /// Unique identifier for the file
     pub id: String,
@@ -349,8 +351,15 @@ impl FileUploadRequest {
     }
 }
 
+/// Implementation of Validate trait for FileUploadRequest
+impl Validate for FileUploadRequest {
+    fn validate(&self) -> Result<(), String> {
+        self.validate()
+    }
+}
+
 /// Response from the list files API endpoint
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListFilesResponse {
     /// The object type, which is always "list"
     pub object: String,
@@ -413,7 +422,7 @@ impl ListFilesResponse {
 }
 
 /// Response from deleting a file
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FileDeleteResponse {
     /// Unique identifier for the file that was deleted
     pub id: String,
@@ -461,7 +470,7 @@ pub struct ListFilesParams {
 }
 
 /// Sort order for file listings
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "snake_case")]
 pub enum SortOrder {
     /// Sort by creation date, ascending (oldest first)

@@ -1,8 +1,9 @@
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use serde_json::Value;
 
 /// Function tool definition with JSON schema parameters
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 pub struct FunctionTool {
     /// Name of the function
     pub name: String,
@@ -16,7 +17,7 @@ pub struct FunctionTool {
 }
 
 /// A function call made by the model
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FunctionCall {
     /// Unique identifier for this function call
     pub call_id: String,
@@ -27,7 +28,7 @@ pub struct FunctionCall {
 }
 
 /// Output from a function call execution
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FunctionCallOutput {
     /// The `call_id` this output corresponds to
     pub call_id: String,
@@ -36,7 +37,7 @@ pub struct FunctionCallOutput {
 }
 
 /// Different types of tools that can be used
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(tag = "type")]
 pub enum Tool {
     /// Function tool
@@ -54,7 +55,7 @@ pub enum Tool {
 }
 
 /// Custom tool definition without explicit schema
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CustomTool {
     /// Name of the custom tool
     pub name: String,
@@ -66,7 +67,7 @@ pub struct CustomTool {
 }
 
 /// Grammar specification for custom tools
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(tag = "type")]
 pub enum Grammar {
     /// Lark grammar syntax
@@ -87,7 +88,7 @@ pub enum Grammar {
 }
 
 /// Tool choice configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(untagged)]
 pub enum ToolChoice {
     /// Let the model choose automatically
@@ -111,7 +112,7 @@ pub enum ToolChoice {
 }
 
 /// Function selector for tool choice
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FunctionSelector {
     /// Name of the function to select
     pub name: String,

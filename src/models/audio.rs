@@ -3,10 +3,11 @@
 //! Data structures for the OpenAI Audio API including text-to-speech,
 //! speech-to-text transcription, and translation endpoints.
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 
 /// Request for text-to-speech audio generation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct AudioSpeechRequest {
     /// The model to use for generating audio (e.g., "tts-1", "tts-1-hd")
     pub model: String,
@@ -27,7 +28,7 @@ pub struct AudioSpeechRequest {
 }
 
 /// Request for speech-to-text transcription
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct AudioTranscriptionRequest {
     /// The audio file to transcribe (file name for multipart upload)
     #[serde(skip_serializing)]
@@ -58,7 +59,7 @@ pub struct AudioTranscriptionRequest {
 }
 
 /// Request for speech-to-text translation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct AudioTranslationRequest {
     /// The audio file to translate (file name for multipart upload)
     #[serde(skip_serializing)]
@@ -81,7 +82,7 @@ pub struct AudioTranslationRequest {
 }
 
 /// Available voices for text-to-speech
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Voice {
     /// Alloy voice - balanced and natural
@@ -112,7 +113,7 @@ impl std::fmt::Display for Voice {
 }
 
 /// Audio output formats
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum AudioFormat {
     /// MP3 audio format (default)
@@ -143,7 +144,7 @@ impl std::fmt::Display for AudioFormat {
 }
 
 /// Transcription output formats
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum TranscriptionFormat {
     /// JSON format with metadata (default)
@@ -160,7 +161,7 @@ pub enum TranscriptionFormat {
 }
 
 /// Timestamp granularity for transcriptions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(rename_all = "lowercase")]
 pub enum TimestampGranularity {
     /// Word-level timestamps
@@ -179,7 +180,7 @@ pub struct AudioSpeechResponse {
 }
 
 /// Response from transcription endpoint
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct AudioTranscriptionResponse {
     /// The transcribed text
     pub text: String,
@@ -202,7 +203,7 @@ pub struct AudioTranscriptionResponse {
 }
 
 /// Response from translation endpoint  
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct AudioTranslationResponse {
     /// The translated text (always in English)
     pub text: String,
@@ -217,7 +218,7 @@ pub struct AudioTranslationResponse {
 }
 
 /// Word-level transcription data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct TranscriptionWord {
     /// The transcribed word
     pub word: String,
@@ -230,7 +231,7 @@ pub struct TranscriptionWord {
 }
 
 /// Segment-level transcription data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct TranscriptionSegment {
     /// Unique identifier for the segment
     pub id: u32,

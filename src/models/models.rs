@@ -3,11 +3,12 @@
 //! Data structures for the OpenAI Models API that provides information about
 //! available models, their capabilities, and permissions.
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Information about an `OpenAI` model
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct Model {
     /// Unique identifier for the model
     pub id: String,
@@ -35,7 +36,7 @@ pub struct Model {
 }
 
 /// Permissions for a model
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ModelPermission {
     /// Unique identifier for the permission
     pub id: String,
@@ -78,7 +79,7 @@ pub struct ModelPermission {
 }
 
 /// Response from the list models API
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListModelsResponse {
     /// Object type (always "list")
     pub object: String,

@@ -66,6 +66,7 @@
 
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
+use crate::constants::endpoints;
 use crate::error::Result;
 use crate::models::fine_tuning::{
     FineTuningJob, FineTuningJobEvent, FineTuningJobRequest, ListFineTuningJobCheckpointsParams,
@@ -229,7 +230,7 @@ impl FineTuningApi {
     ) -> Result<FineTuningJob> {
         let fine_tuning_job_id = fine_tuning_job_id.into();
         self.http_client
-            .get(&format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}"))
+            .get(&endpoints::fine_tuning::by_id(&fine_tuning_job_id))
             .await
     }
 
@@ -261,10 +262,7 @@ impl FineTuningApi {
     ) -> Result<FineTuningJob> {
         let fine_tuning_job_id = fine_tuning_job_id.into();
         self.http_client
-            .post(
-                &format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/cancel"),
-                &(),
-            )
+            .post(&endpoints::fine_tuning::cancel(&fine_tuning_job_id), &())
             .await
     }
 
@@ -302,7 +300,7 @@ impl FineTuningApi {
         params: Option<ListFineTuningJobEventsParams>,
     ) -> Result<ListFineTuningJobEventsResponse> {
         let fine_tuning_job_id = fine_tuning_job_id.into();
-        let endpoint = format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/events");
+        let endpoint = endpoints::fine_tuning::events(&fine_tuning_job_id);
 
         let query_params = if let Some(params) = params {
             params.to_query_params()
@@ -349,7 +347,7 @@ impl FineTuningApi {
         params: Option<ListFineTuningJobCheckpointsParams>,
     ) -> Result<ListFineTuningJobCheckpointsResponse> {
         let fine_tuning_job_id = fine_tuning_job_id.into();
-        let endpoint = format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/checkpoints");
+        let endpoint = endpoints::fine_tuning::checkpoints(&fine_tuning_job_id);
 
         let query_params = if let Some(params) = params {
             params.to_query_params()

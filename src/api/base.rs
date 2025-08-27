@@ -140,7 +140,7 @@ impl HttpClient {
     /// Build authorization header value
     fn build_auth_header(&self) -> Result<HeaderValue> {
         HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-            .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid API key format: {e}")))
+            .map_err(crate::invalid_request_err!("Invalid API key format: {}"))
     }
 
     /// Build standard headers for API requests
@@ -374,9 +374,11 @@ impl HttpClient {
         R: 'static,
     {
         if status.is_success() {
-            extractor(response)
-                .await
-                .map_err(|e| OpenAIError::RequestError(format!("{}: {}", error_context, e)))
+            extractor(response).await.map_err(crate::map_err!(
+                RequestError,
+                error_context,
+                to_string
+            ))
         } else {
             self.handle_error_response(response, status).await
         }
@@ -519,6 +521,37 @@ pub async fn handle_simple_error_response(response: reqwest::Response) -> Result
     }
 }
 
+/// Validates a request object that implements a validate method
+///
+/// This helper consolidates the common pattern of calling `validate()` on request objects
+/// and mapping validation errors to `OpenAIError::InvalidRequest`.
+///
+/// # Arguments
+///
+/// * `request` - Any object that implements a `validate()` method returning `Result<(), String>`
+///
+/// # Returns
+///
+/// * `Result<()>` - Ok if validation passes, InvalidRequest error if validation fails
+///
+/// # Example
+///
+/// ```rust,ignore
+/// validate_request(&request)?;
+/// ```
+pub fn validate_request<T>(request: &T) -> Result<()>
+where
+    T: Validate,
+{
+    request.validate().map_err(OpenAIError::InvalidRequest)
+}
+
+/// Trait for request types that can be validated
+pub trait Validate {
+    /// Validates the request and returns an error message if invalid
+    fn validate(&self) -> std::result::Result<(), String>;
+}
+
 /// Handle error responses with JSON parsing attempt (for legacy code)
 pub async fn handle_error_response_with_json<T>(response: reqwest::Response) -> Result<T>
 where
@@ -529,7 +562,7 @@ where
         response
             .json::<T>()
             .await
-            .map_err(|e| OpenAIError::ParseError(e.to_string()))
+            .map_err(crate::parse_err!(to_string))
     } else {
         let error_text = extract_error_text(response).await;
         Err(create_api_error(status, error_text))
@@ -594,5 +627,77 @@ mod tests {
         ];
         let url = client.build_url("/v1/models", &query_params);
         assert_eq!(url, "https://api.openai.com/v1/models?limit=10&order=desc");
+    }
+
+    #[test]
+    fn test_validate_request_success() {
+        struct TestRequest {
+            valid: bool,
+        }
+
+        impl Validate for TestRequest {
+            fn validate(&self) -> std::result::Result<(), String> {
+                if self.valid {
+                    Ok(())
+                } else {
+                    Err("Invalid request".to_string())
+                }
+            }
+        }
+
+        let valid_request = TestRequest { valid: true };
+        let result = validate_request(&valid_request);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_request_failure() {
+        struct TestRequest {
+            valid: bool,
+        }
+
+        impl Validate for TestRequest {
+            fn validate(&self) -> std::result::Result<(), String> {
+                if self.valid {
+                    Ok(())
+                } else {
+                    Err("Invalid request".to_string())
+                }
+            }
+        }
+
+        let invalid_request = TestRequest { valid: false };
+        let result = validate_request(&invalid_request);
+        assert!(result.is_err());
+
+        if let Err(e) = result {
+            if let OpenAIError::InvalidRequest(msg) = e {
+                assert_eq!(msg, "Invalid request");
+            } else {
+                panic!("Expected InvalidRequest error, got: {:?}", e);
+            }
+        }
+    }
+
+    #[test]
+    fn test_validate_request_error_mapping() {
+        struct TestRequest;
+
+        impl Validate for TestRequest {
+            fn validate(&self) -> std::result::Result<(), String> {
+                Err("Test error message".to_string())
+            }
+        }
+
+        let request = TestRequest;
+        let result = validate_request(&request);
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OpenAIError::InvalidRequest(msg) => {
+                assert_eq!(msg, "Test error message");
+            }
+            _ => panic!("Expected InvalidRequest error"),
+        }
     }
 }

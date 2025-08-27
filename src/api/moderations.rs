@@ -5,6 +5,7 @@
 
 use crate::api::base::HttpClient;
 use crate::error::{OpenAIError, Result};
+use crate::http_post;
 use crate::models::moderations::{ModerationRequest, ModerationResponse, ModerationResult};
 
 /// Moderations API client
@@ -20,13 +21,8 @@ impl crate::api::common::ApiClientConstructors for ModerationsApi {
 }
 
 impl ModerationsApi {
-    /// Create a moderation for the given request
-    pub async fn create_moderation(
-        &self,
-        request: &ModerationRequest,
-    ) -> Result<ModerationResponse> {
-        self.http_client.post("/v1/moderations", request).await
-    }
+    // Generate HTTP client methods using macro
+    http_post!(create_moderation, "/v1/moderations", request: &ModerationRequest, ModerationResponse);
 
     /// Moderate a single text input (convenience method)
     pub async fn moderate_text(&self, text: &str) -> Result<ModerationResult> {

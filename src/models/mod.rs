@@ -116,4 +116,11 @@ pub use tools::{
 };
 
 // Vector Stores API
-pub use vector_stores::*;
+pub use vector_stores::{
+    ChunkingStrategy, ExpirationPolicy, FileCounts, ListVectorStoreFilesParams,
+    ListVectorStoreFilesResponse, ListVectorStoresParams, ListVectorStoresResponse, VectorStore,
+    VectorStoreDeleteResponse, VectorStoreFile, VectorStoreFileBatch, VectorStoreFileBatchRequest,
+    VectorStoreFileBatchStatus, VectorStoreFileDeleteResponse, VectorStoreFileError,
+    VectorStoreFileRequest, VectorStoreFileStatus, VectorStoreRequest, VectorStoreRequestBuilder,
+    VectorStoreStatus,
+};

@@ -198,18 +198,13 @@ impl ImagesApi {
         mask_path: Option<impl AsRef<Path>>,
         request: &ImageEditRequest,
     ) -> Result<ImageResponse> {
-        let image_data = fs::read(image_path)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to read image file: {e}")))?;
+        let image_data = crate::helpers::read_bytes(image_path).await?;
 
-        let mask_data =
-            if let Some(mask_path) = mask_path {
-                Some(fs::read(mask_path).await.map_err(|e| {
-                    OpenAIError::FileError(format!("Failed to read mask file: {e}"))
-                })?)
-            } else {
-                None
-            };
+        let mask_data = if let Some(mask_path) = mask_path {
+            Some(crate::helpers::read_bytes(mask_path).await?)
+        } else {
+            None
+        };
 
         self.create_image_edit(request, image_data, mask_data).await
     }
@@ -220,9 +215,7 @@ impl ImagesApi {
         image_path: impl AsRef<Path>,
         request: &ImageVariationRequest,
     ) -> Result<ImageResponse> {
-        let image_data = fs::read(image_path)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to read image file: {e}")))?;
+        let image_data = crate::helpers::read_bytes(image_path).await?;
 
         self.create_image_variation(request, image_data).await
     }
@@ -280,9 +273,7 @@ impl ImagesApi {
                     OpenAIError::ParseError(format!("Failed to decode base64: {e}"))
                 })?;
 
-                fs::write(&file_path, decoded_data)
-                    .await
-                    .map_err(|e| OpenAIError::FileError(format!("Failed to save image: {e}")))?;
+                crate::helpers::write_bytes(&file_path, &decoded_data).await?;
 
                 saved_files.push(file_path.to_string_lossy().to_string());
             }
@@ -299,7 +290,7 @@ impl ImagesApi {
             .get(url)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(format!("Failed to download image: {e}")))?;
+            .map_err(crate::request_err!("Failed to download image: {}"))?;
 
         if !response.status().is_success() {
             return Err(OpenAIError::RequestError(format!(
@@ -311,11 +302,9 @@ impl ImagesApi {
         let bytes = response
             .bytes()
             .await
-            .map_err(|e| OpenAIError::RequestError(format!("Failed to read image data: {e}")))?;
+            .map_err(crate::request_err!("Failed to read image data: {}"))?;
 
-        fs::write(output_path, bytes)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to save image: {e}")))?;
+        crate::helpers::write_bytes(output_path, &bytes).await?;
 
         Ok(())
     }

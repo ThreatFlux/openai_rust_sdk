@@ -1,4 +1,5 @@
 use crate::api::custom_tools::CustomToolsApi;
+use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice};
 use crate::models::responses::ResponseRequest;
@@ -93,7 +94,7 @@ impl FunctionsApi {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(120))
             .build()
-            .map_err(|e| OpenAIError::network(format!("Failed to create HTTP client: {e}")))?;
+            .map_err(crate::network_err!("Failed to create HTTP client: {}"))?;
 
         Ok(Self {
             client,
@@ -198,7 +199,7 @@ impl FunctionsApi {
             Tool::Function { function: _ } => {
                 // Parse arguments as JSON
                 let args: Value = serde_json::from_str(&call.arguments)
-                    .map_err(|e| OpenAIError::validation(format!("Invalid JSON arguments: {e}")))?;
+                    .map_err(crate::validation_err!("Invalid JSON arguments: {}"))?;
 
                 // TODO: Add proper JSON schema validation here
                 // For now, just check that it's a valid JSON object
@@ -365,7 +366,7 @@ impl FunctionsApi {
 
     /// Send the API request
     async fn send_request(&self, payload: &Value) -> Result<Value> {
-        let url = format!("{}/v1/chat/completions", self.base_url);
+        let url = format!("{}{}", self.base_url, endpoints::CHAT_COMPLETIONS);
 
         let response = self
             .client
@@ -375,7 +376,7 @@ impl FunctionsApi {
             .json(payload)
             .send()
             .await
-            .map_err(|e| OpenAIError::network(format!("Request failed: {e}")))?;
+            .map_err(crate::network_err!("Request failed: {}"))?;
 
         if !response.status().is_success() {
             let status_code = response.status().as_u16();
@@ -389,7 +390,7 @@ impl FunctionsApi {
         let json_response: Value = response
             .json()
             .await
-            .map_err(|e| OpenAIError::parsing(format!("Failed to parse response: {e}")))?;
+            .map_err(crate::parsing_err!("Failed to parse response: {}"))?;
 
         Ok(json_response)
     }

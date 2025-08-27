@@ -2,10 +2,11 @@
 //!
 //! Data structures for the OpenAI Embeddings API
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 
 /// Request for creating embeddings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct EmbeddingRequest {
     /// Input text to embed (string, array of strings, or array of token arrays)
     pub input: EmbeddingInput,
@@ -27,7 +28,7 @@ pub struct EmbeddingRequest {
 }
 
 /// Input for embedding requests
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(untagged)]
 pub enum EmbeddingInput {
     /// Single text string
@@ -39,7 +40,7 @@ pub enum EmbeddingInput {
 }
 
 /// Encoding format for embeddings
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Ser, De)]
 #[serde(rename_all = "lowercase")]
 pub enum EncodingFormat {
     /// Return embeddings as float arrays
@@ -49,7 +50,7 @@ pub enum EncodingFormat {
 }
 
 /// Response from embeddings API
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct EmbeddingResponse {
     /// Object type (always "list")
     pub object: String,
@@ -65,7 +66,7 @@ pub struct EmbeddingResponse {
 }
 
 /// Individual embedding object
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct Embedding {
     /// Object type (always "embedding")
     pub object: String,
@@ -78,7 +79,7 @@ pub struct Embedding {
 }
 
 /// Embedding vector that can be either floats or base64
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(untagged)]
 pub enum EmbeddingVector {
     /// Float array representation
@@ -88,7 +89,7 @@ pub enum EmbeddingVector {
 }
 
 /// Usage statistics for embeddings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct EmbeddingUsage {
     /// Number of tokens in the prompt
     pub prompt_tokens: u32,

@@ -9,7 +9,8 @@ use crate::models::containers::{
     ContainerFileList, ContainerList, ListContainersParams,
 };
 use crate::{
-    api::{base::HttpClient, common::ApiClientConstructors},
+    api::{base::HttpClient, common::ApiClientConstructors, shared_utilities::FormBuilder},
+    constants::endpoints,
     error::{OpenAIError, Result},
 };
 use reqwest::multipart;
@@ -39,7 +40,7 @@ impl ContainersApi {
 
     /// Get container details
     pub async fn get_container(&self, container_id: &str) -> Result<Container> {
-        let path = format!("/v1/containers/{container_id}");
+        let path = endpoints::containers::by_id(container_id);
         self.client.get(&path).await
     }
 
@@ -77,7 +78,7 @@ impl ContainersApi {
         container_id: &str,
         metadata: serde_json::Value,
     ) -> Result<Container> {
-        let path = format!("/v1/containers/{container_id}");
+        let path = endpoints::containers::by_id(container_id);
         let body = json!({ "metadata": metadata });
 
         // Use reqwest client directly for PATCH since HttpClient doesn't have patch method yet
@@ -92,7 +93,7 @@ impl ContainersApi {
             .json(&body)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .map_err(crate::request_err!(to_string))?;
 
         self.client.handle_response(response).await
     }
@@ -100,23 +101,17 @@ impl ContainersApi {
     /// Upload a file to a container
     pub async fn upload_file(&self, container_id: &str, file_path: &Path) -> Result<ContainerFile> {
         // Read file content
-        let file_content = fs::read(file_path)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to read file: {e}")))?;
+        let file_content = crate::helpers::read_bytes(file_path).await?;
 
         let file_name = file_path
             .file_name()
             .and_then(|n| n.to_str())
             .ok_or_else(|| OpenAIError::FileError("Invalid file name".to_string()))?;
 
-        // Create multipart form
-        let part = multipart::Part::bytes(file_content).file_name(file_name.to_string());
+        // Create multipart form using shared utilities
+        let form = FormBuilder::create_container_file_form(file_content, file_name.to_string())?;
 
-        let form = multipart::Form::new()
-            .part("file", part)
-            .text("purpose", "code_interpreter");
-
-        let path = format!("/v1/containers/{container_id}/files");
+        let path = endpoints::containers::files(container_id);
         self.client.post_multipart(&path, form).await
     }
 
@@ -127,26 +122,22 @@ impl ContainersApi {
         file_name: &str,
         content: Vec<u8>,
     ) -> Result<ContainerFile> {
-        // Create multipart form
-        let part = multipart::Part::bytes(content).file_name(file_name.to_string());
+        // Create multipart form using shared utilities
+        let form = FormBuilder::create_container_file_form(content, file_name.to_string())?;
 
-        let form = multipart::Form::new()
-            .part("file", part)
-            .text("purpose", "code_interpreter");
-
-        let path = format!("/v1/containers/{container_id}/files");
+        let path = endpoints::containers::files(container_id);
         self.client.post_multipart(&path, form).await
     }
 
     /// List files in a container
     pub async fn list_files(&self, container_id: &str) -> Result<ContainerFileList> {
-        let path = format!("/v1/containers/{container_id}/files");
+        let path = endpoints::containers::files(container_id);
         self.client.get(&path).await
     }
 
     /// Download a file from a container
     pub async fn download_file(&self, container_id: &str, file_id: &str) -> Result<Vec<u8>> {
-        let path = format!("/v1/containers/{container_id}/files/{file_id}/content");
+        let path = endpoints::containers::file_content(container_id, file_id);
         self.client.get_bytes(&path).await
     }
 
@@ -159,16 +150,14 @@ impl ContainersApi {
     ) -> Result<()> {
         let content = self.download_file(container_id, file_id).await?;
 
-        fs::write(output_path, content)
-            .await
-            .map_err(|e| OpenAIError::FileError(format!("Failed to write file: {e}")))?;
+        crate::helpers::write_bytes(output_path, &content).await?;
 
         Ok(())
     }
 
     /// Delete a file from a container
     pub async fn delete_file(&self, container_id: &str, file_id: &str) -> Result<()> {
-        let path = format!("/v1/containers/{container_id}/files/{file_id}");
+        let path = endpoints::containers::file_by_id(container_id, file_id);
 
         // Use reqwest client directly for DELETE with () response since HttpClient doesn't handle () yet
         let url = format!("{}{path}", self.client.base_url());
@@ -181,7 +170,7 @@ impl ContainersApi {
             .headers(headers)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .map_err(crate::request_err!(to_string))?;
 
         if response.status().is_success() {
             Ok(())
@@ -196,7 +185,7 @@ impl ContainersApi {
         container_id: &str,
         code: &str,
     ) -> Result<CodeExecutionResult> {
-        let path = format!("/v1/containers/{container_id}/execute");
+        let path = endpoints::containers::execute(container_id);
 
         let request = CodeExecutionRequest {
             code: code.to_string(),
@@ -214,7 +203,7 @@ impl ContainersApi {
         code: &str,
         timeout_ms: u32,
     ) -> Result<CodeExecutionResult> {
-        let path = format!("/v1/containers/{container_id}/execute");
+        let path = endpoints::containers::execute(container_id);
 
         let request = CodeExecutionRequest {
             code: code.to_string(),
@@ -227,7 +216,7 @@ impl ContainersApi {
 
     /// Delete a container
     pub async fn delete_container(&self, container_id: &str) -> Result<()> {
-        let path = format!("/v1/containers/{container_id}");
+        let path = endpoints::containers::by_id(container_id);
 
         // Use reqwest client directly for DELETE with () response since HttpClient doesn't handle () yet
         let url = format!("{}{path}", self.client.base_url());
@@ -240,7 +229,7 @@ impl ContainersApi {
             .headers(headers)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .map_err(crate::request_err!(to_string))?;
 
         if response.status().is_success() {
             Ok(())
@@ -251,7 +240,7 @@ impl ContainersApi {
 
     /// Keep a container alive by updating its last activity
     pub async fn keep_alive(&self, container_id: &str) -> Result<()> {
-        let path = format!("/v1/containers/{container_id}/keep-alive");
+        let path = endpoints::containers::keep_alive(container_id);
 
         // Use reqwest client directly for POST with () response since HttpClient doesn't handle () well yet
         let url = format!("{}{path}", self.client.base_url());
@@ -264,7 +253,7 @@ impl ContainersApi {
             .headers(headers)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .map_err(crate::request_err!(to_string))?;
 
         if response.status().is_success() {
             Ok(())

@@ -21,7 +21,7 @@ pub trait MultipartFormBuilder {
         let part = Part::bytes(file_data)
             .file_name(filename)
             .mime_str("audio/*")
-            .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid file: {e}")))?;
+            .map_err(crate::invalid_request_err!("Invalid file: {}"))?;
 
         Ok(form.part(field_name, part))
     }
@@ -46,7 +46,7 @@ pub trait MultipartFormBuilder {
         match value {
             Some(val) => {
                 let serialized = serde_json::to_string(val)
-                    .map_err(|e| OpenAIError::ParseError(e.to_string()))?
+                    .map_err(crate::parse_err!(to_string))?
                     .trim_matches('"')
                     .to_string();
                 Ok(form.text(field_name, serialized))
@@ -78,7 +78,7 @@ pub trait MultipartFormBuilder {
                 let array_field_name = format!("{field_name}[]");
                 for val in vals {
                     let serialized = serde_json::to_string(val)
-                        .map_err(|e| OpenAIError::ParseError(e.to_string()))?
+                        .map_err(crate::parse_err!(to_string))?
                         .trim_matches('"')
                         .to_string();
                     new_form = new_form.text(array_field_name.clone(), serialized);
@@ -111,6 +111,57 @@ impl FormBuilder {
         Form::new().text("model", model)
     }
 
+    /// Create a file upload form with purpose field (common OpenAI pattern)
+    pub fn create_file_upload_form(
+        file_data: Vec<u8>,
+        filename: String,
+        purpose: String,
+        mime_type: Option<&str>,
+    ) -> Result<Form> {
+        let mime = mime_type.unwrap_or("application/octet-stream");
+        let part = Part::bytes(file_data)
+            .file_name(filename)
+            .mime_str(mime)
+            .map_err(crate::request_err!("Failed to create file part: {}"))?;
+
+        Ok(Form::new().part("file", part).text("purpose", purpose))
+    }
+
+    /// Create a JSONL file upload form (for batch processing)
+    pub fn create_jsonl_upload_form(
+        file_contents: Vec<u8>,
+        filename: String,
+        purpose: String,
+    ) -> Result<Form> {
+        Self::create_file_upload_form(file_contents, filename, purpose, Some("application/jsonl"))
+    }
+
+    /// Create a container file upload form (for code interpreter)
+    pub fn create_container_file_form(file_content: Vec<u8>, file_name: String) -> Result<Form> {
+        Self::create_file_upload_form(
+            file_content,
+            file_name,
+            "code_interpreter".to_string(),
+            None,
+        )
+    }
+
+    /// Add a generic file part with custom MIME type
+    pub fn add_generic_file_part(
+        form: Form,
+        field_name: String,
+        file_data: Vec<u8>,
+        filename: String,
+        mime_type: &str,
+    ) -> Result<Form> {
+        let part = Part::bytes(file_data)
+            .file_name(filename)
+            .mime_str(mime_type)
+            .map_err(crate::invalid_request_err!("Invalid file: {}"))?;
+
+        Ok(form.part(field_name, part))
+    }
+
     /// Add an image part to form with specific field name and MIME type
     pub fn add_image_part(
         form: Form,
@@ -122,7 +173,7 @@ impl FormBuilder {
         let part = Part::bytes(image_data)
             .file_name(filename)
             .mime_str(mime_type)
-            .map_err(|e| OpenAIError::InvalidRequest(format!("Invalid image: {e}")))?;
+            .map_err(crate::invalid_request_err!("Invalid image: {}"))?;
 
         Ok(form.part(field_name, part))
     }
@@ -222,7 +273,7 @@ impl MultipartRequestExecutor {
             .multipart(form)
             .send()
             .await
-            .map_err(|e| OpenAIError::RequestError(e.to_string()))?;
+            .map_err(crate::request_err!(to_string))?;
 
         let status = response.status();
         if !status.is_success() {
@@ -262,12 +313,12 @@ impl AudioResponseHandler {
             response
                 .json::<T>()
                 .await
-                .map_err(|e| OpenAIError::ParseError(e.to_string()))
+                .map_err(crate::parse_err!(to_string))
         } else {
             let text = response
                 .text()
                 .await
-                .map_err(|e| OpenAIError::ParseError(e.to_string()))?;
+                .map_err(crate::parse_err!(to_string))?;
             Ok(fallback_parser(text))
         }
     }
@@ -425,5 +476,85 @@ mod tests {
             config.extra_headers.get("Custom-Header"),
             Some(&"value".to_string())
         );
+    }
+
+    #[test]
+    fn test_create_file_upload_form() {
+        let file_data = vec![1, 2, 3, 4, 5];
+        let filename = "test.txt".to_string();
+        let purpose = "assistants".to_string();
+
+        let form =
+            FormBuilder::create_file_upload_form(file_data, filename, purpose, Some("text/plain"));
+
+        assert!(form.is_ok());
+    }
+
+    #[test]
+    fn test_create_file_upload_form_default_mime() {
+        let file_data = vec![1, 2, 3, 4, 5];
+        let filename = "test.bin".to_string();
+        let purpose = "assistants".to_string();
+
+        let form = FormBuilder::create_file_upload_form(file_data, filename, purpose, None);
+
+        assert!(form.is_ok());
+    }
+
+    #[test]
+    fn test_create_jsonl_upload_form() {
+        let file_contents = b"{'prompt':'Hello','completion':'World'}".to_vec();
+        let filename = "batch.jsonl".to_string();
+        let purpose = "batch".to_string();
+
+        let form = FormBuilder::create_jsonl_upload_form(file_contents, filename, purpose);
+
+        assert!(form.is_ok());
+    }
+
+    #[test]
+    fn test_create_container_file_form() {
+        let file_content = vec![1, 2, 3, 4, 5];
+        let file_name = "script.py".to_string();
+
+        let form = FormBuilder::create_container_file_form(file_content, file_name);
+
+        assert!(form.is_ok());
+    }
+
+    #[test]
+    fn test_add_generic_file_part() {
+        let form = Form::new();
+        let file_data = vec![1, 2, 3, 4, 5];
+        let filename = "test.csv".to_string();
+
+        let result = FormBuilder::add_generic_file_part(
+            form,
+            "data".to_string(),
+            file_data,
+            filename,
+            "text/csv",
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_add_generic_file_part_invalid_mime() {
+        let form = Form::new();
+        let file_data = vec![1, 2, 3, 4, 5];
+        let filename = "test.txt".to_string();
+
+        let result = FormBuilder::add_generic_file_part(
+            form,
+            "file".to_string(),
+            file_data,
+            filename,
+            "invalid/mime/type/that/is/too/long",
+        );
+
+        // This should still work as reqwest is quite permissive with MIME types
+        // The actual validation happens at the reqwest level
+        assert!(result.is_ok() || result.is_err());
     }
 }

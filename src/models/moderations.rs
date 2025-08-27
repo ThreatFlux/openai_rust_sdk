@@ -2,10 +2,11 @@
 //!
 //! Data structures for the OpenAI Moderations API to classify content according to OpenAI's usage policies
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 
 /// Request for content moderation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ModerationRequest {
     /// Input text to moderate (string or array of strings)
     pub input: ModerationInput,
@@ -16,7 +17,7 @@ pub struct ModerationRequest {
 }
 
 /// Input for moderation requests
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Ser, De)]
 #[serde(untagged)]
 pub enum ModerationInput {
     /// Single text string
@@ -26,7 +27,7 @@ pub enum ModerationInput {
 }
 
 /// Response from moderations API
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ModerationResponse {
     /// Unique identifier for the moderation request
     pub id: String,
@@ -39,7 +40,7 @@ pub struct ModerationResponse {
 }
 
 /// Individual moderation result
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ModerationResult {
     /// Whether the content violates `OpenAI`'s usage policies
     pub flagged: bool,
@@ -52,7 +53,7 @@ pub struct ModerationResult {
 }
 
 /// Category flags indicating which policies are violated
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ModerationCategories {
     /// Content that expresses, incites, or promotes hate based on race, gender, ethnicity, religion, nationality, sexual orientation, disability status, or caste
     pub hate: bool,
@@ -96,7 +97,7 @@ pub struct ModerationCategories {
 }
 
 /// Confidence scores for each category (0.0 to 1.0)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CategoryScores {
     /// Hate confidence score
     pub hate: f64,

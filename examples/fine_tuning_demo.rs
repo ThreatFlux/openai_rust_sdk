@@ -151,15 +151,12 @@ async fn upload_training_files(files_api: &FilesApi) -> Result<(String, String)>
     let training_path = "/tmp/training_data.jsonl";
     let validation_path = "/tmp/validation_data.jsonl";
 
-    std::fs::write(training_path, TRAINING_DATA)
-        .map_err(|e| OpenAIError::FileError(format!("Failed to write training file: {e}")))?;
+    openai_rust_sdk::helpers::write_string_sync(training_path, TRAINING_DATA)?;
 
-    std::fs::write(validation_path, VALIDATION_DATA)
-        .map_err(|e| OpenAIError::FileError(format!("Failed to write validation file: {e}")))?;
+    openai_rust_sdk::helpers::write_string_sync(validation_path, VALIDATION_DATA)?;
 
     // Upload training file
-    let training_data = std::fs::read(training_path)
-        .map_err(|e| OpenAIError::FileError(format!("Failed to read training file: {e}")))?;
+    let training_data = openai_rust_sdk::helpers::read_bytes_sync(training_path)?;
     let training_request = FileUploadRequest::new(
         training_data,
         "training_data.jsonl".to_string(),
@@ -169,8 +166,7 @@ async fn upload_training_files(files_api: &FilesApi) -> Result<(String, String)>
     let training_file = files_api.upload_file(training_request).await?;
 
     // Upload validation file
-    let validation_data = std::fs::read(validation_path)
-        .map_err(|e| OpenAIError::FileError(format!("Failed to read validation file: {e}")))?;
+    let validation_data = openai_rust_sdk::helpers::read_bytes_sync(validation_path)?;
     let validation_request = FileUploadRequest::new(
         validation_data,
         "validation_data.jsonl".to_string(),

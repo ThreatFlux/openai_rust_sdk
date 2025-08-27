@@ -36,13 +36,13 @@
 //! ```
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize as De, Serialize as Ser};
 use std::collections::HashMap;
 use thiserror::Error;
 use yara_x::{Compiler, Rules, Scanner};
 
 /// Errors that can occur during YARA rule validation
-#[derive(Error, Debug, Clone, Serialize, Deserialize)]
+#[derive(Error, Debug, Clone, Ser, De)]
 pub enum ValidationError {
     /// YARA rule compilation failed
     #[error("Compilation failed: {message}")]
@@ -53,7 +53,7 @@ pub enum ValidationError {
 }
 
 /// Result of YARA rule validation including metrics and analysis
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ValidationResult {
     /// Whether the rule compiled successfully
     pub is_valid: bool,
@@ -72,7 +72,7 @@ pub struct ValidationResult {
 }
 
 /// Analysis of YARA rule features and complexity
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Ser, De, Default)]
 pub struct RuleFeatures {
     /// Whether the rule has a strings section
     pub has_strings: bool,
@@ -95,7 +95,7 @@ pub struct RuleFeatures {
 }
 
 /// Performance metrics for rule validation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ValidationMetrics {
     /// Time taken to compile the rule in milliseconds
     pub compilation_time_ms: u64,
@@ -106,7 +106,7 @@ pub struct ValidationMetrics {
 }
 
 /// Result of testing a pattern against sample data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct PatternTestResult {
     /// Identifier for the test pattern
     pub pattern_id: String,

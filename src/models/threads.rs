@@ -44,7 +44,9 @@
 //!     .unwrap();
 //! ```
 
-use serde::{Deserialize, Serialize};
+use crate::api::base::Validate;
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Common validation functions for threads and messages
@@ -91,7 +93,7 @@ trait MetadataBuilder {
 }
 
 /// A conversation thread that can contain multiple messages
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct Thread {
     /// The identifier of the thread
     pub id: String,
@@ -110,7 +112,7 @@ fn default_thread_object() -> String {
 }
 
 /// Request to create or modify a thread
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ThreadRequest {
     /// A list of messages to start the thread with
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -147,6 +149,13 @@ impl ThreadRequest {
         }
 
         Ok(())
+    }
+}
+
+/// Implementation of Validate trait for ThreadRequest
+impl Validate for ThreadRequest {
+    fn validate(&self) -> Result<(), String> {
+        self.validate()
     }
 }
 
@@ -216,7 +225,7 @@ impl ThreadRequestBuilder {
 }
 
 /// The role of the message author
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "lowercase")]
 pub enum MessageRole {
     /// Message from a user
@@ -240,7 +249,7 @@ impl MessageRole {
 }
 
 /// Content within a message
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum MessageContent {
     /// Text content with optional annotations
@@ -287,7 +296,7 @@ impl MessageContent {
 }
 
 /// Text content with annotations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct TextContent {
     /// The actual text content
     pub value: String,
@@ -297,14 +306,14 @@ pub struct TextContent {
 }
 
 /// Image file content
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ImageFile {
     /// The file ID of the image
     pub file_id: String,
 }
 
 /// Annotations that can be applied to text content
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Annotation {
     /// A citation of a specific quote from a file
@@ -332,7 +341,7 @@ pub enum Annotation {
 }
 
 /// A citation of a specific quote from a file
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FileCitation {
     /// The ID of the file that was cited
     pub file_id: String,
@@ -341,14 +350,14 @@ pub struct FileCitation {
 }
 
 /// File path information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FilePathInfo {
     /// The ID of the file
     pub file_id: String,
 }
 
 /// A message within a thread
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct Message {
     /// The identifier of the message
     pub id: String,
@@ -380,7 +389,7 @@ fn default_message_object() -> String {
 }
 
 /// Request to create or modify a message
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct MessageRequest {
     /// The role of the entity that is creating the message
     pub role: MessageRole,
@@ -427,6 +436,13 @@ impl MessageRequest {
         validate_metadata(&self.metadata).map_err(|e| format!("Message {}", e))?;
 
         Ok(())
+    }
+}
+
+/// Implementation of Validate trait for MessageRequest
+impl Validate for MessageRequest {
+    fn validate(&self) -> Result<(), String> {
+        self.validate()
     }
 }
 
@@ -499,21 +515,14 @@ impl MessageRequestBuilder {
         self.set_metadata(metadata);
         self
     }
+}
 
-    /// Build the message request
-    pub fn build(self) -> Result<MessageRequest, String> {
-        let role = self.role.ok_or("Role is required")?;
-        let content = self.content.ok_or("Content is required")?;
-
-        let request = MessageRequest {
-            role,
-            content,
-            file_ids: self.file_ids,
-            metadata: self.metadata,
-        };
-
-        request.validate()?;
-        Ok(request)
+// Generate the build method for MessageRequestBuilder
+crate::impl_builder_build! {
+    MessageRequestBuilder => MessageRequest {
+        required: [role: "Role is required", content: "Content is required"],
+        optional: [file_ids, metadata],
+        validate: true
     }
 }
 
@@ -524,7 +533,7 @@ impl Default for MessageRequestBuilder {
 }
 
 /// Response from listing threads
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListThreadsResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object")]
@@ -540,7 +549,7 @@ pub struct ListThreadsResponse {
 }
 
 /// Response from listing messages
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListMessagesResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object")]
@@ -560,7 +569,7 @@ fn default_list_object() -> String {
 }
 
 /// Parameters for listing messages
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Ser, De)]
 pub struct ListMessagesParams {
     /// Number of messages to retrieve (1-100, default: 20)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -655,7 +664,7 @@ impl crate::api::common::ListQueryParams for ListMessagesParams {
 }
 
 /// Sort order for listing results
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "lowercase")]
 #[derive(Default)]
 pub enum SortOrder {
@@ -667,7 +676,7 @@ pub enum SortOrder {
 }
 
 /// Response from deleting a thread
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct DeletionStatus {
     /// The ID of the deleted object
     pub id: String,
@@ -683,7 +692,7 @@ fn default_thread_deletion_object() -> String {
 }
 
 /// Message file object representing a file attached to a message
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct MessageFile {
     /// The identifier of the message file
     pub id: String,
@@ -701,7 +710,7 @@ fn default_message_file_object() -> String {
 }
 
 /// Response from listing message files
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListMessageFilesResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object")]

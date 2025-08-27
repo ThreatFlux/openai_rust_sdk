@@ -6,6 +6,7 @@
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
 use crate::error::{OpenAIError, Result};
+use crate::http_post;
 use crate::models::embeddings::{EmbeddingRequest, EmbeddingResponse};
 
 /// Embeddings API client
@@ -21,10 +22,8 @@ impl ApiClientConstructors for EmbeddingsApi {
 }
 
 impl EmbeddingsApi {
-    /// Create embeddings for the given input
-    pub async fn create_embeddings(&self, request: &EmbeddingRequest) -> Result<EmbeddingResponse> {
-        self.http_client.post("/v1/embeddings", request).await
-    }
+    // Generate HTTP client methods using macro
+    http_post!(create_embeddings, "/v1/embeddings", request: &EmbeddingRequest, EmbeddingResponse);
 
     /// Create embeddings for a single text input
     pub async fn embed_text(&self, model: &str, text: &str) -> Result<Vec<f32>> {

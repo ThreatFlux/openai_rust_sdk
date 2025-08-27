@@ -58,8 +58,9 @@
 //! # });
 //! ```
 
-use crate::api::base::HttpClient;
+use crate::api::base::{validate_request, HttpClient};
 use crate::api::common::ApiClientConstructors;
+use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::threads::{
     DeletionStatus, ListMessageFilesResponse, ListMessagesParams, ListMessagesResponse, Message,
@@ -132,7 +133,7 @@ impl ThreadsApi {
     /// ```
     pub async fn create_thread(&self, request: ThreadRequest) -> Result<Thread> {
         // Validate request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
         self.http_client
             .post_with_beta("/v1/threads", &request)
             .await
@@ -162,7 +163,7 @@ impl ThreadsApi {
     /// ```
     pub async fn retrieve_thread(&self, thread_id: impl Into<String>) -> Result<Thread> {
         let thread_id = thread_id.into();
-        let path = format!("/v1/threads/{thread_id}");
+        let path = endpoints::threads::by_id(&thread_id);
         self.http_client.get_with_beta(&path).await
     }
 
@@ -200,10 +201,10 @@ impl ThreadsApi {
         request: ThreadRequest,
     ) -> Result<Thread> {
         // Validate request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
 
         let thread_id = thread_id.into();
-        let path = format!("/v1/threads/{thread_id}");
+        let path = endpoints::threads::by_id(&thread_id);
         self.http_client.post_with_beta(&path, &request).await
     }
 
@@ -231,7 +232,7 @@ impl ThreadsApi {
     /// ```
     pub async fn delete_thread(&self, thread_id: impl Into<String>) -> Result<DeletionStatus> {
         let thread_id = thread_id.into();
-        let path = format!("/v1/threads/{thread_id}");
+        let path = endpoints::threads::by_id(&thread_id);
         self.http_client.delete_with_beta(&path).await
     }
 
@@ -272,10 +273,10 @@ impl ThreadsApi {
         request: MessageRequest,
     ) -> Result<Message> {
         // Validate request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
 
         let thread_id = thread_id.into();
-        let path = format!("/v1/threads/{thread_id}/messages");
+        let path = endpoints::threads::messages(&thread_id);
         self.http_client.post_with_beta(&path, &request).await
     }
 
@@ -309,7 +310,7 @@ impl ThreadsApi {
     ) -> Result<Message> {
         let thread_id = thread_id.into();
         let message_id = message_id.into();
-        let path = format!("/v1/threads/{thread_id}/messages/{message_id}");
+        let path = endpoints::threads::message_by_id(&thread_id, &message_id);
         self.http_client.get_with_beta(&path).await
     }
 
@@ -351,11 +352,11 @@ impl ThreadsApi {
         request: MessageRequest,
     ) -> Result<Message> {
         // Validate request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
 
         let thread_id = thread_id.into();
         let message_id = message_id.into();
-        let path = format!("/v1/threads/{thread_id}/messages/{message_id}");
+        let path = endpoints::threads::message_by_id(&thread_id, &message_id);
         self.http_client.post_with_beta(&path, &request).await
     }
 
@@ -393,7 +394,7 @@ impl ThreadsApi {
         params: Option<ListMessagesParams>,
     ) -> Result<ListMessagesResponse> {
         let thread_id = thread_id.into();
-        let path = format!("/v1/threads/{thread_id}/messages");
+        let path = endpoints::threads::messages(&thread_id);
 
         let query_params = if let Some(params) = params {
             params.to_query_params()
@@ -438,7 +439,7 @@ impl ThreadsApi {
     ) -> Result<ListMessageFilesResponse> {
         let thread_id = thread_id.into();
         let message_id = message_id.into();
-        let path = format!("/v1/threads/{thread_id}/messages/{message_id}/files");
+        let path = endpoints::threads::message_files(&thread_id, &message_id);
         self.http_client.get_with_beta(&path).await
     }
 
@@ -475,7 +476,7 @@ impl ThreadsApi {
         let thread_id = thread_id.into();
         let message_id = message_id.into();
         let file_id = file_id.into();
-        let path = format!("/v1/threads/{thread_id}/messages/{message_id}/files/{file_id}");
+        let path = endpoints::threads::message_file_by_id(&thread_id, &message_id, &file_id);
         self.http_client.get_with_beta(&path).await
     }
 }

@@ -53,9 +53,12 @@
 //! # });
 //! ```
 
-use crate::api::base::HttpClient;
+use crate::api::base::{validate_request, HttpClient};
 use crate::api::common::ApiClientConstructors;
+use crate::api::shared_utilities::FormBuilder;
+use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
+use crate::http_get;
 use crate::models::files::{
     File, FileDeleteResponse, FilePurpose, FileUploadRequest, ListFilesParams, ListFilesResponse,
 };
@@ -121,21 +124,15 @@ impl FilesApi {
     /// ```
     pub async fn upload_file(&self, request: FileUploadRequest) -> Result<File> {
         // Validate the request
-        request.validate().map_err(OpenAIError::InvalidRequest)?;
+        validate_request(&request)?;
 
-        // Create multipart form
+        // Create multipart form using shared utilities
         let mime_type = request.mime_type();
         let filename = request.filename.clone();
         let purpose = request.purpose.to_string();
 
-        let part = multipart::Part::bytes(request.file)
-            .file_name(filename)
-            .mime_str(mime_type)
-            .map_err(|e| OpenAIError::RequestError(format!("Failed to create file part: {e}")))?;
-
-        let form = multipart::Form::new()
-            .part("file", part)
-            .text("purpose", purpose);
+        let form =
+            FormBuilder::create_file_upload_form(request.file, filename, purpose, Some(mime_type))?;
 
         self.http_client.post_multipart("/v1/files", form).await
     }
@@ -183,31 +180,7 @@ impl FilesApi {
         }
     }
 
-    /// Retrieves a file's metadata by its ID
-    ///
-    /// # Arguments
-    ///
-    /// * `file_id` - The ID of the file to retrieve
-    ///
-    /// # Returns
-    ///
-    /// Returns a `File` object containing the file's metadata
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use openai_rust_sdk::api::{files::FilesApi, common::ApiClientConstructors};
-    ///
-    /// # tokio_test::block_on(async {
-    /// let api = FilesApi::new("your-api-key")?;
-    /// let file = api.retrieve_file("file-abc123").await?;
-    /// println!("File: {} ({})", file.filename, file.size_human_readable());
-    /// # Ok::<(), openai_rust_sdk::OpenAIError>(())
-    /// # });
-    /// ```
-    pub async fn retrieve_file(&self, file_id: &str) -> Result<File> {
-        self.http_client.get(&format!("/v1/files/{file_id}")).await
-    }
+    http_get!(retrieve_file, "/v1/files/{}", file_id: &str, File);
 
     /// Downloads the content of a file
     ///
@@ -233,7 +206,7 @@ impl FilesApi {
     /// ```
     pub async fn retrieve_file_content(&self, file_id: &str) -> Result<String> {
         self.http_client
-            .get_text(&format!("/v1/files/{file_id}/content"))
+            .get_text(&endpoints::files::content(file_id))
             .await
     }
 
@@ -263,7 +236,7 @@ impl FilesApi {
     /// ```
     pub async fn retrieve_file_bytes(&self, file_id: &str) -> Result<Vec<u8>> {
         self.http_client
-            .get_bytes(&format!("/v1/files/{file_id}/content"))
+            .get_bytes(&endpoints::files::content(file_id))
             .await
     }
 
@@ -298,15 +271,7 @@ impl FilesApi {
     ) -> Result<usize> {
         let content_bytes = self.retrieve_file_bytes(file_id).await?;
 
-        tokio::fs::write(output_path, &content_bytes)
-            .await
-            .map_err(|e| {
-                OpenAIError::FileError(format!(
-                    "Failed to write file to {}: {}",
-                    output_path.display(),
-                    e
-                ))
-            })?;
+        crate::helpers::write_bytes(output_path, &content_bytes).await?;
 
         Ok(content_bytes.len())
     }
@@ -337,7 +302,7 @@ impl FilesApi {
     /// ```
     pub async fn delete_file(&self, file_id: &str) -> Result<FileDeleteResponse> {
         self.http_client
-            .delete(&format!("/v1/files/{file_id}"))
+            .delete(&endpoints::files::by_id(file_id))
             .await
     }
 

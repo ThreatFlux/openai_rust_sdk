@@ -56,7 +56,8 @@ async fn main() -> Result<()> {
 
         match cli.command {
             Commands::ValidateRule { file, verbose } => {
-                let rule_content = fs::read_to_string(&file)?;
+                let rule_content = openai_rust_sdk::helpers::read_string_sync(&file)
+                    .map_err(|e| anyhow::anyhow!("Failed to read file: {}", e))?;
                 let validator = YaraValidator::new();
 
                 match validator.validate_rule(&rule_content) {

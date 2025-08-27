@@ -9,12 +9,13 @@
 //! - Code Interpreter: Execute code in secure containers
 //! - Computer Use: Agentic computer interface control
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
 /// Main tool enum representing all available tool types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EnhancedTool {
     /// Web search tool for including internet data
@@ -43,7 +44,7 @@ pub enum EnhancedTool {
 }
 
 /// Web search configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct WebSearchConfig {
     /// Maximum number of search results to include
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,7 +60,7 @@ pub struct WebSearchConfig {
 }
 
 /// Search filters for web search
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct SearchFilters {
     /// Domains to include in search
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -79,7 +80,7 @@ pub struct SearchFilters {
 }
 
 /// File search configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FileSearchConfig {
     /// Vector store IDs to search
     pub vector_store_ids: Vec<String>,
@@ -94,7 +95,7 @@ pub struct FileSearchConfig {
 }
 
 /// Function tool (existing from functions module)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FunctionTool {
     /// Function name
     pub name: String,
@@ -111,7 +112,7 @@ pub struct FunctionTool {
 }
 
 /// Remote MCP (Model Context Protocol) server configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct McpTool {
     /// Label for the MCP server
     pub server_label: String,
@@ -133,7 +134,7 @@ pub struct McpTool {
 }
 
 /// MCP approval requirement levels
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(rename_all = "snake_case")]
 pub enum McpApproval {
     /// Never require approval
@@ -149,7 +150,7 @@ fn default_approval() -> McpApproval {
 }
 
 /// Image generation configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ImageGenerationConfig {
     /// Image size (e.g., "1024x1024", "512x512")
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -169,7 +170,7 @@ pub struct ImageGenerationConfig {
 }
 
 /// Code interpreter configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CodeInterpreterConfig {
     /// Container mode: "auto" or "explicit"
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -209,7 +210,7 @@ pub struct CodeInterpreterConfig {
 }
 
 /// Computer use configuration for agentic workflows
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ComputerUseConfig {
     /// Screen resolution for the virtual display
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -229,7 +230,7 @@ pub struct ComputerUseConfig {
 }
 
 /// Tool choice configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 #[serde(untagged)]
 #[derive(Default)]
 pub enum EnhancedToolChoice {
@@ -248,7 +249,7 @@ pub enum EnhancedToolChoice {
 }
 
 /// Specific tool choice configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct SpecificToolChoice {
     /// Type of tool to use
     #[serde(rename = "type")]

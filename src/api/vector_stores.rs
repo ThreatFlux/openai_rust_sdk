@@ -47,6 +47,7 @@
 
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
+use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::vector_stores::{
     ListVectorStoreFilesParams, ListVectorStoreFilesResponse, ListVectorStoresParams,
@@ -186,7 +187,7 @@ impl VectorStoresApi {
         vector_store_id: impl Into<String>,
     ) -> Result<VectorStore> {
         let vector_store_id = vector_store_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}");
+        let path = endpoints::vector_stores::by_id(&vector_store_id);
         self.http_client.get(&path).await
     }
 
@@ -224,7 +225,7 @@ impl VectorStoresApi {
         request: VectorStoreRequest,
     ) -> Result<VectorStore> {
         let vector_store_id = vector_store_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}");
+        let path = endpoints::vector_stores::by_id(&vector_store_id);
         self.http_client.post(&path, &request).await
     }
 
@@ -257,7 +258,7 @@ impl VectorStoresApi {
         vector_store_id: impl Into<String>,
     ) -> Result<VectorStoreDeleteResponse> {
         let vector_store_id = vector_store_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}");
+        let path = endpoints::vector_stores::by_id(&vector_store_id);
         self.http_client.delete(&path).await
     }
 
@@ -293,7 +294,7 @@ impl VectorStoresApi {
         request: VectorStoreFileRequest,
     ) -> Result<VectorStoreFile> {
         let vector_store_id = vector_store_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/files");
+        let path = endpoints::vector_stores::files(&vector_store_id);
         self.http_client.post(&path, &request).await
     }
 
@@ -336,7 +337,7 @@ impl VectorStoresApi {
         params: Option<ListVectorStoreFilesParams>,
     ) -> Result<ListVectorStoreFilesResponse> {
         let vector_store_id = vector_store_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/files");
+        let path = endpoints::vector_stores::files(&vector_store_id);
 
         let mut query_params = Vec::new();
 
@@ -378,7 +379,7 @@ impl VectorStoresApi {
     ) -> Result<VectorStoreFile> {
         let vector_store_id = vector_store_id.into();
         let file_id = file_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/files/{file_id}");
+        let path = endpoints::vector_stores::file_by_id(&vector_store_id, &file_id);
         self.http_client.get(&path).await
     }
 
@@ -414,7 +415,7 @@ impl VectorStoresApi {
     ) -> Result<VectorStoreFileDeleteResponse> {
         let vector_store_id = vector_store_id.into();
         let file_id = file_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/files/{file_id}");
+        let path = endpoints::vector_stores::file_by_id(&vector_store_id, &file_id);
         self.http_client.delete(&path).await
     }
 
@@ -449,7 +450,7 @@ impl VectorStoresApi {
     ) -> Result<VectorStoreFileBatch> {
         let vector_store_id = vector_store_id.into();
         let request = VectorStoreFileBatchRequest::new(file_ids);
-        let path = format!("/v1/vector_stores/{vector_store_id}/file_batches");
+        let path = endpoints::vector_stores::file_batches(&vector_store_id);
         self.http_client.post(&path, &request).await
     }
 
@@ -486,7 +487,7 @@ impl VectorStoresApi {
         request: VectorStoreFileBatchRequest,
     ) -> Result<VectorStoreFileBatch> {
         let vector_store_id = vector_store_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/file_batches");
+        let path = endpoints::vector_stores::file_batches(&vector_store_id);
         self.http_client.post(&path, &request).await
     }
 
@@ -521,7 +522,7 @@ impl VectorStoresApi {
     ) -> Result<VectorStoreFileBatch> {
         let vector_store_id = vector_store_id.into();
         let batch_id = batch_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/file_batches/{batch_id}");
+        let path = endpoints::vector_stores::file_batch_by_id(&vector_store_id, &batch_id);
         self.http_client.get(&path).await
     }
 
@@ -555,7 +556,7 @@ impl VectorStoresApi {
     ) -> Result<VectorStoreFileBatch> {
         let vector_store_id = vector_store_id.into();
         let batch_id = batch_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/file_batches/{batch_id}/cancel");
+        let path = endpoints::vector_stores::cancel_file_batch(&vector_store_id, &batch_id);
         // Use an empty object for the body since this is a POST with no actual data
         let empty_body = serde_json::json!({});
         self.http_client.post(&path, &empty_body).await
@@ -603,7 +604,7 @@ impl VectorStoresApi {
     ) -> Result<ListVectorStoreFilesResponse> {
         let vector_store_id = vector_store_id.into();
         let batch_id = batch_id.into();
-        let path = format!("/v1/vector_stores/{vector_store_id}/file_batches/{batch_id}/files");
+        let path = endpoints::vector_stores::file_batch_files(&vector_store_id, &batch_id);
 
         let mut query_params = Vec::new();
 

@@ -2,11 +2,12 @@
 //!
 //! Data structures for container management and code execution
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Container configuration for creation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ContainerConfig {
     /// Container name (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,7 +53,7 @@ impl Default for ContainerConfig {
 }
 
 /// Container instance
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct Container {
     /// Unique container ID
     pub id: String,
@@ -101,7 +102,7 @@ pub struct Container {
 }
 
 /// Container status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ContainerStatus {
     /// Container is being created
@@ -119,7 +120,7 @@ pub enum ContainerStatus {
 }
 
 /// File in a container
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ContainerFile {
     /// File ID
     pub id: String,
@@ -165,7 +166,7 @@ fn default_true() -> bool {
 }
 
 /// List of containers
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ContainerList {
     /// List object type
     pub object: String,
@@ -186,7 +187,7 @@ pub struct ContainerList {
 }
 
 /// List of files in a container
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ContainerFileList {
     /// List object type
     pub object: String,
@@ -199,7 +200,7 @@ pub struct ContainerFileList {
 }
 
 /// Code execution request
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CodeExecutionRequest {
     /// Python code to execute
     pub code: String,
@@ -214,7 +215,7 @@ pub struct CodeExecutionRequest {
 }
 
 /// Code execution result
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CodeExecutionResult {
     /// Execution ID
     pub id: String,
@@ -260,7 +261,7 @@ pub struct CodeExecutionResult {
 }
 
 /// Execution status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ExecutionStatus {
     /// Code is being executed
@@ -276,7 +277,7 @@ pub enum ExecutionStatus {
 }
 
 /// Code citation for tracking sources
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CodeCitation {
     /// Citation type (e.g., "file", "url", "library")
     pub citation_type: String,
@@ -294,7 +295,7 @@ pub struct CodeCitation {
 }
 
 /// Parameters for listing containers
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListContainersParams {
     /// Maximum number of containers to return
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -318,7 +319,7 @@ pub struct ListContainersParams {
 }
 
 /// Enhanced Code Interpreter configuration with container support
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct EnhancedCodeInterpreterConfig {
     /// Container mode: "auto" or "explicit"
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -358,7 +359,7 @@ pub struct EnhancedCodeInterpreterConfig {
 }
 
 /// Container mode for Code Interpreter
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 #[derive(Default)]
 pub enum ContainerMode {

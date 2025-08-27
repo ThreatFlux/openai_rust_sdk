@@ -1,6 +1,7 @@
 //! GPT-5 model constants and configuration
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 
 /// GPT-5 model constants
 pub mod models {
@@ -42,7 +43,7 @@ pub mod models {
 }
 
 /// Reasoning effort levels for GPT-5 models
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ReasoningEffort {
     /// Very few reasoning tokens for fastest time-to-first-token
@@ -62,7 +63,7 @@ impl Default for ReasoningEffort {
 }
 
 /// Verbosity levels for GPT-5 output
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Verbosity {
     /// Concise answers with minimal commentary
@@ -80,7 +81,7 @@ impl Default for Verbosity {
 }
 
 /// Reasoning configuration for GPT-5 models
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Ser, De, Default)]
 pub struct ReasoningConfig {
     /// The effort level for reasoning
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -122,7 +123,7 @@ impl ReasoningConfig {
 }
 
 /// Text output configuration for GPT-5 models
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Ser, De, Default)]
 pub struct TextConfig {
     /// The verbosity level for output
     #[serde(skip_serializing_if = "Option::is_none")]

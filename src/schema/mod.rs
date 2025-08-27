@@ -3,16 +3,18 @@
 /// Enhanced schema builder for function calling
 pub mod builder;
 
-use crate::error::{OpenAIError, Result};
+use crate::{
+    error::{OpenAIError, Result},
+    De, Ser,
+};
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
 pub use builder::SchemaBuilder as EnhancedSchemaBuilder;
 
 /// A JSON Schema wrapper for validation and compilation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct JsonSchema {
     /// The JSON schema definition
     pub schema: Value,

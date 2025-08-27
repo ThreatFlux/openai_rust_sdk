@@ -25,10 +25,10 @@
 
 use crate::testing::yara_validator::{ValidationResult, YaraValidator};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize as De, Serialize as Ser};
 
 /// Results from running a complete test suite
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct TestSuiteResult {
     /// Total number of tests executed
     pub total_tests: usize,
@@ -43,7 +43,7 @@ pub struct TestSuiteResult {
 }
 
 /// Result from a single test case execution
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct TestCaseResult {
     /// Unique identifier for the test case
     pub test_id: String,

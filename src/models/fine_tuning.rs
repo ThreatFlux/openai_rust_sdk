@@ -37,7 +37,8 @@
 //!     .build();
 //! ```
 
-use serde::{Deserialize, Serialize};
+use crate::{De, Ser};
+use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Default object type for fine-tuning jobs
@@ -51,7 +52,7 @@ fn default_status() -> FineTuningJobStatus {
 }
 
 /// Status of a fine-tuning job
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "snake_case")]
 pub enum FineTuningJobStatus {
     /// Job is validating the uploaded files
@@ -83,7 +84,7 @@ impl FineTuningJobStatus {
 }
 
 /// Hyperparameters for fine-tuning
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Ser, De, Default)]
 pub struct Hyperparameters {
     /// Number of epochs to train the model for (1-50, default: auto)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -155,7 +156,7 @@ impl HyperparametersBuilder {
 }
 
 /// Error details for a failed fine-tuning job
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FineTuningError {
     /// Error code for programmatic handling
     pub code: String,
@@ -167,7 +168,7 @@ pub struct FineTuningError {
 }
 
 /// A fine-tuning job represents the entity that tracks the progress of a fine-tuning operation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FineTuningJob {
     /// The identifier of the fine-tuning job
     pub id: String,
@@ -211,7 +212,7 @@ pub struct FineTuningJob {
 }
 
 /// Request to create a fine-tuning job
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FineTuningJobRequest {
     /// The ID of an uploaded file that contains training data
     pub training_file: String,
@@ -318,25 +319,18 @@ impl FineTuningJobRequestBuilder {
         self.metadata = Some(metadata);
         self
     }
+}
 
-    /// Build the fine-tuning job request
-    pub fn build(self) -> Result<FineTuningJobRequest, String> {
-        let training_file = self.training_file.ok_or("training_file is required")?;
-        let model = self.model.ok_or("model is required")?;
-
-        Ok(FineTuningJobRequest {
-            training_file,
-            validation_file: self.validation_file,
-            model,
-            hyperparameters: self.hyperparameters,
-            suffix: self.suffix,
-            metadata: self.metadata,
-        })
+// Generate the build method for FineTuningJobRequestBuilder
+crate::impl_builder_build! {
+    FineTuningJobRequestBuilder => FineTuningJobRequest {
+        required: [training_file: "training_file is required", model: "model is required"],
+        optional: [validation_file, hyperparameters, suffix, metadata]
     }
 }
 
 /// Fine-tuning job event for tracking training progress
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FineTuningJobEvent {
     /// The identifier of the event
     pub id: String,
@@ -360,7 +354,7 @@ fn default_event_object_type() -> String {
 }
 
 /// Training checkpoint from a fine-tuning job
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct FineTuningJobCheckpoint {
     /// The identifier of the checkpoint
     pub id: String,
@@ -385,7 +379,7 @@ fn default_checkpoint_object_type() -> String {
 }
 
 /// Metrics recorded at a training checkpoint
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CheckpointMetrics {
     /// Training loss at this checkpoint
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -408,7 +402,7 @@ pub struct CheckpointMetrics {
 }
 
 /// Response for listing fine-tuning jobs
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListFineTuningJobsResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object_type")]
@@ -420,7 +414,7 @@ pub struct ListFineTuningJobsResponse {
 }
 
 /// Response for listing fine-tuning job events
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListFineTuningJobEventsResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object_type")]
@@ -432,7 +426,7 @@ pub struct ListFineTuningJobEventsResponse {
 }
 
 /// Response for listing fine-tuning job checkpoints
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct ListFineTuningJobCheckpointsResponse {
     /// The object type, which is always "list"
     #[serde(default = "default_list_object_type")]
@@ -584,7 +578,7 @@ impl ListFineTuningJobCheckpointsParams {
 }
 
 /// Response when cancelling a fine-tuning job
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Ser, De)]
 pub struct CancelFineTuningJobResponse {
     /// The identifier of the cancelled job
     pub id: String,

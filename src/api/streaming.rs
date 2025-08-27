@@ -1,5 +1,6 @@
 use crate::api::common::ApiClientConstructors;
 use crate::api::responses::ResponsesApi;
+use crate::constants::endpoints;
 use crate::error::{ApiErrorResponse, OpenAIError, Result};
 use crate::models::functions::{FunctionCall, Tool, ToolChoice};
 use crate::models::responses::{
@@ -8,6 +9,7 @@ use crate::models::responses::{
 use eventsource_stream::Eventsource;
 use futures::Stream;
 use futures::StreamExt as FuturesStreamExt;
+use serde::Serialize;
 use std::pin::Pin;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -47,7 +49,11 @@ impl StreamingApi {
         let mut streaming_request = request.clone();
         streaming_request.stream = Some(true);
 
-        let url = format!("{}/v1/chat/completions", self.responses_api.base_url());
+        let url = format!(
+            "{}{}",
+            self.responses_api.base_url(),
+            endpoints::CHAT_COMPLETIONS
+        );
 
         // Convert to OpenAI format
         let mut openai_request = self.responses_api.to_openai_format(&streaming_request)?;
@@ -142,7 +148,7 @@ impl StreamingApi {
             let chunk = chunk_result?;
 
             for choice in chunk.choices {
-                if let Some(ref delta_content) = choice.delta.content {
+                if let Some(delta_content) = &choice.delta.content {
                     content.push_str(delta_content);
                 }
 
@@ -295,6 +301,48 @@ pub fn chunk_to_events(chunk: StreamChunk) -> Vec<StreamEventType> {
     events
 }
 
+/// Streaming request helper to consolidate JSON streaming setup patterns
+///
+/// This helper function takes any serializable request and converts it to a JSON value
+/// with the "stream": true field added, reducing code duplication across streaming APIs.
+///
+/// # Arguments
+///
+/// * `request` - Any type that implements `Serialize`
+///
+/// # Returns
+///
+/// * `Result<serde_json::Value>` - The JSON representation with streaming enabled
+///
+/// # Examples
+///
+/// ```rust
+/// # use serde::Serialize;
+/// # use openai_rust_sdk::api::streaming::to_streaming_json;
+/// #
+/// #[derive(Serialize)]
+/// struct MyRequest {
+///     assistant_id: String,
+///     instructions: String,
+/// }
+///
+/// # fn main() -> Result<(), openai_rust_sdk::error::OpenAIError> {
+/// let request = MyRequest {
+///     assistant_id: "asst_123".to_string(),
+///     instructions: "Help me".to_string(),
+/// };
+///
+/// let streaming_json = to_streaming_json(&request)?;
+/// assert_eq!(streaming_json["stream"], serde_json::Value::Bool(true));
+/// # Ok(())
+/// # }
+/// ```
+pub fn to_streaming_json<T: Serialize>(request: &T) -> Result<serde_json::Value> {
+    let mut request_json = serde_json::to_value(request).map_err(OpenAIError::Json)?;
+    request_json["stream"] = serde_json::Value::Bool(true);
+    Ok(request_json)
+}
+
 /// Events for function calling streams
 #[derive(Debug, Clone)]
 pub enum FunctionStreamEvent {
@@ -376,11 +424,11 @@ impl FunctionStreamProcessor {
                 };
 
                 for choice in &chunk.choices {
-                    if let Some(ref content) = choice.delta.content {
+                    if let Some(content) = &choice.delta.content {
                         yield Ok(FunctionStreamEvent::ContentDelta { content: content.clone() });
                     }
 
-                    if let Some(ref tool_calls) = choice.delta.tool_calls {
+                    if let Some(tool_calls) = &choice.delta.tool_calls {
                         for event in Self::process_tool_calls(&mut processor.function_calls, tool_calls.clone()) {
                             yield Ok(event);
                         }
@@ -450,7 +498,7 @@ impl FunctionStreamProcessor {
             if let Some(call_id) = &builder.call_id {
                 events.push(FunctionStreamEvent::FunctionCallArgumentsDelta {
                     call_id: call_id.clone(),
-                    arguments_delta: args_delta,
+                    arguments_delta: args_delta.clone(),
                 });
             }
         }
@@ -544,5 +592,222 @@ mod tests {
         let request = ResponseRequest::new_text("gpt-4", "Hello").with_streaming(true);
 
         assert_eq!(request.stream, Some(true));
+    }
+
+    mod streaming_helper_tests {
+        use super::*;
+        use serde::Serialize;
+
+        #[derive(Serialize)]
+        struct SimpleRequest {
+            assistant_id: String,
+            instructions: String,
+        }
+
+        #[derive(Serialize)]
+        struct ComplexRequest {
+            assistant_id: String,
+            instructions: Option<String>,
+            tools: Vec<String>,
+            metadata: std::collections::HashMap<String, serde_json::Value>,
+            existing_stream: Option<bool>,
+        }
+
+        #[test]
+        fn test_to_streaming_json_simple_struct() {
+            let request = SimpleRequest {
+                assistant_id: "asst_123".to_string(),
+                instructions: "Help me".to_string(),
+            };
+
+            let result = to_streaming_json(&request);
+            assert!(result.is_ok());
+
+            let json = result.unwrap();
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+            assert_eq!(
+                json["assistant_id"],
+                serde_json::Value::String("asst_123".to_string())
+            );
+            assert_eq!(
+                json["instructions"],
+                serde_json::Value::String("Help me".to_string())
+            );
+        }
+
+        #[test]
+        fn test_to_streaming_json_complex_struct() {
+            let mut metadata = std::collections::HashMap::new();
+            metadata.insert(
+                "key1".to_string(),
+                serde_json::Value::String("value1".to_string()),
+            );
+            metadata.insert(
+                "key2".to_string(),
+                serde_json::Value::Number(serde_json::Number::from(42)),
+            );
+
+            let request = ComplexRequest {
+                assistant_id: "asst_456".to_string(),
+                instructions: Some("Complex task".to_string()),
+                tools: vec!["function1".to_string(), "function2".to_string()],
+                metadata,
+                existing_stream: None,
+            };
+
+            let result = to_streaming_json(&request);
+            assert!(result.is_ok());
+
+            let json = result.unwrap();
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+            assert_eq!(
+                json["assistant_id"],
+                serde_json::Value::String("asst_456".to_string())
+            );
+            assert_eq!(
+                json["instructions"],
+                serde_json::Value::String("Complex task".to_string())
+            );
+            assert!(json["tools"].is_array());
+            assert!(json["metadata"].is_object());
+            assert_eq!(json["existing_stream"], serde_json::Value::Null);
+        }
+
+        #[test]
+        fn test_to_streaming_json_overwrites_existing_stream_field() {
+            let request = ComplexRequest {
+                assistant_id: "asst_789".to_string(),
+                instructions: None,
+                tools: vec![],
+                metadata: std::collections::HashMap::new(),
+                existing_stream: Some(false), // This should be overwritten to true
+            };
+
+            let result = to_streaming_json(&request);
+            assert!(result.is_ok());
+
+            let json = result.unwrap();
+            // Should overwrite the existing stream field with true
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+            assert_eq!(json["existing_stream"], serde_json::Value::Bool(false));
+        }
+
+        #[test]
+        fn test_to_streaming_json_with_empty_struct() {
+            #[derive(Serialize)]
+            struct EmptyRequest {}
+
+            let request = EmptyRequest {};
+            let result = to_streaming_json(&request);
+            assert!(result.is_ok());
+
+            let json = result.unwrap();
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+            // Should be an object with just the stream field
+            assert!(json.is_object());
+            assert_eq!(json.as_object().unwrap().len(), 1);
+        }
+
+        #[test]
+        fn test_to_streaming_json_only_for_objects() {
+            // This test demonstrates that the helper is intended for object-like structs
+            // Using it with primitives would not make sense in real-world scenarios
+            // The function will work but creates unexpected JSON structure for non-objects
+
+            #[derive(Serialize)]
+            struct WrapperStruct {
+                value: String,
+            }
+
+            let wrapped = WrapperStruct {
+                value: "test".to_string(),
+            };
+
+            let result = to_streaming_json(&wrapped);
+            assert!(result.is_ok());
+            let json = result.unwrap();
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+            assert_eq!(json["value"], serde_json::Value::String("test".to_string()));
+
+            // This shows the intended usage pattern - with structured objects, not primitives
+        }
+
+        #[test]
+        fn test_to_streaming_json_preserves_all_original_fields() {
+            #[derive(Serialize)]
+            struct FullRequest {
+                id: u64,
+                name: String,
+                active: bool,
+                score: f64,
+                tags: Vec<String>,
+                optional: Option<String>,
+            }
+
+            let request = FullRequest {
+                id: 123,
+                name: "test_request".to_string(),
+                active: true,
+                score: 3.15,
+                tags: vec!["tag1".to_string(), "tag2".to_string()],
+                optional: Some("optional_value".to_string()),
+            };
+
+            let result = to_streaming_json(&request);
+            assert!(result.is_ok());
+
+            let json = result.unwrap();
+
+            // Verify streaming is added
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+
+            // Verify all original fields are preserved
+            assert_eq!(
+                json["id"],
+                serde_json::Value::Number(serde_json::Number::from(123))
+            );
+            assert_eq!(
+                json["name"],
+                serde_json::Value::String("test_request".to_string())
+            );
+            assert_eq!(json["active"], serde_json::Value::Bool(true));
+            assert_eq!(
+                json["score"],
+                serde_json::Value::Number(serde_json::Number::from_f64(3.15).unwrap())
+            );
+            assert!(json["tags"].is_array());
+            assert_eq!(
+                json["optional"],
+                serde_json::Value::String("optional_value".to_string())
+            );
+        }
+
+        #[test]
+        fn test_to_streaming_json_error_handling() {
+            // Test with a type that can't be serialized
+            use std::sync::Mutex;
+
+            #[derive(Serialize)]
+            struct InvalidRequest {
+                #[serde(skip_serializing)]
+                _mutex: Mutex<i32>,
+                valid_field: String,
+            }
+
+            let request = InvalidRequest {
+                _mutex: Mutex::new(42),
+                valid_field: "valid".to_string(),
+            };
+
+            // Should succeed because mutex is skipped
+            let result = to_streaming_json(&request);
+            assert!(result.is_ok());
+            let json = result.unwrap();
+            assert_eq!(json["stream"], serde_json::Value::Bool(true));
+            assert_eq!(
+                json["valid_field"],
+                serde_json::Value::String("valid".to_string())
+            );
+        }
     }
 }

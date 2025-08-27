@@ -52,6 +52,9 @@
 //! - **Performance Metrics**: Compilation time, memory usage, and rule complexity analysis
 //!
 //! ## Quick Start - `OpenAI` API
+
+// Allow unused imports where they are required for serde attributes to work properly
+#![allow(unused_imports)]
 //!
 //! ```rust,no_run
 //! use openai_rust_sdk::{OpenAIClient, ChatBuilder};
@@ -122,6 +125,9 @@
 #[macro_use]
 pub mod macros;
 
+// Re-export shortened serde traits for use across the codebase
+pub use macros::{De, Ser};
+
 /// `OpenAI` API functionality
 pub mod api;
 /// Function and schema builders
@@ -132,6 +138,8 @@ pub mod client;
 pub mod constants;
 /// Error types and handling
 pub mod error;
+/// Helper utilities to reduce code duplication
+pub mod helpers;
 /// Data models and types
 pub mod models;
 /// Prompt engineering utilities and builders

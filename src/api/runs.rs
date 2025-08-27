@@ -79,6 +79,8 @@
 
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
+use crate::api::streaming::to_streaming_json;
+use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::runs::{
     CreateThreadAndRunRequest, ListRunStepsParams, ListRunStepsResponse, ListRunsParams,
@@ -151,10 +153,7 @@ impl RunsApi {
         request: RunRequest,
     ) -> Result<Run> {
         self.http_client
-            .post_with_beta(
-                &format!("/v1/threads/{}/runs", thread_id.as_ref()),
-                &request,
-            )
+            .post_with_beta(&endpoints::threads::runs(thread_id.as_ref()), &request)
             .await
     }
 
@@ -184,7 +183,7 @@ impl RunsApi {
     /// ```
     pub async fn create_thread_and_run(&self, request: CreateThreadAndRunRequest) -> Result<Run> {
         self.http_client
-            .post_with_beta("/v1/threads/runs", &request)
+            .post_with_beta(endpoints::runs::BASE, &request)
             .await
     }
 
@@ -213,10 +212,9 @@ impl RunsApi {
         run_id: R,
     ) -> Result<Run> {
         self.http_client
-            .get_with_beta(&format!(
-                "/v1/threads/{}/runs/{}",
+            .get_with_beta(&endpoints::threads::run_by_id(
                 thread_id.as_ref(),
-                run_id.as_ref()
+                run_id.as_ref(),
             ))
             .await
     }
@@ -255,11 +253,7 @@ impl RunsApi {
     ) -> Result<Run> {
         self.http_client
             .post_with_beta(
-                &format!(
-                    "/v1/threads/{}/runs/{}",
-                    thread_id.as_ref(),
-                    run_id.as_ref()
-                ),
+                &endpoints::threads::run_by_id(thread_id.as_ref(), run_id.as_ref()),
                 &request,
             )
             .await
@@ -291,7 +285,7 @@ impl RunsApi {
         thread_id: S,
         params: Option<ListRunsParams>,
     ) -> Result<ListRunsResponse> {
-        let path = format!("/v1/threads/{}/runs", thread_id.as_ref());
+        let path = endpoints::threads::runs(thread_id.as_ref());
 
         let query_params = if let Some(params) = params {
             params.to_query_params()
@@ -342,11 +336,7 @@ impl RunsApi {
     ) -> Result<Run> {
         self.http_client
             .post_with_beta(
-                &format!(
-                    "/v1/threads/{}/runs/{}/submit_tool_outputs",
-                    thread_id.as_ref(),
-                    run_id.as_ref()
-                ),
+                &endpoints::threads::submit_tool_outputs(thread_id.as_ref(), run_id.as_ref()),
                 &request,
             )
             .await
@@ -380,11 +370,7 @@ impl RunsApi {
         let empty_request: serde_json::Value = serde_json::json!({});
         self.http_client
             .post_with_beta(
-                &format!(
-                    "/v1/threads/{}/runs/{}/cancel",
-                    thread_id.as_ref(),
-                    run_id.as_ref()
-                ),
+                &endpoints::threads::cancel_run(thread_id.as_ref(), run_id.as_ref()),
                 &empty_request,
             )
             .await
@@ -418,11 +404,7 @@ impl RunsApi {
         run_id: R,
         params: Option<ListRunStepsParams>,
     ) -> Result<ListRunStepsResponse> {
-        let endpoint = format!(
-            "/v1/threads/{}/runs/{}/steps",
-            thread_id.as_ref(),
-            run_id.as_ref()
-        );
+        let endpoint = endpoints::threads::run_steps(thread_id.as_ref(), run_id.as_ref());
 
         let query_params = if let Some(params) = params {
             params.to_query_params()
@@ -461,11 +443,10 @@ impl RunsApi {
         run_id: R,
         step_id: T,
     ) -> Result<RunStep> {
-        let endpoint = format!(
-            "/v1/threads/{}/runs/{}/steps/{}",
+        let endpoint = endpoints::threads::run_step_by_id(
             thread_id.as_ref(),
             run_id.as_ref(),
-            step_id.as_ref()
+            step_id.as_ref(),
         );
         self.http_client.get(&endpoint).await
     }
@@ -506,15 +487,10 @@ impl RunsApi {
         run_id: R,
         request: SubmitToolOutputsRequest,
     ) -> Result<Run> {
-        let endpoint = format!(
-            "/v1/threads/{}/runs/{}/submit_tool_outputs",
-            thread_id.as_ref(),
-            run_id.as_ref()
-        );
+        let endpoint = endpoints::threads::submit_tool_outputs(thread_id.as_ref(), run_id.as_ref());
 
         // Add stream: true to the JSON body
-        let mut request_json = serde_json::to_value(&request).map_err(OpenAIError::Json)?;
-        request_json["stream"] = serde_json::Value::Bool(true);
+        let request_json = to_streaming_json(&request)?;
 
         self.http_client.post(&endpoint, &request_json).await
     }
@@ -549,11 +525,10 @@ impl RunsApi {
         thread_id: S,
         request: RunRequest,
     ) -> Result<Run> {
-        let endpoint = format!("/v1/threads/{}/runs", thread_id.as_ref());
+        let endpoint = endpoints::threads::runs(thread_id.as_ref());
 
         // Add stream: true to the JSON body
-        let mut request_json = serde_json::to_value(&request).map_err(OpenAIError::Json)?;
-        request_json["stream"] = serde_json::Value::Bool(true);
+        let request_json = to_streaming_json(&request)?;
 
         self.http_client.post(&endpoint, &request_json).await
     }
@@ -587,8 +562,7 @@ impl RunsApi {
         request: CreateThreadAndRunRequest,
     ) -> Result<Run> {
         // Add stream: true to the JSON body
-        let mut request_json = serde_json::to_value(&request).map_err(OpenAIError::Json)?;
-        request_json["stream"] = serde_json::Value::Bool(true);
+        let request_json = to_streaming_json(&request)?;
 
         self.http_client
             .post("/v1/threads/runs", &request_json)
