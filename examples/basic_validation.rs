@@ -17,17 +17,42 @@ use openai_rust_sdk::testing::YaraValidator;
 
 #[cfg(feature = "yara")]
 fn main() -> Result<()> {
+    print_header();
+    let validator = create_validator();
+
+    run_validation_examples(&validator)?;
+
+    print_footer();
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn print_header() {
     println!("Basic YARA Rule Validation Example");
     println!("==================================\n");
+}
 
-    // Create a new validator instance
+#[cfg(feature = "yara")]
+fn create_validator() -> YaraValidator {
     let validator = YaraValidator::new();
     println!(
         "✓ Created YARA validator with {} test samples",
         validator.test_samples().len()
     );
+    validator
+}
 
-    // Example 1: Simple valid rule
+#[cfg(feature = "yara")]
+fn run_validation_examples(validator: &YaraValidator) -> Result<()> {
+    validate_simple_rule(validator)?;
+    validate_complex_rule(validator)?;
+    validate_invalid_rule(validator)?;
+    validate_minimal_rule(validator)?;
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn validate_simple_rule(validator: &YaraValidator) -> Result<()> {
     println!("\n1. Validating a simple rule:");
     let simple_rule = r#"
         rule HelloWorld {
@@ -37,11 +62,13 @@ fn main() -> Result<()> {
                 $hello
         }
     "#;
-
     let result = validator.validate_rule(simple_rule)?;
     print_validation_result("Simple Rule", &result);
+    Ok(())
+}
 
-    // Example 2: Complex rule with multiple features
+#[cfg(feature = "yara")]
+fn validate_complex_rule(validator: &YaraValidator) -> Result<()> {
     println!("\n2. Validating a complex rule:");
     let complex_rule = r#"
         rule ComplexExample {
@@ -57,11 +84,13 @@ fn main() -> Result<()> {
                 any of them
         }
     "#;
-
     let result = validator.validate_rule(complex_rule)?;
     print_validation_result("Complex Rule", &result);
+    Ok(())
+}
 
-    // Example 3: Invalid rule (demonstrates error handling)
+#[cfg(feature = "yara")]
+fn validate_invalid_rule(validator: &YaraValidator) -> Result<()> {
     println!("\n3. Validating an invalid rule:");
     let invalid_rule = r#"
         rule InvalidExample {
@@ -71,21 +100,24 @@ fn main() -> Result<()> {
                 nonexistent_function()
         }
     "#;
-
     let result = validator.validate_rule(invalid_rule)?;
     print_validation_result("Invalid Rule", &result);
+    Ok(())
+}
 
-    // Example 4: Minimal rule
+#[cfg(feature = "yara")]
+fn validate_minimal_rule(validator: &YaraValidator) -> Result<()> {
     println!("\n4. Validating a minimal rule:");
     let minimal_rule = "rule Minimal { condition: true }";
-
     let result = validator.validate_rule(minimal_rule)?;
     print_validation_result("Minimal Rule", &result);
+    Ok(())
+}
 
+#[cfg(feature = "yara")]
+fn print_footer() {
     println!("\n==================================");
     println!("Basic validation examples completed!");
-
-    Ok(())
 }
 
 #[cfg(feature = "yara")]
@@ -96,45 +128,22 @@ fn print_validation_result(
     println!("{name}:");
 
     // Basic validation status
-    if result.is_valid {
-        println!("  ✓ Status: VALID");
-    } else {
-        println!("  ✗ Status: INVALID");
-    }
+    let status_icon = if result.is_valid { "✓" } else { "✗" };
+    let status_text = if result.is_valid { "VALID" } else { "INVALID" };
+    println!("  {status_icon} Status: {status_text}");
 
     // Rule name
     if let Some(rule_name) = &result.rule_name {
         println!("  📝 Rule Name: {rule_name}");
     }
 
-    // Errors
-    if !result.errors.is_empty() {
-        println!("  ❌ Errors:");
-        for error in &result.errors {
-            println!("     - {error}");
-        }
-    }
-
-    // Warnings
-    if !result.warnings.is_empty() {
-        println!("  ⚠️  Warnings:");
-        for warning in &result.warnings {
-            println!("     - {warning}");
-        }
-    }
+    // Errors and warnings
+    print_message_list("❌ Errors", &result.errors);
+    print_warnings(&result.warnings);
 
     // Features
     println!("  🔍 Features:");
-    println!("     - Has strings: {}", result.features.has_strings);
-    println!(
-        "     - Has hex patterns: {}",
-        result.features.has_hex_patterns
-    );
-    println!(
-        "     - Has regex patterns: {}",
-        result.features.has_regex_patterns
-    );
-    println!("     - Has metadata: {}", result.features.has_metadata);
+    print_feature_flags(&result.features);
     println!("     - String count: {}", result.features.string_count);
     println!(
         "     - Complexity score: {}/10",
@@ -150,9 +159,51 @@ fn print_validation_result(
     println!("     - Rule size: {} bytes", result.metrics.rule_size_bytes);
 
     // Pattern tests
-    if !result.pattern_tests.is_empty() {
+    print_pattern_tests(&result.pattern_tests);
+}
+
+#[cfg(feature = "yara")]
+fn print_message_list(
+    title: &str,
+    messages: &[openai_rust_sdk::testing::yara_validator::ValidationError],
+) {
+    if !messages.is_empty() {
+        println!("  {title}:");
+        for message in messages {
+            println!("     - {message}");
+        }
+    }
+}
+
+#[cfg(feature = "yara")]
+fn print_warnings(warnings: &[String]) {
+    if !warnings.is_empty() {
+        println!("  ⚠️  Warnings:");
+        for warning in warnings {
+            println!("     - {warning}");
+        }
+    }
+}
+
+#[cfg(feature = "yara")]
+fn print_feature_flags(features: &openai_rust_sdk::testing::yara_validator::RuleFeatures) {
+    let flags = [
+        ("Has strings", features.has_strings),
+        ("Has hex patterns", features.has_hex_patterns),
+        ("Has regex patterns", features.has_regex_patterns),
+        ("Has metadata", features.has_metadata),
+    ];
+
+    for (label, value) in flags {
+        println!("     - {}: {}", label, value);
+    }
+}
+
+#[cfg(feature = "yara")]
+fn print_pattern_tests(tests: &[openai_rust_sdk::testing::yara_validator::PatternTestResult]) {
+    if !tests.is_empty() {
         println!("  🧪 Pattern Tests:");
-        for test in &result.pattern_tests {
+        for test in tests {
             let status = if test.matched { "✓" } else { "✗" };
             println!("     {} {}: {}", status, test.pattern_id, test.test_data);
             if let Some(details) = &test.match_details {

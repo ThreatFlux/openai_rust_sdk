@@ -450,8 +450,22 @@ mod integration_tests {
 
     #[test]
     fn test_builder_pattern_for_complex_types() {
-        // Build a schema for a task management system
-        let task_schema = SchemaBuilder::object()
+        let spec = create_task_schema_spec();
+        test_complete_task_validation(&spec);
+        test_minimal_task_validation(&spec);
+        test_invalid_task_validation(&spec);
+    }
+
+    fn create_task_schema_spec() -> JsonSchemaSpec {
+        let task_schema = create_task_schema_builder()
+            .description("Task object schema")
+            .build()
+            .to_value();
+        JsonSchemaSpec::new("task", task_schema)
+    }
+
+    fn create_task_schema_builder() -> SchemaBuilder {
+        SchemaBuilder::object()
             .property(
                 "id",
                 SchemaBuilder::string().description("Unique task identifier"),
@@ -480,13 +494,9 @@ mod integration_tests {
                     .property("name", SchemaBuilder::string())
                     .property("email", SchemaBuilder::string().format("email")),
             )
-            .description("Task object schema")
-            .build()
-            .to_value();
+    }
 
-        let spec = JsonSchemaSpec::new("task", task_schema);
-
-        // Test with complete task data
+    fn test_complete_task_validation(spec: &JsonSchemaSpec) {
         let complete_task = json!({
             "id": "task-123",
             "title": "Implement feature X",
@@ -502,8 +512,9 @@ mod integration_tests {
 
         let result = spec.validate(&complete_task);
         assert!(result.is_valid, "Complete task should be valid");
+    }
 
-        // Test with minimal task data
+    fn test_minimal_task_validation(spec: &JsonSchemaSpec) {
         let minimal_task = json!({
             "id": "task-124",
             "title": "Fix bug Y",
@@ -512,8 +523,9 @@ mod integration_tests {
 
         let result = spec.validate(&minimal_task);
         assert!(result.is_valid, "Minimal task should be valid");
+    }
 
-        // Test with invalid status
+    fn test_invalid_task_validation(spec: &JsonSchemaSpec) {
         let invalid_task = json!({
             "id": "task-125",
             "title": "Invalid task",

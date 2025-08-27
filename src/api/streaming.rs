@@ -55,7 +55,7 @@ impl StreamingApi {
             endpoints::CHAT_COMPLETIONS
         );
 
-        // Convert to OpenAI format
+        // Convert to OpenAI format and send request
         let mut openai_request = self.responses_api.to_openai_format(&streaming_request)?;
         openai_request["stream"] = serde_json::json!(true);
 
@@ -73,6 +73,7 @@ impl StreamingApi {
             .send()
             .await?;
 
+        // Check response status
         let status = response.status();
         if !status.is_success() {
             let error_response: ApiErrorResponse = response.json().await?;
@@ -82,29 +83,37 @@ impl StreamingApi {
             ));
         }
 
-        // Convert the response to a stream
+        // Convert the response to a stream with event processing
         let stream = response
             .bytes_stream()
             .eventsource()
-            .filter_map(|event_result| async move {
-                match event_result {
-                    Ok(event) => {
-                        if event.data == "[DONE]" {
-                            return None; // End of stream
-                        }
-
-                        match serde_json::from_str::<StreamChunk>(&event.data) {
-                            Ok(chunk) => Some(Ok(chunk)),
-                            Err(e) => Some(Err(OpenAIError::streaming(format!(
-                                "Failed to parse chunk: {e}"
-                            )))),
-                        }
-                    }
-                    Err(e) => Some(Err(OpenAIError::streaming(format!("Stream error: {e}")))),
-                }
-            });
+            .filter_map(|event_result| async move { Self::process_stream_event(event_result) });
 
         Ok(Box::pin(stream))
+    }
+
+    /// Process individual stream events
+    fn process_stream_event(
+        event_result: std::result::Result<
+            eventsource_stream::Event,
+            eventsource_stream::EventStreamError<reqwest::Error>,
+        >,
+    ) -> Option<Result<StreamChunk>> {
+        match event_result {
+            Ok(event) => {
+                if event.data == "[DONE]" {
+                    return None; // End of stream
+                }
+
+                match serde_json::from_str::<StreamChunk>(&event.data) {
+                    Ok(chunk) => Some(Ok(chunk)),
+                    Err(e) => Some(Err(OpenAIError::streaming(format!(
+                        "Failed to parse chunk: {e}"
+                    )))),
+                }
+            }
+            Err(e) => Some(Err(OpenAIError::streaming(format!("Stream error: {e}")))),
+        }
     }
 
     /// Create a simple text streaming response
@@ -401,6 +410,124 @@ struct FunctionCallBuilder {
     arguments: String,
 }
 
+/// State machine for processing function stream events
+struct FunctionStreamState {
+    /// Current processing state
+    state: StreamProcessingState,
+}
+
+/// Processing state for function streams
+#[derive(Debug, Clone)]
+enum StreamProcessingState {
+    /// Processing active stream chunks
+    Processing,
+    /// Stream has completed or encountered error
+    Completed,
+}
+
+impl FunctionStreamState {
+    /// Create a new stream state
+    fn new() -> Self {
+        Self {
+            state: StreamProcessingState::Processing,
+        }
+    }
+
+    /// Process a stream chunk and return events
+    fn process_chunk(
+        &mut self,
+        processor: &mut FunctionStreamProcessor,
+        chunk_result: crate::error::Result<StreamChunk>,
+    ) -> Option<Vec<FunctionStreamEvent>> {
+        match self.state {
+            StreamProcessingState::Processing => self.handle_active_chunk(processor, chunk_result),
+            StreamProcessingState::Completed => None,
+        }
+    }
+
+    /// Handle chunk processing in active state
+    fn handle_active_chunk(
+        &mut self,
+        processor: &mut FunctionStreamProcessor,
+        chunk_result: crate::error::Result<StreamChunk>,
+    ) -> Option<Vec<FunctionStreamEvent>> {
+        let chunk = self.handle_chunk_result(chunk_result)?;
+
+        let events = self.process_chunk_choices(processor, &chunk);
+        if self.should_complete(&chunk) {
+            self.state = StreamProcessingState::Completed;
+        }
+
+        Some(events)
+    }
+
+    /// Handle chunk result and error cases
+    fn handle_chunk_result(
+        &mut self,
+        chunk_result: crate::error::Result<StreamChunk>,
+    ) -> Option<StreamChunk> {
+        chunk_result.ok().or_else(|| {
+            self.state = StreamProcessingState::Completed;
+            None
+        })
+    }
+
+    /// Process all choices in a chunk
+    fn process_chunk_choices(
+        &self,
+        processor: &mut FunctionStreamProcessor,
+        chunk: &StreamChunk,
+    ) -> Vec<FunctionStreamEvent> {
+        let mut all_events = Vec::new();
+
+        for choice in &chunk.choices {
+            all_events.extend(self.process_single_choice(processor, chunk, choice));
+        }
+
+        all_events
+    }
+
+    /// Process a single choice and generate events
+    fn process_single_choice(
+        &self,
+        processor: &mut FunctionStreamProcessor,
+        chunk: &StreamChunk,
+        choice: &crate::models::responses::StreamChoice,
+    ) -> Vec<FunctionStreamEvent> {
+        let mut events = Vec::new();
+
+        events.extend(FunctionStreamProcessor::process_content_delta(choice).unwrap_or_default());
+        events.extend(
+            FunctionStreamProcessor::process_choice_tool_calls(
+                &mut processor.function_calls,
+                choice,
+            )
+            .unwrap_or_default(),
+        );
+
+        if choice.finish_reason.is_some() {
+            events.extend(
+                FunctionStreamProcessor::process_choice_completion(
+                    &mut processor.function_calls,
+                    chunk,
+                    choice,
+                )
+                .unwrap_or_default(),
+            );
+        }
+
+        events
+    }
+
+    /// Check if stream should complete based on chunk
+    fn should_complete(&self, chunk: &StreamChunk) -> bool {
+        chunk
+            .choices
+            .iter()
+            .any(|choice| choice.finish_reason.is_some())
+    }
+}
+
 impl FunctionStreamProcessor {
     /// Create a new function stream from a response stream
     #[must_use]
@@ -412,40 +539,15 @@ impl FunctionStreamProcessor {
 
         Box::pin(async_stream::stream! {
             let mut processor = processor;
+            let mut stream_state = FunctionStreamState::new();
+
             while let Some(chunk_result) = FuturesStreamExt::next(&mut processor.stream).await {
-                let chunk = match chunk_result {
-                    Ok(chunk) => chunk,
-                    Err(e) => {
-                        yield Ok(FunctionStreamEvent::Error {
-                            message: e.to_string(),
-                        });
-                        break;
+                if let Some(events) = stream_state.process_chunk(&mut processor, chunk_result) {
+                    for event in events {
+                        yield Ok(event);
                     }
-                };
-
-                // Process each choice in the chunk
-                for choice in &chunk.choices {
-                    // Yield content delta events
-                    if let Some(events) = Self::process_content_delta(choice) {
-                        for event in events {
-                            yield Ok(event);
-                        }
-                    }
-
-                    // Yield tool call events
-                    if let Some(events) = Self::process_choice_tool_calls(&mut processor.function_calls, choice) {
-                        for event in events {
-                            yield Ok(event);
-                        }
-                    }
-
-                    // Handle completion
-                    if let Some(events) = Self::process_choice_completion(&mut processor.function_calls, &chunk, choice) {
-                        for event in events {
-                            yield Ok(event);
-                        }
-                        break;
-                    }
+                } else {
+                    break;
                 }
             }
         })

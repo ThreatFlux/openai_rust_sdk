@@ -12,39 +12,50 @@ use openai_rust_sdk::{
 };
 use std::collections::HashMap;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize client from environment variable or use a test key
-    let client = match from_env() {
-        Ok(client) => client,
+/// Initialize OpenAI client with fallback to demo mode
+fn initialize_client() -> Result<OpenAIClient, Box<dyn std::error::Error>> {
+    match from_env() {
+        Ok(client) => Ok(client),
         Err(_) => {
             println!("OPENAI_API_KEY not set, using demo mode with test key");
-            OpenAIClient::new("test-key-for-demo")?
+            Ok(OpenAIClient::new("test-key-for-demo")?)
         }
-    };
+    }
+}
+
+/// Run all example functions with the provided client
+async fn run_examples(client: &OpenAIClient) -> Result<(), Box<dyn std::error::Error>> {
+    // Example 1: Simple text generation
+    simple_text_generation(client).await?;
+
+    // Example 2: Streaming text generation
+    streaming_text_generation(client).await?;
+
+    // Example 3: Multi-turn conversation
+    multi_turn_conversation(client).await?;
+
+    // Example 4: Conversation with system instructions
+    conversation_with_instructions(client).await?;
+
+    // Example 5: Custom parameters
+    custom_parameters(client).await?;
+
+    // Example 6: Prompt template usage
+    prompt_template_usage(client).await?;
+
+    // Example 7: Streaming conversation
+    streaming_conversation(client).await?;
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = initialize_client()?;
 
     println!("=== OpenAI Chat Completion Examples ===\n");
 
-    // Example 1: Simple text generation
-    simple_text_generation(&client).await?;
-
-    // Example 2: Streaming text generation
-    streaming_text_generation(&client).await?;
-
-    // Example 3: Multi-turn conversation
-    multi_turn_conversation(&client).await?;
-
-    // Example 4: Conversation with system instructions
-    conversation_with_instructions(&client).await?;
-
-    // Example 5: Custom parameters
-    custom_parameters(&client).await?;
-
-    // Example 6: Prompt template usage
-    prompt_template_usage(&client).await?;
-
-    // Example 7: Streaming conversation
-    streaming_conversation(&client).await?;
+    run_examples(&client).await?;
 
     println!("\n=== All examples completed! ===");
     Ok(())

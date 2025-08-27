@@ -13,7 +13,7 @@ use openai_rust_sdk::{
     schema::SchemaBuilder,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::env;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -195,6 +195,7 @@ async fn demo_complex_schema_builder(
     Ok(())
 }
 
+#[allow(dead_code)]
 struct TaskListSchemas {
     task_schema: SchemaBuilder,
     priority_schema: SchemaBuilder,
@@ -319,12 +320,8 @@ fn create_example_task_list() -> serde_json::Value {
     })
 }
 
-async fn demo_strict_mode_enforcement(
-    _client: &ResponsesApi,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Demonstrating strict mode schema enforcement...");
-
-    let strict_schema = json!({
+fn create_strict_schema() -> Value {
+    json!({
         "type": "object",
         "properties": {
             "status": {
@@ -347,7 +344,50 @@ async fn demo_strict_mode_enforcement(
         },
         "required": ["status", "data"],
         "additionalProperties": false
-    });
+    })
+}
+
+fn create_valid_test_data() -> Value {
+    json!({
+        "status": "success",
+        "data": {
+            "id": "item-123",
+            "value": 42.5
+        },
+        "timestamp": "2024-01-01T12:00:00Z"
+    })
+}
+
+fn create_invalid_test_data() -> Value {
+    json!({
+        "status": "success",
+        "data": {
+            "id": "item-123",
+            "value": 42.5,
+            "extra_field": "not allowed"  // This should fail in strict mode
+        },
+        "timestamp": "2024-01-01T12:00:00Z"
+    })
+}
+
+fn validate_and_print_results(spec: &JsonSchemaSpec, data: &Value, description: &str) {
+    let validation = spec.validate(data);
+    if validation.is_valid {
+        println!("✅ {description}: {}", validation.is_valid);
+    } else {
+        println!(
+            "❌ {description}: {} (errors: {:?})",
+            validation.is_valid, validation.errors
+        );
+    }
+}
+
+async fn demo_strict_mode_enforcement(
+    _client: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Demonstrating strict mode schema enforcement...");
+
+    let strict_schema = create_strict_schema();
 
     let _request = ResponseRequest::new_text(
         "gpt-4",
@@ -363,35 +403,13 @@ async fn demo_strict_mode_enforcement(
     // Test strict validation
     let spec = JsonSchemaSpec::strict("api_response", strict_schema);
 
-    // Valid data (follows schema exactly)
-    let valid_data = json!({
-        "status": "success",
-        "data": {
-            "id": "item-123",
-            "value": 42.5
-        },
-        "timestamp": "2024-01-01T12:00:00Z"
-    });
+    // Test valid data
+    let valid_data = create_valid_test_data();
+    validate_and_print_results(&spec, &valid_data, "Valid strict data");
 
-    let validation = spec.validate(&valid_data);
-    println!("✅ Valid strict data: {}", validation.is_valid);
-
-    // Invalid data (extra properties)
-    let invalid_data = json!({
-        "status": "success",
-        "data": {
-            "id": "item-123",
-            "value": 42.5,
-            "extra_field": "not allowed"  // This should fail in strict mode
-        },
-        "timestamp": "2024-01-01T12:00:00Z"
-    });
-
-    let validation = spec.validate(&invalid_data);
-    println!(
-        "❌ Invalid strict data: {} (errors: {:?})",
-        validation.is_valid, validation.errors
-    );
+    // Test invalid data
+    let invalid_data = create_invalid_test_data();
+    validate_and_print_results(&spec, &invalid_data, "Invalid strict data");
 
     Ok(())
 }

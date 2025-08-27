@@ -35,6 +35,18 @@ use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSampl
 use webrtc::track::track_local::TrackLocal;
 use webrtc::track::track_remote::TrackRemote;
 
+/// Type alias for event channel pair
+type EventChannels = (
+    mpsc::UnboundedSender<RealtimeEvent>,
+    mpsc::UnboundedReceiver<RealtimeEvent>,
+);
+
+/// Type alias for audio channel pair
+type AudioChannels = (
+    mpsc::UnboundedSender<AudioBuffer>,
+    mpsc::UnboundedReceiver<AudioBuffer>,
+);
+
 /// Real-time Audio API client with WebRTC support
 pub struct RealtimeAudioApi {
     /// HTTP client for making API requests
@@ -288,7 +300,7 @@ impl RealtimeAudioApi {
 
         let session = self.build_session(
             response.clone(),
-            peer_connection,
+            &peer_connection,
             event_channels,
             audio_channels,
             config,
@@ -334,18 +346,7 @@ impl RealtimeAudioApi {
     }
 
     /// Creates communication channels for events and audio
-    fn create_communication_channels(
-        &self,
-    ) -> (
-        (
-            mpsc::UnboundedSender<RealtimeEvent>,
-            mpsc::UnboundedReceiver<RealtimeEvent>,
-        ),
-        (
-            mpsc::UnboundedSender<AudioBuffer>,
-            mpsc::UnboundedReceiver<AudioBuffer>,
-        ),
-    ) {
+    fn create_communication_channels(&self) -> (EventChannels, AudioChannels) {
         let event_channels = mpsc::unbounded_channel();
         let audio_channels = mpsc::unbounded_channel();
         (event_channels, audio_channels)
@@ -355,15 +356,9 @@ impl RealtimeAudioApi {
     fn build_session(
         &self,
         response: RealtimeSessionResponse,
-        peer_connection: Arc<RTCPeerConnection>,
-        event_channels: (
-            mpsc::UnboundedSender<RealtimeEvent>,
-            mpsc::UnboundedReceiver<RealtimeEvent>,
-        ),
-        audio_channels: (
-            mpsc::UnboundedSender<AudioBuffer>,
-            mpsc::UnboundedReceiver<AudioBuffer>,
-        ),
+        peer_connection: &Arc<RTCPeerConnection>,
+        event_channels: EventChannels,
+        audio_channels: AudioChannels,
         config: Option<RealtimeSessionConfig>,
     ) -> Arc<RealtimeSession> {
         let (event_sender, event_receiver) = event_channels;
@@ -460,7 +455,7 @@ impl RealtimeAudioApi {
             })?;
 
         *session.data_channel.lock().await = Some(data_channel.clone());
-        self.setup_data_channel_handlers(data_channel, session_weak);
+        self.setup_data_channel_handlers(&data_channel, session_weak);
 
         Ok(())
     }
@@ -468,7 +463,7 @@ impl RealtimeAudioApi {
     /// Sets up data channel message handlers
     fn setup_data_channel_handlers(
         &self,
-        data_channel: Arc<RTCDataChannel>,
+        data_channel: &Arc<RTCDataChannel>,
         session_weak: &std::sync::Weak<RealtimeSession>,
     ) {
         let session_for_events = session_weak.clone();

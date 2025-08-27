@@ -232,43 +232,39 @@ impl ModerationResult {
     /// Get a list of violated categories as strings
     #[must_use]
     pub fn violated_categories(&self) -> Vec<String> {
-        let mut violations = Vec::new();
+        self.get_category_violations()
+            .into_iter()
+            .filter_map(|(name, is_violated)| {
+                if is_violated {
+                    Some(name.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
 
-        if self.categories.hate {
-            violations.push("hate".to_string());
-        }
-        if self.categories.hate_threatening {
-            violations.push("hate/threatening".to_string());
-        }
-        if self.categories.self_harm {
-            violations.push("self-harm".to_string());
-        }
-        if self.categories.self_harm_intent {
-            violations.push("self-harm/intent".to_string());
-        }
-        if self.categories.self_harm_instructions {
-            violations.push("self-harm/instructions".to_string());
-        }
-        if self.categories.sexual {
-            violations.push("sexual".to_string());
-        }
-        if self.categories.sexual_minors {
-            violations.push("sexual/minors".to_string());
-        }
-        if self.categories.violence {
-            violations.push("violence".to_string());
-        }
-        if self.categories.violence_graphic {
-            violations.push("violence/graphic".to_string());
-        }
-        if self.categories.harassment {
-            violations.push("harassment".to_string());
-        }
-        if self.categories.harassment_threatening {
-            violations.push("harassment/threatening".to_string());
-        }
-
-        violations
+    /// Helper method to get all category names with their violation status
+    fn get_category_violations(&self) -> Vec<(&'static str, bool)> {
+        vec![
+            ("hate", self.categories.hate),
+            ("hate/threatening", self.categories.hate_threatening),
+            ("self-harm", self.categories.self_harm),
+            ("self-harm/intent", self.categories.self_harm_intent),
+            (
+                "self-harm/instructions",
+                self.categories.self_harm_instructions,
+            ),
+            ("sexual", self.categories.sexual),
+            ("sexual/minors", self.categories.sexual_minors),
+            ("violence", self.categories.violence),
+            ("violence/graphic", self.categories.violence_graphic),
+            ("harassment", self.categories.harassment),
+            (
+                "harassment/threatening",
+                self.categories.harassment_threatening,
+            ),
+        ]
     }
 
     /// Get the highest confidence score for this result
@@ -302,49 +298,28 @@ impl CategoryScores {
     /// Get scores above a certain threshold
     #[must_use]
     pub fn scores_above_threshold(&self, threshold: f64) -> Vec<(String, f64)> {
-        let mut high_scores = Vec::new();
+        self.get_category_scores()
+            .into_iter()
+            .filter(|(_, score)| *score >= threshold)
+            .map(|(name, score)| (name.to_string(), score))
+            .collect()
+    }
 
-        if self.hate >= threshold {
-            high_scores.push(("hate".to_string(), self.hate));
-        }
-        if self.hate_threatening >= threshold {
-            high_scores.push(("hate/threatening".to_string(), self.hate_threatening));
-        }
-        if self.self_harm >= threshold {
-            high_scores.push(("self-harm".to_string(), self.self_harm));
-        }
-        if self.self_harm_intent >= threshold {
-            high_scores.push(("self-harm/intent".to_string(), self.self_harm_intent));
-        }
-        if self.self_harm_instructions >= threshold {
-            high_scores.push((
-                "self-harm/instructions".to_string(),
-                self.self_harm_instructions,
-            ));
-        }
-        if self.sexual >= threshold {
-            high_scores.push(("sexual".to_string(), self.sexual));
-        }
-        if self.sexual_minors >= threshold {
-            high_scores.push(("sexual/minors".to_string(), self.sexual_minors));
-        }
-        if self.violence >= threshold {
-            high_scores.push(("violence".to_string(), self.violence));
-        }
-        if self.violence_graphic >= threshold {
-            high_scores.push(("violence/graphic".to_string(), self.violence_graphic));
-        }
-        if self.harassment >= threshold {
-            high_scores.push(("harassment".to_string(), self.harassment));
-        }
-        if self.harassment_threatening >= threshold {
-            high_scores.push((
-                "harassment/threatening".to_string(),
-                self.harassment_threatening,
-            ));
-        }
-
-        high_scores
+    /// Helper method to get all category scores with their names
+    fn get_category_scores(&self) -> Vec<(&'static str, f64)> {
+        vec![
+            ("hate", self.hate),
+            ("hate/threatening", self.hate_threatening),
+            ("self-harm", self.self_harm),
+            ("self-harm/intent", self.self_harm_intent),
+            ("self-harm/instructions", self.self_harm_instructions),
+            ("sexual", self.sexual),
+            ("sexual/minors", self.sexual_minors),
+            ("violence", self.violence),
+            ("violence/graphic", self.violence_graphic),
+            ("harassment", self.harassment),
+            ("harassment/threatening", self.harassment_threatening),
+        ]
     }
 }
 
@@ -540,5 +515,179 @@ mod tests {
         assert_eq!(violations.len(), 2);
         assert!(violations.contains(&"hate".to_string()));
         assert!(violations.contains(&"violence".to_string()));
+    }
+
+    #[test]
+    fn test_get_category_scores_helper() {
+        let scores = CategoryScores {
+            hate: 0.1,
+            hate_threatening: 0.2,
+            self_harm: 0.3,
+            self_harm_intent: 0.4,
+            self_harm_instructions: 0.5,
+            sexual: 0.6,
+            sexual_minors: 0.7,
+            violence: 0.8,
+            violence_graphic: 0.9,
+            harassment: 1.0,
+            harassment_threatening: 0.0,
+        };
+
+        let category_scores = scores.get_category_scores();
+
+        // Verify all 11 categories are included
+        assert_eq!(category_scores.len(), 11);
+
+        // Verify specific mappings
+        assert!(category_scores.contains(&("hate", 0.1)));
+        assert!(category_scores.contains(&("hate/threatening", 0.2)));
+        assert!(category_scores.contains(&("self-harm", 0.3)));
+        assert!(category_scores.contains(&("self-harm/intent", 0.4)));
+        assert!(category_scores.contains(&("self-harm/instructions", 0.5)));
+        assert!(category_scores.contains(&("sexual", 0.6)));
+        assert!(category_scores.contains(&("sexual/minors", 0.7)));
+        assert!(category_scores.contains(&("violence", 0.8)));
+        assert!(category_scores.contains(&("violence/graphic", 0.9)));
+        assert!(category_scores.contains(&("harassment", 1.0)));
+        assert!(category_scores.contains(&("harassment/threatening", 0.0)));
+    }
+
+    #[test]
+    fn test_get_category_violations_helper() {
+        let categories = ModerationCategories {
+            hate: true,
+            hate_threatening: false,
+            self_harm: true,
+            self_harm_intent: false,
+            self_harm_instructions: true,
+            sexual: false,
+            sexual_minors: false,
+            violence: true,
+            violence_graphic: false,
+            harassment: false,
+            harassment_threatening: true,
+        };
+
+        let scores = CategoryScores {
+            hate: 0.8,
+            hate_threatening: 0.1,
+            self_harm: 0.9,
+            self_harm_intent: 0.0,
+            self_harm_instructions: 0.7,
+            sexual: 0.1,
+            sexual_minors: 0.0,
+            violence: 0.9,
+            violence_graphic: 0.1,
+            harassment: 0.1,
+            harassment_threatening: 0.8,
+        };
+
+        let result = ModerationResult {
+            flagged: true,
+            categories,
+            category_scores: scores,
+        };
+
+        let category_violations = result.get_category_violations();
+
+        // Verify all 11 categories are included
+        assert_eq!(category_violations.len(), 11);
+
+        // Verify specific mappings for violated categories
+        assert!(category_violations.contains(&("hate", true)));
+        assert!(category_violations.contains(&("hate/threatening", false)));
+        assert!(category_violations.contains(&("self-harm", true)));
+        assert!(category_violations.contains(&("self-harm/intent", false)));
+        assert!(category_violations.contains(&("self-harm/instructions", true)));
+        assert!(category_violations.contains(&("sexual", false)));
+        assert!(category_violations.contains(&("sexual/minors", false)));
+        assert!(category_violations.contains(&("violence", true)));
+        assert!(category_violations.contains(&("violence/graphic", false)));
+        assert!(category_violations.contains(&("harassment", false)));
+        assert!(category_violations.contains(&("harassment/threatening", true)));
+    }
+
+    #[test]
+    fn test_violated_categories_comprehensive() {
+        // Test with no violations
+        let no_violations = ModerationCategories {
+            hate: false,
+            hate_threatening: false,
+            self_harm: false,
+            self_harm_intent: false,
+            self_harm_instructions: false,
+            sexual: false,
+            sexual_minors: false,
+            violence: false,
+            violence_graphic: false,
+            harassment: false,
+            harassment_threatening: false,
+        };
+
+        let scores = CategoryScores {
+            hate: 0.1,
+            hate_threatening: 0.1,
+            self_harm: 0.1,
+            self_harm_intent: 0.1,
+            self_harm_instructions: 0.1,
+            sexual: 0.1,
+            sexual_minors: 0.1,
+            violence: 0.1,
+            violence_graphic: 0.1,
+            harassment: 0.1,
+            harassment_threatening: 0.1,
+        };
+
+        let result_no_violations = ModerationResult {
+            flagged: false,
+            categories: no_violations,
+            category_scores: scores.clone(),
+        };
+
+        let violations = result_no_violations.violated_categories();
+        assert!(violations.is_empty());
+
+        // Test with all violations
+        let all_violations = ModerationCategories {
+            hate: true,
+            hate_threatening: true,
+            self_harm: true,
+            self_harm_intent: true,
+            self_harm_instructions: true,
+            sexual: true,
+            sexual_minors: true,
+            violence: true,
+            violence_graphic: true,
+            harassment: true,
+            harassment_threatening: true,
+        };
+
+        let result_all_violations = ModerationResult {
+            flagged: true,
+            categories: all_violations,
+            category_scores: scores,
+        };
+
+        let all_violations_list = result_all_violations.violated_categories();
+        assert_eq!(all_violations_list.len(), 11);
+
+        // Verify all categories are present
+        let expected_categories = vec![
+            "hate",
+            "hate/threatening",
+            "self-harm",
+            "self-harm/intent",
+            "self-harm/instructions",
+            "sexual",
+            "sexual/minors",
+            "violence",
+            "violence/graphic",
+            "harassment",
+            "harassment/threatening",
+        ];
+
+        for category in expected_categories {
+            assert!(all_violations_list.contains(&category.to_string()));
+        }
     }
 }

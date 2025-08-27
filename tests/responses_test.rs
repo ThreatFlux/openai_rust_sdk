@@ -10,6 +10,8 @@ use openai_rust_sdk::testing::BatchJobGenerator;
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]
+use openai_rust_sdk::ValidationResult;
+#[cfg(feature = "yara")]
 use std::collections::HashMap;
 use tempfile::NamedTempFile;
 
@@ -115,54 +117,88 @@ fn test_batch_response_processing_pipeline() {
     let temp_file = NamedTempFile::new().unwrap();
 
     // Step 1: Generate batch requests
+    generate_test_requests(&generator, &temp_file);
+
+    // Step 2: Process requests and simulate responses
+    let pipeline_results = process_requests_and_simulate_responses(&temp_file, &validator);
+
+    // Step 3: Verify pipeline results
+    validate_pipeline_results(&pipeline_results);
+}
+
+/// Generate test requests for the batch processing pipeline
+#[cfg(feature = "yara")]
+fn generate_test_requests(generator: &BatchJobGenerator, temp_file: &NamedTempFile) {
     generator
         .generate_test_suite(temp_file.path(), "basic")
         .unwrap();
+}
 
-    // Step 2: Read requests and simulate responses
+/// Process requests and simulate OpenAI responses for testing
+#[cfg(feature = "yara")]
+fn process_requests_and_simulate_responses(
+    temp_file: &NamedTempFile,
+    validator: &YaraValidator,
+) -> Vec<(String, &'static str, ValidationResult)> {
     let content = openai_rust_sdk::helpers::read_string_sync(temp_file.path()).unwrap();
     let mut pipeline_results = Vec::new();
 
     for line in content.lines() {
         let request: BatchJobRequest = serde_json::from_str(line).unwrap();
-
-        // Simulate OpenAI response based on the prompt
-        let simulated_rule = match request.custom_id.as_str() {
-            id if id.contains("001") => {
-                r#"rule HelloWorld { strings: $s = "Hello World" condition: $s }"#
-            }
-            id if id.contains("002") => {
-                r"rule PEHeader { strings: $mz = { 4D 5A } condition: $mz at 0 }"
-            }
-            id if id.contains("003") => {
-                r#"rule LogStrings { strings: $e = "error" $w = "warning" condition: any of them }"#
-            }
-            _ => r"rule DefaultRule { condition: true }",
-        };
-
-        // Step 3: Validate the simulated response
+        let simulated_rule = simulate_openai_response(&request.custom_id);
         let validation_result = validator.validate_rule(simulated_rule).unwrap();
-
         pipeline_results.push((request.custom_id, simulated_rule, validation_result));
     }
 
-    // Verify pipeline results
+    pipeline_results
+}
+
+/// Simulate OpenAI response based on request custom_id
+#[cfg(feature = "yara")]
+fn simulate_openai_response(custom_id: &str) -> &'static str {
+    match custom_id {
+        id if id.contains("001") => {
+            r#"rule HelloWorld { strings: $s = "Hello World" condition: $s }"#
+        }
+        id if id.contains("002") => {
+            r"rule PEHeader { strings: $mz = { 4D 5A } condition: $mz at 0 }"
+        }
+        id if id.contains("003") => {
+            r#"rule LogStrings { strings: $e = "error" $w = "warning" condition: any of them }"#
+        }
+        _ => r"rule DefaultRule { condition: true }",
+    }
+}
+
+/// Validate the pipeline results and assert correctness
+#[cfg(feature = "yara")]
+fn validate_pipeline_results(pipeline_results: &[(String, &str, ValidationResult)]) {
     assert_eq!(pipeline_results.len(), 3);
 
     for (custom_id, rule, result) in pipeline_results {
-        assert!(custom_id.starts_with("basic_"));
-        assert!(result.is_valid);
-        assert!(!rule.is_empty());
+        assert_basic_result_properties(custom_id, rule, result);
+        assert_rule_features(rule, result);
+    }
+}
 
-        // Verify features are detected correctly
-        if rule.contains("Hello World") {
-            assert!(result.features.has_strings);
-            assert!(!result.features.has_hex_patterns);
-        } else if rule.contains("4D 5A") {
-            assert!(result.features.has_strings);
-            // Note: Current YARA implementation may not detect hex patterns in all cases
-            // assert!(result.features.has_hex_patterns);
-        }
+/// Assert basic properties of pipeline results
+#[cfg(feature = "yara")]
+fn assert_basic_result_properties(custom_id: &str, rule: &str, result: &ValidationResult) {
+    assert!(custom_id.starts_with("basic_"));
+    assert!(result.is_valid);
+    assert!(!rule.is_empty());
+}
+
+/// Assert rule-specific feature detection
+#[cfg(feature = "yara")]
+fn assert_rule_features(rule: &str, result: &ValidationResult) {
+    if rule.contains("Hello World") {
+        assert!(result.features.has_strings);
+        assert!(!result.features.has_hex_patterns);
+    } else if rule.contains("4D 5A") {
+        assert!(result.features.has_strings);
+        // Note: Current YARA implementation may not detect hex patterns in all cases
+        // assert!(result.features.has_hex_patterns);
     }
 }
 

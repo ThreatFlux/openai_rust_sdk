@@ -112,7 +112,14 @@ impl YaraTestCases {
     /// # Ok::<(), anyhow::Error>(())
     /// ```
     pub fn run_all_tests(&self) -> Result<TestSuiteResult> {
-        let test_cases = vec![
+        let test_cases = Self::get_test_cases();
+        let test_results = self.execute_test_cases(test_cases)?;
+        Ok(Self::aggregate_results(test_results))
+    }
+
+    /// Returns the predefined test cases for validation
+    fn get_test_cases() -> Vec<(&'static str, &'static str, &'static str, bool)> {
+        vec![
             (
                 "basic_001",
                 "Simple String",
@@ -152,55 +159,70 @@ impl YaraTestCases {
             "#,
                 false,
             ),
-        ];
+        ]
+    }
 
-        let mut test_results = Vec::new();
-        let mut passed_tests = 0;
+    /// Executes a list of test cases and returns individual results
+    fn execute_test_cases(
+        &self,
+        test_cases: Vec<(&str, &str, &str, bool)>,
+    ) -> Result<Vec<TestCaseResult>> {
+        test_cases
+            .into_iter()
+            .map(|(id, name, rule, expected_valid)| {
+                let validation_result = self.validator.validate_rule(rule)?;
+                let passed = validation_result.is_valid == expected_valid;
+                let error_message =
+                    Self::get_error_message(passed, expected_valid, validation_result.is_valid);
 
-        for (id, name, rule, expected_valid) in test_cases {
-            let validation_result = self.validator.validate_rule(rule)?;
-            let passed = validation_result.is_valid == expected_valid;
+                Ok(TestCaseResult {
+                    test_id: id.to_string(),
+                    test_name: name.to_string(),
+                    passed,
+                    validation_result,
+                    error_message,
+                })
+            })
+            .collect()
+    }
 
-            if passed {
-                passed_tests += 1;
-            }
-
-            let error_message = if passed {
-                None
-            } else {
-                Some(format!(
-                    "Expected valid: {}, got: {}",
-                    expected_valid, validation_result.is_valid
-                ))
-            };
-
-            test_results.push(TestCaseResult {
-                test_id: id.to_string(),
-                test_name: name.to_string(),
-                passed,
-                validation_result,
-                error_message,
-            });
+    /// Generates error message for failed tests
+    fn get_error_message(passed: bool, expected_valid: bool, actual_valid: bool) -> Option<String> {
+        if passed {
+            None
+        } else {
+            Some(format!(
+                "Expected valid: {expected_valid}, got: {actual_valid}"
+            ))
         }
+    }
 
+    /// Aggregates individual test results into suite statistics
+    fn aggregate_results(test_results: Vec<TestCaseResult>) -> TestSuiteResult {
         let total_tests = test_results.len();
+        let passed_tests = test_results.iter().filter(|test| test.passed).count();
         let failed_tests = total_tests - passed_tests;
-        let success_rate = if total_tests > 0 {
+        let success_rate = Self::calculate_success_rate(passed_tests, total_tests);
+
+        TestSuiteResult {
+            total_tests,
+            passed_tests,
+            failed_tests,
+            success_rate,
+            test_results,
+        }
+    }
+
+    /// Calculates success rate percentage
+    fn calculate_success_rate(passed_tests: usize, total_tests: usize) -> f64 {
+        if total_tests > 0 {
             #[allow(clippy::cast_precision_loss)]
             {
                 (passed_tests as f64 / total_tests as f64) * 100.0
             }
         } else {
             0.0
-        };
-
-        Ok(TestSuiteResult {
-            total_tests,
-            passed_tests,
-            failed_tests,
-            success_rate,
-            test_results,
-        })
+        }
     }
 }
 

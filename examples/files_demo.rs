@@ -113,7 +113,7 @@ impl DemoFiles {
 }
 
 /// Initialize the Files API client and demo files tracker
-async fn initialize_demo() -> Result<(FilesApi, DemoFiles), Box<dyn std::error::Error>> {
+fn initialize_demo() -> Result<(FilesApi, DemoFiles), Box<dyn std::error::Error>> {
     println!("🚀 OpenAI Files API Demo");
     println!("========================\n");
 
@@ -197,7 +197,7 @@ fn print_demo_summary() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (files_api, mut demo_files) = initialize_demo().await?;
+    let (files_api, mut demo_files) = initialize_demo()?;
     run_core_demos(&files_api, &mut demo_files).await?;
     run_advanced_demos(&files_api, &mut demo_files).await?;
 

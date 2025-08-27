@@ -497,23 +497,83 @@ impl ModelCapabilities {
     /// Classify the model family based on the model ID
     #[must_use]
     pub fn classify_family(model_id: &str) -> ModelFamily {
-        match model_id {
-            id if id.starts_with("gpt-4o") => ModelFamily::GPT4o,
-            id if id.starts_with("gpt-4-turbo")
-                || id.contains("gpt-4-1106")
-                || id.contains("gpt-4-0125") =>
-            {
-                ModelFamily::GPT4Turbo
-            }
-            id if id.starts_with("gpt-4") => ModelFamily::GPT4,
-            id if id.starts_with("gpt-3.5") => ModelFamily::GPT35,
-            id if id.starts_with("dall-e") => ModelFamily::DALLE,
-            id if id.starts_with("whisper") => ModelFamily::Whisper,
-            id if id.starts_with("tts") => ModelFamily::TTS,
-            id if id.contains("embedding") => ModelFamily::Embeddings,
-            id if id.contains("moderation") => ModelFamily::Moderation,
-            _ => ModelFamily::Unknown,
+        // Use a simpler approach with early returns to reduce complexity
+        if Self::is_gpt4o_model(model_id) {
+            return ModelFamily::GPT4o;
         }
+        if Self::is_gpt4_turbo_model(model_id) {
+            return ModelFamily::GPT4Turbo;
+        }
+        if Self::is_gpt4_model(model_id) {
+            return ModelFamily::GPT4;
+        }
+        if Self::is_gpt35_model(model_id) {
+            return ModelFamily::GPT35;
+        }
+        if Self::is_dalle_model(model_id) {
+            return ModelFamily::DALLE;
+        }
+        if Self::is_whisper_model(model_id) {
+            return ModelFamily::Whisper;
+        }
+        if Self::is_tts_model(model_id) {
+            return ModelFamily::TTS;
+        }
+        if Self::is_embedding_model(model_id) {
+            return ModelFamily::Embeddings;
+        }
+        if Self::is_moderation_model(model_id) {
+            return ModelFamily::Moderation;
+        }
+
+        ModelFamily::Unknown
+    }
+
+    /// Check if model ID matches GPT-4o family
+    fn is_gpt4o_model(model_id: &str) -> bool {
+        model_id.starts_with("gpt-4o")
+    }
+
+    /// Check if model ID matches GPT-4 Turbo family
+    fn is_gpt4_turbo_model(model_id: &str) -> bool {
+        model_id.starts_with("gpt-4-turbo")
+            || model_id.contains("gpt-4-1106")
+            || model_id.contains("gpt-4-0125")
+    }
+
+    /// Check if model ID matches GPT-4 family
+    fn is_gpt4_model(model_id: &str) -> bool {
+        model_id.starts_with("gpt-4")
+    }
+
+    /// Check if model ID matches GPT-3.5 family
+    fn is_gpt35_model(model_id: &str) -> bool {
+        model_id.starts_with("gpt-3.5")
+    }
+
+    /// Check if model ID matches DALL-E family
+    fn is_dalle_model(model_id: &str) -> bool {
+        model_id.starts_with("dall-e")
+    }
+
+    /// Check if model ID matches Whisper family
+    fn is_whisper_model(model_id: &str) -> bool {
+        model_id.starts_with("whisper")
+    }
+
+    /// Check if model ID matches TTS family
+    fn is_tts_model(model_id: &str) -> bool {
+        model_id.starts_with("tts")
+    }
+
+    /// Check if model ID matches Embeddings family
+    fn is_embedding_model(model_id: &str) -> bool {
+        model_id.contains("embedding")
+    }
+
+    /// Check if model ID matches Moderation family
+    fn is_moderation_model(model_id: &str) -> bool {
+        model_id.contains("moderation")
     }
 
     /// Classify the model tier based on the model ID
@@ -635,50 +695,71 @@ impl ListModelsResponse {
     pub fn find_suitable_models(&self, requirements: &ModelRequirements) -> Vec<&Model> {
         self.data
             .iter()
-            .filter(|model| {
-                let caps = model.capabilities();
-
-                // Check completion type
-                if !requirements
-                    .completion_types
-                    .iter()
-                    .any(|ct| caps.completion_types.contains(ct))
-                {
-                    return false;
-                }
-
-                // Check max tokens requirement
-                if let (Some(required), Some(available)) =
-                    (requirements.min_max_tokens, caps.max_tokens)
-                {
-                    if available < required {
-                        return false;
-                    }
-                }
-
-                // Check function calling requirement
-                if requirements.requires_function_calling && !caps.supports_function_calling {
-                    return false;
-                }
-
-                // Check vision requirement
-                if requirements.requires_vision && !caps.supports_vision {
-                    return false;
-                }
-
-                // Check code interpreter requirement
-                if requirements.requires_code_interpreter && !caps.supports_code_interpreter {
-                    return false;
-                }
-
-                // Check if deprecated models should be excluded
-                if requirements.exclude_deprecated && model.is_deprecated() {
-                    return false;
-                }
-
-                true
-            })
+            .filter(|model| Self::model_meets_requirements(model, requirements))
             .collect()
+    }
+
+    /// Check if a model meets all specified requirements
+    fn model_meets_requirements(model: &Model, requirements: &ModelRequirements) -> bool {
+        let caps = model.capabilities();
+
+        Self::check_completion_type_requirement(&caps, requirements)
+            && Self::check_max_tokens_requirement(&caps, requirements)
+            && Self::check_function_calling_requirement(&caps, requirements)
+            && Self::check_vision_requirement(&caps, requirements)
+            && Self::check_code_interpreter_requirement(&caps, requirements)
+            && Self::check_deprecated_requirement(model, requirements)
+    }
+
+    /// Check if model supports required completion types
+    fn check_completion_type_requirement(
+        caps: &ModelCapabilities,
+        requirements: &ModelRequirements,
+    ) -> bool {
+        requirements
+            .completion_types
+            .iter()
+            .any(|ct| caps.completion_types.contains(ct))
+    }
+
+    /// Check if model meets minimum max tokens requirement
+    fn check_max_tokens_requirement(
+        caps: &ModelCapabilities,
+        requirements: &ModelRequirements,
+    ) -> bool {
+        match (requirements.min_max_tokens, caps.max_tokens) {
+            (Some(required), Some(available)) => available >= required,
+            _ => true,
+        }
+    }
+
+    /// Check if model supports function calling when required
+    fn check_function_calling_requirement(
+        caps: &ModelCapabilities,
+        requirements: &ModelRequirements,
+    ) -> bool {
+        !requirements.requires_function_calling || caps.supports_function_calling
+    }
+
+    /// Check if model supports vision capabilities when required
+    fn check_vision_requirement(
+        caps: &ModelCapabilities,
+        requirements: &ModelRequirements,
+    ) -> bool {
+        !requirements.requires_vision || caps.supports_vision
+    }
+
+    /// Check if model supports code interpreter when required
+    fn check_code_interpreter_requirement(
+        caps: &ModelCapabilities,
+        requirements: &ModelRequirements,
+    ) -> bool {
+        !requirements.requires_code_interpreter || caps.supports_code_interpreter
+    }
+
+    /// Check if model meets deprecation status requirement
+    fn check_deprecated_requirement(model: &Model, requirements: &ModelRequirements) -> bool {
+        !requirements.exclude_deprecated || !model.is_deprecated()
     }
 }
 

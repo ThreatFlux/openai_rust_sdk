@@ -258,13 +258,15 @@ fn test_sdk_integration_basics() {
 /// Test model builders and request structures
 #[test]
 fn test_model_builders() {
-    use openai_rust_sdk::models::{
-        assistants::AssistantRequest,
-        fine_tuning::{FineTuningJobRequest, Hyperparameters},
-        responses::ResponseRequest,
-    };
+    test_assistant_builder();
+    test_response_request_creation();
+    test_fine_tuning_builder();
+    println!("✅ Builder Patterns: All builder patterns work correctly");
+}
 
-    // Test AssistantRequest builder
+fn test_assistant_builder() {
+    use openai_rust_sdk::models::assistants::AssistantRequest;
+
     let assistant = AssistantRequest::builder()
         .model("gpt-4")
         .name("Test Assistant")
@@ -276,9 +278,11 @@ fn test_model_builders() {
     let assistant = assistant.unwrap();
     assert_eq!(assistant.model, "gpt-4");
     assert_eq!(assistant.name, Some("Test Assistant".to_string()));
+}
 
-    // Test ResponseRequest creation
-    use openai_rust_sdk::models::responses::ResponseInput;
+fn test_response_request_creation() {
+    use openai_rust_sdk::models::responses::{ResponseInput, ResponseRequest};
+
     let response_req = ResponseRequest {
         model: "gpt-4".to_string(),
         input: ResponseInput::Text("Hello".to_string()),
@@ -302,11 +306,20 @@ fn test_model_builders() {
         prompt_cache_key: None,
     };
 
+    verify_response_request_fields(&response_req);
+}
+
+fn verify_response_request_fields(
+    response_req: &openai_rust_sdk::models::responses::ResponseRequest,
+) {
     assert_eq!(response_req.model, "gpt-4");
     assert_eq!(response_req.temperature, Some(0.7));
     assert_eq!(response_req.max_tokens, Some(1000));
+}
 
-    // Test FineTuningJobRequest builder
+fn test_fine_tuning_builder() {
+    use openai_rust_sdk::models::fine_tuning::{FineTuningJobRequest, Hyperparameters};
+
     let hyperparams = Hyperparameters::builder()
         .n_epochs(3)
         .batch_size(16)
@@ -322,8 +335,6 @@ fn test_model_builders() {
     let fine_tuning = fine_tuning.unwrap();
     assert_eq!(fine_tuning.training_file, "file-123");
     assert_eq!(fine_tuning.model, "gpt-3.5-turbo");
-
-    println!("✅ Builder Patterns: All builder patterns work correctly");
 }
 
 /// Test pagination support

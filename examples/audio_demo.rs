@@ -170,6 +170,91 @@ async fn demo_voice_recommendations(
     Ok(())
 }
 
+async fn perform_basic_transcription(
+    audio_api: &AudioApi,
+    file_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match audio_api.transcribe(file_path, Some("en")).await {
+        Ok(transcription) => {
+            println!("📝 Transcription: \"{transcription}\"");
+        }
+        Err(e) => {
+            println!("❌ Transcription failed: {e}");
+        }
+    }
+    Ok(())
+}
+
+async fn perform_detailed_transcription(
+    audio_api: &AudioApi,
+    file_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let detailed_request = TranscriptionBuilder::whisper(file_path)
+        .language("en")
+        .verbose_json()
+        .word_timestamps()
+        .temperature(0.1)
+        .build();
+
+    match audio_api
+        .transcribe_file(file_path, &detailed_request)
+        .await
+    {
+        Ok(response) => {
+            print_detailed_results(&response);
+        }
+        Err(e) => {
+            println!("❌ Detailed transcription failed: {e}");
+        }
+    }
+    Ok(())
+}
+
+fn print_detailed_results(response: &AudioTranscriptionResponse) {
+    println!("📊 Detailed transcription results:");
+    println!("   Text: \"{}\"", response.text);
+
+    if let Some(duration) = response.duration() {
+        println!("   Duration: {duration:.2} seconds");
+        let cost = AudioUtils::estimate_whisper_cost(duration);
+        println!("   💰 Estimated cost: ${cost:.6}");
+    }
+
+    if let Some(words) = response.words() {
+        println!("   Word count: {}", words.len());
+        if !words.is_empty() {
+            let first_word = &words[0];
+            println!(
+                "   First word: \"{}\" ({:.2}s - {:.2}s)",
+                first_word.word, first_word.start, first_word.end
+            );
+        }
+    }
+}
+
+async fn process_audio_file(
+    audio_api: &AudioApi,
+    file_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !Path::new(file_path).exists() {
+        println!("⚠️  File {file_path} not found, skipping transcription");
+        return Ok(());
+    }
+
+    println!("🔍 Transcribing {file_path}...");
+
+    if !AudioApi::is_supported_format(file_path) {
+        println!("❌ File format not supported");
+        return Ok(());
+    }
+
+    println!("✅ File format is supported");
+    perform_basic_transcription(audio_api, file_path).await?;
+    perform_detailed_transcription(audio_api, file_path).await?;
+
+    Ok(())
+}
+
 async fn demo_transcription(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎙️  Demo 5: Speech-to-Text Transcription");
     println!("=========================================");
@@ -177,64 +262,7 @@ async fn demo_transcription(audio_api: &AudioApi) -> Result<(), Box<dyn std::err
     let test_files = vec!["output_voice_alloy.mp3", "hq_output.mp3"];
 
     for file_path in test_files {
-        if Path::new(file_path).exists() {
-            println!("🔍 Transcribing {file_path}...");
-
-            if AudioApi::is_supported_format(file_path) {
-                println!("✅ File format is supported");
-
-                match audio_api.transcribe(file_path, Some("en")).await {
-                    Ok(transcription) => {
-                        println!("📝 Transcription: \"{transcription}\"");
-                    }
-                    Err(e) => {
-                        println!("❌ Transcription failed: {e}");
-                    }
-                }
-
-                let detailed_request = TranscriptionBuilder::whisper(file_path)
-                    .language("en")
-                    .verbose_json()
-                    .word_timestamps()
-                    .temperature(0.1)
-                    .build();
-
-                match audio_api
-                    .transcribe_file(file_path, &detailed_request)
-                    .await
-                {
-                    Ok(response) => {
-                        println!("📊 Detailed transcription results:");
-                        println!("   Text: \"{}\"", response.text);
-                        if let Some(duration) = response.duration() {
-                            println!("   Duration: {duration:.2} seconds");
-                        }
-                        if let Some(words) = response.words() {
-                            println!("   Word count: {}", words.len());
-                            if !words.is_empty() {
-                                let first_word = &words[0];
-                                println!(
-                                    "   First word: \"{}\" ({:.2}s - {:.2}s)",
-                                    first_word.word, first_word.start, first_word.end
-                                );
-                            }
-                        }
-
-                        if let Some(duration) = response.duration() {
-                            let cost = AudioUtils::estimate_whisper_cost(duration);
-                            println!("   💰 Estimated cost: ${cost:.6}");
-                        }
-                    }
-                    Err(e) => {
-                        println!("❌ Detailed transcription failed: {e}");
-                    }
-                }
-            } else {
-                println!("❌ File format not supported");
-            }
-        } else {
-            println!("⚠️  File {file_path} not found, skipping transcription");
-        }
+        process_audio_file(audio_api, file_path).await?;
         println!();
     }
 

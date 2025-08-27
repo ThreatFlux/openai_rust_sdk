@@ -33,20 +33,13 @@ use tokio_stream::StreamExt;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = get_api_key()?;
-
     print_header();
 
-    test_basic_completion(&api_key).await?;
-    test_batch_api(&api_key).await?;
-    test_responses_api(&api_key).await?;
-    test_gpt5_api(&api_key).await?;
-    test_function_calling(&api_key).await?;
-    test_streaming_api(&api_key).await?;
-    test_yara_validation().await?;
-    test_error_handling(&api_key).await?;
+    run_core_api_tests(&api_key).await?;
+    run_advanced_api_tests(&api_key).await?;
+    run_validation_tests().await?;
 
     print_summary();
-
     Ok(())
 }
 
@@ -61,6 +54,30 @@ fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
 fn print_header() {
     println!("🚀 Starting OpenAI API Integration Tests");
     println!("═══════════════════════════════════════");
+}
+
+#[cfg(feature = "yara")]
+async fn run_core_api_tests(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    test_basic_completion(api_key).await?;
+    test_batch_api(api_key).await?;
+    test_responses_api(api_key).await?;
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+async fn run_advanced_api_tests(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    test_gpt5_api(api_key).await?;
+    test_function_calling(api_key).await?;
+    test_streaming_api(api_key).await?;
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+async fn run_validation_tests() -> Result<(), Box<dyn std::error::Error>> {
+    test_yara_validation().await?;
+    // Add error handling test with a mock API key since it's just for error testing
+    test_error_handling("mock-key-for-error-testing").await?;
+    Ok(())
 }
 
 #[cfg(feature = "yara")]

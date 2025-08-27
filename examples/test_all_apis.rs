@@ -26,58 +26,99 @@ use tokio::fs;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let api_key =
-        env::var("OPENAI_API_KEY").expect("Please set OPENAI_API_KEY environment variable");
+    let api_key = get_api_key();
+    print_test_header();
 
+    run_core_api_tests(&api_key).await?;
+    run_assistant_related_tests(&api_key).await?;
+    run_specialized_api_tests(&api_key).await?;
+
+    print_test_footer();
+    Ok(())
+}
+
+fn get_api_key() -> String {
+    env::var("OPENAI_API_KEY").expect("Please set OPENAI_API_KEY environment variable")
+}
+
+fn print_test_header() {
     println!("\n🧪 Comprehensive OpenAI API Testing\n");
     println!("{}", "=".repeat(70));
+}
 
-    // Test 1: Files API
+async fn run_core_api_tests(api_key: &str) -> Result<()> {
+    run_files_api_test(api_key).await?;
+    run_moderations_api_test(api_key).await?;
+    Ok(())
+}
+
+async fn run_assistant_related_tests(api_key: &str) -> Result<()> {
+    run_assistants_api_test(api_key).await?;
+    run_threads_api_test(api_key).await?;
+    run_runs_api_test(api_key).await?;
+    run_vector_stores_api_test(api_key).await?;
+    Ok(())
+}
+
+async fn run_specialized_api_tests(api_key: &str) -> Result<()> {
+    run_fine_tuning_api_test(api_key).await?;
+    run_audio_api_test(api_key).await?;
+    Ok(())
+}
+
+async fn run_files_api_test(api_key: &str) -> Result<()> {
     println!("\n📁 Test 1: Files API");
     println!("{}", "-".repeat(70));
-    test_files_api(&api_key).await?;
+    test_files_api(api_key).await
+}
 
-    // Test 2: Assistants API
+async fn run_assistants_api_test(api_key: &str) -> Result<()> {
     println!("\n🤖 Test 2: Assistants API");
     println!("{}", "-".repeat(70));
-    test_assistants_api(&api_key).await?;
+    test_assistants_api(api_key).await
+}
 
-    // Test 3: Threads API
+async fn run_threads_api_test(api_key: &str) -> Result<()> {
     println!("\n🧵 Test 3: Threads API");
     println!("{}", "-".repeat(70));
-    test_threads_api(&api_key).await?;
+    test_threads_api(api_key).await
+}
 
-    // Test 4: Vector Stores API
+async fn run_vector_stores_api_test(api_key: &str) -> Result<()> {
     println!("\n🗄️ Test 4: Vector Stores API");
     println!("{}", "-".repeat(70));
-    test_vector_stores_api(&api_key).await?;
+    test_vector_stores_api(api_key).await
+}
 
-    // Test 5: Fine-tuning API
+async fn run_fine_tuning_api_test(api_key: &str) -> Result<()> {
     println!("\n🎯 Test 5: Fine-tuning API");
     println!("{}", "-".repeat(70));
-    test_fine_tuning_api(&api_key).await?;
+    test_fine_tuning_api(api_key).await
+}
 
-    // Test 6: Audio API
+async fn run_audio_api_test(api_key: &str) -> Result<()> {
     println!("\n🔊 Test 6: Audio API");
     println!("{}", "-".repeat(70));
-    test_audio_api(&api_key).await?;
+    test_audio_api(api_key).await
+}
 
-    // Test 7: Moderations API
+async fn run_moderations_api_test(api_key: &str) -> Result<()> {
     println!("\n🛡️ Test 7: Moderations API");
     println!("{}", "-".repeat(70));
-    test_moderations_api(&api_key).await?;
+    test_moderations_api(api_key).await
+}
 
-    // Test 8: Runs API
+async fn run_runs_api_test(api_key: &str) -> Result<()> {
     println!("\n⚡ Test 8: Runs API");
     println!("{}", "-".repeat(70));
-    test_runs_api(&api_key).await?;
+    test_runs_api(api_key).await
+}
 
+fn print_test_footer() {
     println!("\n");
     println!("{}", "=".repeat(70));
     println!("✅ All API Tests Complete!");
     println!("{}", "=".repeat(70));
-
-    Ok(())
 }
 
 async fn test_files_api(api_key: &str) -> Result<()> {
@@ -145,10 +186,26 @@ async fn test_files_api(api_key: &str) -> Result<()> {
 
 async fn test_assistants_api(api_key: &str) -> Result<()> {
     let api = AssistantsApi::new(api_key)?;
+    let request = create_assistant_request();
 
-    // Test create assistant
     println!("   🆕 Creating assistant...");
-    let request = AssistantRequest {
+    match api.create_assistant(request.clone()).await {
+        Ok(assistant) => {
+            println!("   ✅ Assistant created: {}", assistant.id);
+            let assistant_id = assistant.id.clone();
+
+            test_list_assistants(&api).await;
+            test_retrieve_assistant(&api, &assistant_id).await;
+            test_update_assistant(&api, &assistant_id, request).await;
+            test_delete_assistant(&api, &assistant_id).await;
+        }
+        Err(e) => println!("   ❌ Create assistant failed: {e}"),
+    }
+    Ok(())
+}
+
+fn create_assistant_request() -> AssistantRequest {
+    AssistantRequest {
         model: "gpt-4-turbo-preview".to_string(),
         name: Some("Test Assistant".to_string()),
         description: Some("A test assistant for API testing".to_string()),
@@ -156,60 +213,47 @@ async fn test_assistants_api(api_key: &str) -> Result<()> {
         tools: vec![],
         file_ids: vec![],
         metadata: HashMap::new(),
-    };
-
-    match api.create_assistant(request.clone()).await {
-        Ok(assistant) => {
-            println!("   ✅ Assistant created: {}", assistant.id);
-            let assistant_id = assistant.id.clone();
-
-            // Test list assistants
-            println!("   📋 Listing assistants...");
-            match api
-                .list_assistants(Some(ListAssistantsParams::default()))
-                .await
-            {
-                Ok(list) => {
-                    println!("   ✅ Found {} assistants", list.data.len());
-                }
-                Err(e) => println!("   ❌ List assistants failed: {e}"),
-            }
-
-            // Test retrieve assistant
-            println!("   🔍 Retrieving assistant...");
-            match api.retrieve_assistant(&assistant_id).await {
-                Ok(retrieved) => {
-                    println!("   ✅ Assistant retrieved: {:?}", retrieved.name);
-                }
-                Err(e) => println!("   ❌ Retrieve assistant failed: {e}"),
-            }
-
-            // Test update assistant
-            println!("   ✏️ Updating assistant...");
-            let mut update = request.clone();
-            update.name = Some("Updated Test Assistant".to_string());
-            match api.modify_assistant(&assistant_id, update).await {
-                Ok(_) => {
-                    println!("   ✅ Assistant updated successfully");
-                }
-                Err(e) => println!("   ❌ Update assistant failed: {e}"),
-            }
-
-            // Test delete assistant
-            println!("   🗑️ Deleting assistant...");
-            match api.delete_assistant(&assistant_id).await {
-                Ok(_) => {
-                    println!("   ✅ Assistant deleted successfully");
-                }
-                Err(e) => println!("   ❌ Delete assistant failed: {e}"),
-            }
-        }
-        Err(e) => {
-            println!("   ❌ Create assistant failed: {e}");
-        }
     }
+}
 
-    Ok(())
+async fn test_list_assistants(api: &AssistantsApi) {
+    println!("   📋 Listing assistants...");
+    match api
+        .list_assistants(Some(ListAssistantsParams::default()))
+        .await
+    {
+        Ok(list) => println!("   ✅ Found {} assistants", list.data.len()),
+        Err(e) => println!("   ❌ List assistants failed: {e}"),
+    }
+}
+
+async fn test_retrieve_assistant(api: &AssistantsApi, assistant_id: &str) {
+    println!("   🔍 Retrieving assistant...");
+    match api.retrieve_assistant(assistant_id).await {
+        Ok(retrieved) => println!("   ✅ Assistant retrieved: {:?}", retrieved.name),
+        Err(e) => println!("   ❌ Retrieve assistant failed: {e}"),
+    }
+}
+
+async fn test_update_assistant(
+    api: &AssistantsApi,
+    assistant_id: &str,
+    mut request: AssistantRequest,
+) {
+    println!("   ✏️ Updating assistant...");
+    request.name = Some("Updated Test Assistant".to_string());
+    match api.modify_assistant(assistant_id, request).await {
+        Ok(_) => println!("   ✅ Assistant updated successfully"),
+        Err(e) => println!("   ❌ Update assistant failed: {e}"),
+    }
+}
+
+async fn test_delete_assistant(api: &AssistantsApi, assistant_id: &str) {
+    println!("   🗑️ Deleting assistant...");
+    match api.delete_assistant(assistant_id).await {
+        Ok(_) => println!("   ✅ Assistant deleted successfully"),
+        Err(e) => println!("   ❌ Delete assistant failed: {e}"),
+    }
 }
 
 async fn test_threads_api(api_key: &str) -> Result<()> {

@@ -7,7 +7,7 @@
 use openai_rust_sdk::{
     api::{
         common::ApiClientConstructors,
-        images::{ImageUtils, ImagesApi},
+        images::{ImageRecommendationUtils, ImageSupportUtils, ImageUtils, ImagesApi},
     },
     error::Result,
     models::images::*,
@@ -19,42 +19,19 @@ mod common;
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize the Images API client
-    let api_key = common::get_api_key();
-
-    let images_api = ImagesApi::new(api_key)?;
+    let images_api = initialize_api()?;
 
     println!("🎨 OpenAI Images API Demo");
     println!("========================\n");
 
-    // Demo 1: Basic Image Generation
-    demo_basic_generation(&images_api).await?;
+    // Run all image generation demos
+    run_generation_demos(&images_api).await?;
 
-    // Demo 2: Advanced Image Generation with Different Settings
-    demo_advanced_generation(&images_api).await?;
+    // Run image manipulation demos
+    run_manipulation_demos(&images_api).await?;
 
-    // Demo 3: Image Generation with Multiple Images
-    demo_multiple_images(&images_api).await?;
-
-    // Demo 4: Image Editing (requires sample image)
-    demo_image_editing(&images_api).await?;
-
-    // Demo 5: Image Variations (requires sample image)
-    demo_image_variations(&images_api).await?;
-
-    // Demo 6: Utility Functions
-    demo_utilities(&images_api).await?;
-
-    // Demo 7: Error Handling and Validation
-    demo_error_handling(&images_api).await?;
-
-    // Demo 8: Cost Estimation
-    demo_cost_estimation();
-
-    // Demo 9: Builder Patterns
-    demo_builder_patterns(&images_api).await?;
-
-    // Demo 10: File Operations
-    demo_file_operations(&images_api).await?;
+    // Run utility and advanced demos
+    run_utility_demos(&images_api).await?;
 
     println!("\n✅ All demos completed successfully!");
 
@@ -277,7 +254,7 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
 
     // Show supported formats
     println!("Supported image formats:");
-    for format in ImagesApi::supported_input_formats() {
+    for format in ImageSupportUtils::supported_input_formats() {
         println!("   • {}", format);
     }
 
@@ -285,7 +262,7 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
     println!("\nFormat validation tests:");
     let test_files = vec!["image.png", "photo.jpg", "graphic.webp", "animation.gif"];
     for file in test_files {
-        let is_supported = ImagesApi::is_supported_format(file);
+        let is_supported = ImageSupportUtils::is_supported_format(file);
         println!(
             "   {} - {}",
             file,
@@ -301,7 +278,7 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
     println!("\nRecommended settings for different use cases:");
     let use_cases = vec!["avatar", "wallpaper", "poster", "thumbnail", "concept"];
     for use_case in use_cases {
-        let (model, size, quality, style) = ImagesApi::recommend_settings(use_case);
+        let (model, size, quality, style) = ImageRecommendationUtils::recommend_settings(use_case);
         println!(
             "   {}: {} at {:?} (Quality: {:?}, Style: {:?})",
             use_case, model, size, quality, style
@@ -418,7 +395,12 @@ fn demo_cost_estimation() {
     ];
 
     for (size, quality, count) in dall_e_3_costs {
-        let cost = ImagesApi::estimate_cost(ImageModels::DALL_E_3, &size, quality.as_ref(), count);
+        let cost = ImageRecommendationUtils::estimate_cost(
+            ImageModels::DALL_E_3.to_string().as_str(),
+            &size,
+            quality.as_ref(),
+            count,
+        );
         println!(
             "   {:?} {:?}: ${:.3}",
             size,
@@ -437,7 +419,12 @@ fn demo_cost_estimation() {
     ];
 
     for (size, count) in dall_e_2_costs {
-        let cost = ImagesApi::estimate_cost(ImageModels::DALL_E_2, &size, None, count);
+        let cost = ImageRecommendationUtils::estimate_cost(
+            ImageModels::DALL_E_2.to_string().as_str(),
+            &size,
+            None,
+            count,
+        );
         println!("   {:?} x{}: ${:.3}", size, count, cost);
     }
 
@@ -449,7 +436,17 @@ async fn demo_builder_patterns(api: &ImagesApi) -> Result<()> {
     println!("🏗️ Demo 9: Builder Patterns");
     println!("---------------------------");
 
-    // Image Generation Builder
+    demo_generation_builder();
+    demo_edit_builder();
+    demo_variation_builder();
+    demo_convenience_method(api).await?;
+
+    println!();
+    Ok(())
+}
+
+/// Demonstrate ImageGenerationBuilder usage
+fn demo_generation_builder() {
     println!("Using ImageGenerationBuilder:");
     let gen_request = ImageGenerationBuilder::dall_e_3("A cyberpunk street scene")
         .hd_quality()
@@ -463,8 +460,10 @@ async fn demo_builder_patterns(api: &ImagesApi) -> Result<()> {
         "   Built request: {} with {:?} quality",
         gen_request.model, gen_request.quality
     );
+}
 
-    // Image Edit Builder
+/// Demonstrate ImageEditBuilder usage
+fn demo_edit_builder() {
     println!("\nUsing ImageEditBuilder:");
     let edit_request = ImageEditBuilder::dall_e_2("original.png", "Add snow falling")
         .mask("snow_mask.png")
@@ -478,8 +477,10 @@ async fn demo_builder_patterns(api: &ImagesApi) -> Result<()> {
         "   Built edit request for {} images",
         edit_request.n.unwrap_or(1)
     );
+}
 
-    // Image Variation Builder
+/// Demonstrate ImageVariationBuilder usage
+fn demo_variation_builder() {
     println!("\nUsing ImageVariationBuilder:");
     let var_request = ImageVariationBuilder::dall_e_2("source.png")
         .n(4)
@@ -491,8 +492,10 @@ async fn demo_builder_patterns(api: &ImagesApi) -> Result<()> {
         "   Built variation request for {} variations",
         var_request.n.unwrap_or(1)
     );
+}
 
-    // Demonstrate the convenience methods
+/// Demonstrate convenience method usage
+async fn demo_convenience_method(api: &ImagesApi) -> Result<()> {
     println!("\nTesting convenience generation method:");
     match api
         .generate_image(
@@ -513,8 +516,6 @@ async fn demo_builder_patterns(api: &ImagesApi) -> Result<()> {
             println!("   ❌ Convenience method failed: {}", e);
         }
     }
-
-    println!();
     Ok(())
 }
 
@@ -588,6 +589,57 @@ async fn demo_file_operations(_api: &ImagesApi) -> Result<()> {
     }
 
     println!();
+    Ok(())
+}
+
+/// Initialize the API client
+fn initialize_api() -> Result<ImagesApi> {
+    let api_key = common::get_api_key();
+    ImagesApi::new(api_key)
+}
+
+/// Run all image generation related demos
+async fn run_generation_demos(images_api: &ImagesApi) -> Result<()> {
+    // Demo 1: Basic Image Generation
+    demo_basic_generation(images_api).await?;
+
+    // Demo 2: Advanced Image Generation with Different Settings
+    demo_advanced_generation(images_api).await?;
+
+    // Demo 3: Image Generation with Multiple Images
+    demo_multiple_images(images_api).await?;
+
+    Ok(())
+}
+
+/// Run image manipulation demos (editing and variations)
+async fn run_manipulation_demos(images_api: &ImagesApi) -> Result<()> {
+    // Demo 4: Image Editing (requires sample image)
+    demo_image_editing(images_api).await?;
+
+    // Demo 5: Image Variations (requires sample image)
+    demo_image_variations(images_api).await?;
+
+    Ok(())
+}
+
+/// Run utility and advanced feature demos
+async fn run_utility_demos(images_api: &ImagesApi) -> Result<()> {
+    // Demo 6: Utility Functions
+    demo_utilities(images_api).await?;
+
+    // Demo 7: Error Handling and Validation
+    demo_error_handling(images_api).await?;
+
+    // Demo 8: Cost Estimation
+    demo_cost_estimation();
+
+    // Demo 9: Builder Patterns
+    demo_builder_patterns(images_api).await?;
+
+    // Demo 10: File Operations
+    demo_file_operations(images_api).await?;
+
     Ok(())
 }
 

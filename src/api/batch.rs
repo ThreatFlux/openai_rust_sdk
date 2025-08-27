@@ -689,9 +689,8 @@ impl BatchApi {
         report: &mut BatchReport,
         results_file: &Path,
     ) -> Result<()> {
-        let content = match crate::helpers::read_string(results_file).await {
-            Ok(content) => content,
-            Err(_) => return Ok(()), // Skip if file can't be read
+        let Ok(content) = crate::helpers::read_string(results_file).await else {
+            return Ok(()); // Skip if file can't be read
         };
 
         for line in content.lines() {
@@ -703,9 +702,8 @@ impl BatchApi {
 
     /// Processes a single result line and updates the report
     fn process_result_line(&self, report: &mut BatchReport, line: &str) {
-        let parsed = match serde_json::from_str::<serde_json::Value>(line) {
-            Ok(parsed) => parsed,
-            Err(_) => return,
+        let Ok(parsed) = serde_json::from_str::<serde_json::Value>(line) else {
+            return;
         };
 
         // Handle successful responses
@@ -739,14 +737,12 @@ impl BatchApi {
         report: &mut BatchReport,
         errors_file: Option<&Path>,
     ) -> Result<()> {
-        let errors_path = match errors_file {
-            Some(path) => path,
-            None => return Ok(()),
+        let Some(errors_path) = errors_file else {
+            return Ok(());
         };
 
-        let error_content = match crate::helpers::read_string(errors_path).await {
-            Ok(content) => content,
-            Err(_) => return Ok(()), // Skip if file can't be read
+        let Ok(error_content) = crate::helpers::read_string(errors_path).await else {
+            return Ok(()); // Skip if file can't be read
         };
 
         for line in error_content.lines() {
@@ -758,9 +754,8 @@ impl BatchApi {
 
     /// Processes a single error line and updates the report
     fn process_error_line(&self, report: &mut BatchReport, line: &str) {
-        let parsed = match serde_json::from_str::<serde_json::Value>(line) {
-            Ok(parsed) => parsed,
-            Err(_) => return,
+        let Ok(parsed) = serde_json::from_str::<serde_json::Value>(line) else {
+            return;
         };
 
         if let Some(error) = parsed.get("error") {

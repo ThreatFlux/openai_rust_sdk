@@ -7,26 +7,20 @@ use openai_rust_sdk::api::{
 };
 use std::env;
 
-#[tokio::main]
-async fn main() {
-    let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| "test".to_string());
-
-    println!("\n🧪 Testing Remaining OpenAI APIs\n");
-    println!("{}", "=".repeat(50));
-
-    // Test Files API
+async fn test_files_api(api_key: &str) {
     println!("\n📁 Testing Files API...");
-    match FilesApi::new(&api_key) {
+    match FilesApi::new(api_key) {
         Ok(api) => match api.list_files(None).await {
             Ok(files) => println!("✅ Files API works! Found {} files", files.data.len()),
             Err(e) => println!("❌ Files API error: {e}"),
         },
         Err(e) => println!("❌ Failed to create Files API: {e}"),
     }
+}
 
-    // Test Assistants API
+async fn test_assistants_api(api_key: &str) {
     println!("\n🤖 Testing Assistants API...");
-    match AssistantsApi::new(&api_key) {
+    match AssistantsApi::new(api_key) {
         Ok(api) => {
             match api
                 .list_assistants(Some(
@@ -43,17 +37,16 @@ async fn main() {
         }
         Err(e) => println!("❌ Failed to create Assistants API: {e}"),
     }
+}
 
-    // Test Threads API
+async fn test_threads_api(api_key: &str) {
     println!("\n🧵 Testing Threads API...");
-    match ThreadsApi::new(&api_key) {
+    match ThreadsApi::new(api_key) {
         Ok(api) => {
-            // Try to create a thread
             use openai_rust_sdk::models::threads::ThreadRequest;
             match api.create_thread(ThreadRequest::default()).await {
                 Ok(thread) => {
                     println!("✅ Thread created! ID: {}", thread.id);
-                    // Clean up - delete the thread
                     let _ = api.delete_thread(&thread.id).await;
                 }
                 Err(e) => println!("❌ Threads API error: {e}"),
@@ -61,10 +54,11 @@ async fn main() {
         }
         Err(e) => println!("❌ Failed to create Threads API: {e}"),
     }
+}
 
-    // Test Vector Stores API
+async fn test_storage_apis(api_key: &str) {
     println!("\n🗄️ Testing Vector Stores API...");
-    match VectorStoresApi::new(&api_key) {
+    match VectorStoresApi::new(api_key) {
         Ok(api) => match api.list_vector_stores(None).await {
             Ok(stores) => println!(
                 "✅ Vector Stores API works! Found {} stores",
@@ -74,10 +68,11 @@ async fn main() {
         },
         Err(e) => println!("❌ Failed to create Vector Stores API: {e}"),
     }
+}
 
-    // Test Fine-tuning API
+async fn test_training_audio_apis(api_key: &str) {
     println!("\n🎯 Testing Fine-tuning API...");
-    match FineTuningApi::new(&api_key) {
+    match FineTuningApi::new(api_key) {
         Ok(api) => match api.list_fine_tuning_jobs(None).await {
             Ok(jobs) => println!("✅ Fine-tuning API works! Found {} jobs", jobs.data.len()),
             Err(e) => println!("❌ Fine-tuning API error: {e}"),
@@ -85,15 +80,25 @@ async fn main() {
         Err(e) => println!("❌ Failed to create Fine-tuning API: {e}"),
     }
 
-    // Test Audio Transcription (Whisper)
     println!("\n🎤 Testing Audio Transcription API...");
-    match AudioApi::new(&api_key) {
-        Ok(_api) => {
-            println!("⚠️  Audio transcription requires an actual audio file to test");
-            // Would need: api.create_transcription(file_path, "whisper-1").await
-        }
+    match AudioApi::new(api_key) {
+        Ok(_api) => println!("⚠️  Audio transcription requires an actual audio file to test"),
         Err(e) => println!("❌ Failed to create Audio API: {e}"),
     }
+}
+
+#[tokio::main]
+async fn main() {
+    let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| "test".to_string());
+
+    println!("\n🧪 Testing Remaining OpenAI APIs\n");
+    println!("{}", "=".repeat(50));
+
+    test_files_api(&api_key).await;
+    test_assistants_api(&api_key).await;
+    test_threads_api(&api_key).await;
+    test_storage_apis(&api_key).await;
+    test_training_audio_apis(&api_key).await;
 
     println!("\n");
     println!("{}", "=".repeat(50));

@@ -460,35 +460,51 @@ async fn demonstrate_error_handling(api: &FineTuningApi) -> Result<()> {
 async fn demonstrate_model_usage(api: &FineTuningApi, job_id: &str) -> Result<()> {
     println!("Demonstrating fine-tuned model usage:");
 
-    // Get job details
     let job = api.retrieve_fine_tuning_job(job_id).await?;
 
-    if let Some(model_name) = job.fine_tuned_model {
-        println!("  🎯 Fine-tuned model available: {model_name}");
-        println!("  💡 You can now use this model for chat completions:");
-        println!("     model: '{model_name}'");
-        println!("     Example usage:");
-        println!("     ```rust");
-        println!("     let request = ChatCompletionRequest::builder()");
-        println!("         .model('{model_name}');");
-        println!("         .messages(messages)");
-        println!("         .build()?;");
-        println!("     let response = client.create_chat_completion(request).await?;");
-        println!("     ```");
+    display_model_availability(&job);
+    display_job_statistics(&job);
+    display_hyperparameters(&job);
+
+    Ok(())
+}
+
+fn display_model_availability(job: &FineTuningJob) {
+    if let Some(model_name) = &job.fine_tuned_model {
+        display_available_model(model_name);
     } else {
-        println!("  ⏳ Fine-tuned model not yet available");
-        println!("  📊 Job status: {:?}", job.status);
-
-        if job.status == FineTuningJobStatus::Failed {
-            if let Some(error) = &job.error {
-                println!("  ❌ Training failed: {} - {}", error.code, error.message);
-            }
-        } else if job.status.is_active() {
-            println!("  🔄 Training still in progress, check back later");
-        }
+        display_unavailable_model_status(job);
     }
+}
 
-    // Show job statistics
+fn display_available_model(model_name: &str) {
+    println!("  🎯 Fine-tuned model available: {model_name}");
+    println!("  💡 You can now use this model for chat completions:");
+    println!("     model: '{model_name}'");
+    println!("     Example usage:");
+    println!("     ```rust");
+    println!("     let request = ChatCompletionRequest::builder()");
+    println!("         .model('{model_name}');");
+    println!("         .messages(messages)");
+    println!("         .build()?;");
+    println!("     let response = client.create_chat_completion(request).await?;");
+    println!("     ```");
+}
+
+fn display_unavailable_model_status(job: &FineTuningJob) {
+    println!("  ⏳ Fine-tuned model not yet available");
+    println!("  📊 Job status: {:?}", job.status);
+
+    if job.status == FineTuningJobStatus::Failed {
+        if let Some(error) = &job.error {
+            println!("  ❌ Training failed: {} - {}", error.code, error.message);
+        }
+    } else if job.status.is_active() {
+        println!("  🔄 Training still in progress, check back later");
+    }
+}
+
+fn display_job_statistics(job: &FineTuningJob) {
     println!("  📊 Job Statistics:");
     println!("    - Model: {}", job.model);
     println!("    - Training file: {}", job.training_file);
@@ -498,26 +514,32 @@ async fn demonstrate_model_usage(api: &FineTuningApi, job_id: &str) -> Result<()
     if let Some(trained_tokens) = job.trained_tokens {
         println!("    - Trained tokens: {trained_tokens}");
     }
+}
 
-    // Show hyperparameters
+fn display_hyperparameters(job: &FineTuningJob) {
     println!("  ⚙️ Hyperparameters:");
-    if let Some(epochs) = job.hyperparameters.n_epochs {
-        println!("    - Epochs: {epochs}");
-    } else {
-        println!("    - Epochs: auto");
-    }
-    if let Some(batch_size) = job.hyperparameters.batch_size {
-        println!("    - Batch size: {batch_size}");
-    } else {
-        println!("    - Batch size: auto");
-    }
-    if let Some(lr_mult) = job.hyperparameters.learning_rate_multiplier {
-        println!("    - Learning rate multiplier: {lr_mult}");
-    } else {
-        println!("    - Learning rate multiplier: auto");
-    }
 
-    Ok(())
+    let hyperparameters = [
+        (
+            "Epochs",
+            job.hyperparameters.n_epochs.map(|v| v.to_string()),
+        ),
+        (
+            "Batch size",
+            job.hyperparameters.batch_size.map(|v| v.to_string()),
+        ),
+        (
+            "Learning rate multiplier",
+            job.hyperparameters
+                .learning_rate_multiplier
+                .map(|v| v.to_string()),
+        ),
+    ];
+
+    for (label, value) in hyperparameters {
+        let display_value = value.unwrap_or_else(|| "auto".to_string());
+        println!("    - {}: {}", label, display_value);
+    }
 }
 
 /// Helper function to format duration

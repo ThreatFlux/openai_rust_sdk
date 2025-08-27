@@ -212,9 +212,17 @@ fn demo_recovery_strategies() -> Result<()> {
     println!("---------------------");
 
     let validator = YaraValidator::new();
+    let mixed_rules = create_mixed_test_rules();
 
-    // Simulate a scenario where some rules fail but processing should continue
-    let mixed_rules = vec![
+    let (results, error_count) = process_rules_with_recovery(&validator, mixed_rules)?;
+    print_recovery_summary(&results, error_count);
+
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn create_mixed_test_rules() -> Vec<(&'static str, &'static str, bool)> {
+    vec![
         ("Valid Rule 1", "rule valid1 { condition: true }", true),
         (
             "Invalid Rule",
@@ -232,11 +240,23 @@ fn demo_recovery_strategies() -> Result<()> {
             "rule valid3 { condition: filesize > 0 }",
             true,
         ),
-    ];
+    ]
+}
 
+#[cfg(feature = "yara")]
+fn process_rules_with_recovery<'a>(
+    validator: &'a YaraValidator,
+    mixed_rules: Vec<(&'a str, &'a str, bool)>,
+) -> Result<(
+    Vec<(
+        &'a str,
+        openai_rust_sdk::testing::yara_validator::ValidationResult,
+    )>,
+    usize,
+)> {
     let mut results = Vec::new();
     let mut error_count = 0;
-    let max_errors = 3; // Error threshold
+    let max_errors = 3;
 
     println!("Processing rules with error recovery...");
 
@@ -250,42 +270,64 @@ fn demo_recovery_strategies() -> Result<()> {
                     results.push((name, result));
                 } else {
                     error_count += 1;
-                    println!("    ❌ Invalid (error count: {})", error_count);
+                    handle_validation_error(&result, error_count);
 
-                    // Log errors but continue processing
-                    for error in &result.errors {
-                        println!("      Error: {}", error);
-                    }
-
-                    // Check if we should abort
                     if error_count >= max_errors {
-                        println!("    🛑 Error threshold reached, implementing recovery...");
-
-                        // Recovery strategy: switch to more lenient validation
-                        println!("    Switching to basic validation mode...");
-                        // In a real scenario, you might switch validators or modes
+                        implement_error_recovery();
                         break;
                     }
                 }
             }
             Err(e) => {
-                println!("    ❌ System error: {}", e);
                 error_count += 1;
-
-                if error_count >= max_errors {
-                    return Err(e).context("Too many system errors, aborting");
-                }
+                handle_system_error(&e, error_count, max_errors)?;
             }
         }
     }
 
+    Ok((results, error_count))
+}
+
+#[cfg(feature = "yara")]
+fn handle_validation_error(
+    result: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    error_count: usize,
+) {
+    println!("    ❌ Invalid (error count: {})", error_count);
+    for error in &result.errors {
+        println!("      Error: {}", error);
+    }
+}
+
+#[cfg(feature = "yara")]
+fn implement_error_recovery() {
+    println!("    🛑 Error threshold reached, implementing recovery...");
+    println!("    Switching to basic validation mode...");
+    // In a real scenario, you might switch validators or modes
+}
+
+#[cfg(feature = "yara")]
+fn handle_system_error(e: &anyhow::Error, error_count: usize, max_errors: usize) -> Result<()> {
+    println!("    ❌ System error: {}", e);
+    if error_count >= max_errors {
+        return Err(anyhow::anyhow!(e.to_string())).context("Too many system errors, aborting");
+    }
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn print_recovery_summary(
+    results: &[(
+        &str,
+        openai_rust_sdk::testing::yara_validator::ValidationResult,
+    )],
+    error_count: usize,
+) {
     println!(
         "Recovery demo completed. Processed {} valid rules with {} errors",
         results.len(),
         error_count
     );
-
-    Ok(())
 }
 
 #[cfg(feature = "yara")]

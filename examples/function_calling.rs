@@ -271,7 +271,16 @@ async fn complete_conversation_flow(
     println!("5. Complete Conversation Flow");
     println!("=============================");
 
-    // Define available functions
+    let tools = create_conversation_tools()?;
+    let initial_messages = create_initial_conversation();
+    let conversation_results = execute_conversation_flow(client, tools, initial_messages).await?;
+    display_conversation_results(&conversation_results);
+
+    println!();
+    Ok(())
+}
+
+fn create_conversation_tools() -> Result<Vec<Tool>, Box<dyn std::error::Error>> {
     let weather_function =
         FunctionBuilder::weather_function("get_weather", "Get weather information").build()?;
 
@@ -291,31 +300,39 @@ async fn complete_conversation_flow(
         .required_string("title", "Meeting title")
         .build()?;
 
-    let tools = vec![
+    Ok(vec![
         Tool::function(weather_function),
         Tool::function(calendar_function),
         Tool::function(booking_function),
-    ];
+    ])
+}
 
-    // Start conversation
-    let initial_messages = vec![Message::user(
-        "Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?",
-    )];
+fn create_initial_conversation() -> Vec<Message> {
+    let message = "Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?";
+    println!("User: {message}");
+    vec![Message::user(message)]
+}
 
-    println!(
-        "User: Hi! I need to schedule an outdoor meeting for tomorrow. Can you help me check the weather and find a good time?"
-    );
-
-    // Execute the conversation with automatic function handling
-    let conversation_results = client
+async fn execute_conversation_flow(
+    client: &OpenAIClient,
+    tools: Vec<Tool>,
+    initial_messages: Vec<Message>,
+) -> Result<Vec<openai_rust_sdk::api::functions::FunctionResponseResult>, Box<dyn std::error::Error>>
+{
+    client
         .function_conversation(
             "gpt-4",
             initial_messages,
             tools,
             Some(5), // Max 5 iterations
         )
-        .await?;
+        .await
+        .map_err(|e| e.into())
+}
 
+fn display_conversation_results(
+    conversation_results: &[openai_rust_sdk::api::functions::FunctionResponseResult],
+) {
     for (i, result) in conversation_results.iter().enumerate() {
         println!("\n--- Round {} ---", i + 1);
 
@@ -330,9 +347,6 @@ async fn complete_conversation_flow(
             }
         }
     }
-
-    println!();
-    Ok(())
 }
 
 /// Example 6: Weather assistant with error handling
