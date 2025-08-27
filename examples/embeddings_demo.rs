@@ -362,28 +362,50 @@ fn display_summary() {
     println!("• Question answering systems");
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
+/// Initialize the embeddings API client
+fn initialize_embeddings_api() -> Result<EmbeddingsApi, Box<dyn std::error::Error>> {
     let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
         "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
     })?;
 
+    Ok(EmbeddingsApi::new(api_key)?)
+}
+
+/// Run basic embedding demonstrations
+async fn run_basic_demos(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_basic_embeddings(api).await?;
+    demo_batch_embeddings(api).await?;
+    demo_similarity_comparison(api).await?;
+    Ok(())
+}
+
+/// Run advanced embedding demonstrations
+async fn run_advanced_demos(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_semantic_search(api).await?;
+    demo_custom_dimensions(api).await?;
+    demo_embedding_utilities(api).await?;
+    Ok(())
+}
+
+/// Run utility and format demonstrations
+async fn run_utility_demos(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_base64_encoding(api).await?;
+    demo_distance_metrics();
+    demo_text_clustering(api).await?;
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🔢 OpenAI Embeddings Demo");
     println!("=========================");
 
-    let api = EmbeddingsApi::new(api_key)?;
+    let api = initialize_embeddings_api()?;
 
-    // Run all demonstrations
-    demo_basic_embeddings(&api).await?;
-    demo_batch_embeddings(&api).await?;
-    demo_similarity_comparison(&api).await?;
-    demo_semantic_search(&api).await?;
-    demo_custom_dimensions(&api).await?;
-    demo_embedding_utilities(&api).await?;
-    demo_base64_encoding(&api).await?;
-    demo_distance_metrics();
-    demo_text_clustering(&api).await?;
+    // Run all demonstrations in organized groups
+    run_basic_demos(&api).await?;
+    run_advanced_demos(&api).await?;
+    run_utility_demos(&api).await?;
     display_summary();
 
     Ok(())

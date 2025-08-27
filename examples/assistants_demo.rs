@@ -29,57 +29,38 @@ use openai_rust_sdk::models::functions::FunctionTool;
 use std::collections::HashMap;
 use std::env;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // Initialize the API client
+/// Initialize the API client
+fn initialize_api() -> Result<AssistantsApi> {
     let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
         OpenAIError::Authentication("OPENAI_API_KEY environment variable not set".to_string())
     })?;
 
-    let api = AssistantsApi::new(api_key)?;
+    AssistantsApi::new(api_key)
+}
 
-    println!("🤖 OpenAI Assistants API Demo");
-    println!("==============================\n");
-
+/// Run the demonstration workflow
+async fn run_demo_workflow(api: &AssistantsApi) -> Result<()> {
     // Demo 1: Create a Code Interpreter Assistant
     println!("📊 Demo 1: Creating a Data Analyst Assistant with Code Interpreter");
-    let data_analyst = demo_code_interpreter_assistant(&api).await?;
+    let data_analyst = demo_code_interpreter_assistant(api).await?;
     println!("✅ Created assistant: {}\n", data_analyst.id);
 
     // Demo 2: Create a Retrieval Assistant
     println!("📚 Demo 2: Creating a Knowledge Base Assistant with Retrieval");
-    let knowledge_assistant = demo_retrieval_assistant(&api).await?;
+    let knowledge_assistant = demo_retrieval_assistant(api).await?;
     println!("✅ Created assistant: {}\n", knowledge_assistant.id);
 
     // Demo 3: Create a Function Calling Assistant
     println!("🔧 Demo 3: Creating a Weather Assistant with Function Calling");
-    let weather_assistant = demo_function_calling_assistant(&api).await?;
+    let weather_assistant = demo_function_calling_assistant(api).await?;
     println!("✅ Created assistant: {}\n", weather_assistant.id);
 
-    // Demo 4: List all assistants
-    println!("📋 Demo 4: Listing All Assistants");
-    demo_list_assistants(&api).await?;
+    // Run demonstrations with created assistants
+    run_assistant_demos(api, &data_analyst.id, &weather_assistant.id).await?;
 
-    // Demo 5: Modify an assistant
-    println!("✏️  Demo 5: Modifying an Assistant");
-    demo_modify_assistant(&api, &data_analyst.id).await?;
-
-    // Demo 6: Retrieve specific assistant
-    println!("🔍 Demo 6: Retrieving Specific Assistant");
-    demo_retrieve_assistant(&api, &weather_assistant.id).await?;
-
-    // Demo 7: Demonstrate pagination
-    println!("📄 Demo 7: Pagination Example");
-    demo_pagination(&api).await?;
-
-    // Demo 8: Error handling
-    println!("⚠️  Demo 8: Error Handling Examples");
-    demo_error_handling(&api).await?;
-
-    // Cleanup: Delete the created assistants
-    println!("🧹 Cleanup: Deleting Created Assistants");
-    cleanup_assistants(
-        &api,
+    // Cleanup created assistants
+    perform_cleanup(
+        api,
         vec![
             &data_analyst.id,
             &knowledge_assistant.id,
@@ -87,6 +68,52 @@ async fn main() -> Result<()> {
         ],
     )
     .await?;
+
+    Ok(())
+}
+
+/// Run various demonstrations with assistants
+async fn run_assistant_demos(
+    api: &AssistantsApi,
+    data_analyst_id: &str,
+    weather_assistant_id: &str,
+) -> Result<()> {
+    // Demo 4: List all assistants
+    println!("📋 Demo 4: Listing All Assistants");
+    demo_list_assistants(api).await?;
+
+    // Demo 5: Modify an assistant
+    println!("✏️  Demo 5: Modifying an Assistant");
+    demo_modify_assistant(api, data_analyst_id).await?;
+
+    // Demo 6: Retrieve specific assistant
+    println!("🔍 Demo 6: Retrieving Specific Assistant");
+    demo_retrieve_assistant(api, weather_assistant_id).await?;
+
+    // Demo 7: Demonstrate pagination
+    println!("📄 Demo 7: Pagination Example");
+    demo_pagination(api).await?;
+
+    // Demo 8: Error handling
+    println!("⚠️  Demo 8: Error Handling Examples");
+    demo_error_handling(api).await?;
+
+    Ok(())
+}
+
+/// Perform cleanup of created assistants
+async fn perform_cleanup(api: &AssistantsApi, assistant_ids: Vec<&str>) -> Result<()> {
+    println!("🧹 Cleanup: Deleting Created Assistants");
+    cleanup_assistants(api, assistant_ids).await
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    println!("🤖 OpenAI Assistants API Demo");
+    println!("==============================\n");
+
+    let api = initialize_api()?;
+    run_demo_workflow(&api).await?;
 
     println!("\n🎉 Demo completed successfully!");
     Ok(())
@@ -163,8 +190,24 @@ async fn demo_retrieval_assistant(
 async fn demo_function_calling_assistant(
     api: &AssistantsApi,
 ) -> Result<openai_rust_sdk::models::assistants::Assistant> {
-    // Define a weather function
-    let get_weather_function = FunctionTool {
+    let weather_functions = create_weather_functions();
+    let request = build_weather_assistant_request(weather_functions);
+
+    print_assistant_creation_info(&request);
+    let assistant = api.create_assistant(request).await?;
+    print_assistant_creation_success(&assistant);
+
+    Ok(assistant)
+}
+
+fn create_weather_functions() -> (FunctionTool, FunctionTool) {
+    let get_weather_function = create_weather_function();
+    let get_forecast_function = create_forecast_function();
+    (get_weather_function, get_forecast_function)
+}
+
+fn create_weather_function() -> FunctionTool {
+    FunctionTool {
         name: "get_weather".to_string(),
         description: "Get the current weather information for a specific location".to_string(),
         parameters: serde_json::json!({
@@ -184,10 +227,11 @@ async fn demo_function_calling_assistant(
             "required": ["location"]
         }),
         strict: None,
-    };
+    }
+}
 
-    // Define a forecast function
-    let get_forecast_function = FunctionTool {
+fn create_forecast_function() -> FunctionTool {
+    FunctionTool {
         name: "get_forecast".to_string(),
         description: "Get weather forecast for multiple days".to_string(),
         parameters: serde_json::json!({
@@ -208,9 +252,15 @@ async fn demo_function_calling_assistant(
             "required": ["location"]
         }),
         strict: None,
-    };
+    }
+}
 
-    let request = AssistantRequest::builder()
+fn build_weather_assistant_request(
+    weather_functions: (FunctionTool, FunctionTool),
+) -> AssistantRequest {
+    let (get_weather_function, get_forecast_function) = weather_functions;
+
+    AssistantRequest::builder()
         .model("gpt-4")
         .name("Weather Assistant")
         .description("An assistant that provides weather information and forecasts")
@@ -225,20 +275,21 @@ async fn demo_function_calling_assistant(
         .metadata_pair("category", "weather")
         .metadata_pair("version", "1.0")
         .metadata_pair("provider", "weather_api")
-        .build()?;
+        .build()
+        .unwrap()
+}
 
+fn print_assistant_creation_info(request: &AssistantRequest) {
     println!("Creating Weather Assistant with Function Calling...");
     println!("- Model: {}", request.model);
     println!("- Tools: 2 Functions (get_weather, get_forecast)");
+}
 
-    let assistant = api.create_assistant(request).await?;
-
+fn print_assistant_creation_success(assistant: &openai_rust_sdk::models::assistants::Assistant) {
     println!("Assistant created successfully!");
     println!("- ID: {}", assistant.id);
     println!("- Name: {:?}", assistant.name);
     println!("- Function tools: {}", assistant.tools.len());
-
-    Ok(assistant)
 }
 
 /// Demo 4: List all assistants with various parameters

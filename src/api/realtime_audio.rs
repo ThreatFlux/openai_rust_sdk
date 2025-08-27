@@ -282,42 +282,95 @@ impl RealtimeAudioApi {
         response: RealtimeSessionResponse,
         config: Option<RealtimeSessionConfig>,
     ) -> Result<Arc<RealtimeSession>> {
-        // Create media engine
+        let api = self.create_webrtc_api().await?;
+        let peer_connection = self.create_peer_connection(api).await?;
+        let (event_channels, audio_channels) = self.create_communication_channels();
+
+        let session = self.build_session(
+            response.clone(),
+            peer_connection,
+            event_channels,
+            audio_channels,
+            config,
+        );
+
+        self.setup_webrtc_connection(&session, &response).await?;
+        Ok(session)
+    }
+
+    /// Creates and configures the WebRTC API
+    async fn create_webrtc_api(&self) -> Result<webrtc::api::API> {
         let mut media_engine = MediaEngine::default();
         media_engine
             .register_default_codecs()
             .map_err(crate::invalid_request_err!("Failed to register codecs: {}"))?;
 
-        // Create interceptor registry
         let mut registry = Registry::new();
         registry = register_default_interceptors(registry, &mut media_engine).map_err(|e| {
             OpenAIError::InvalidRequest(format!("Failed to register interceptors: {e}"))
         })?;
 
-        // Create API
-        let api = APIBuilder::new()
+        Ok(APIBuilder::new()
             .with_media_engine(media_engine)
             .with_interceptor_registry(registry)
-            .build();
+            .build())
+    }
 
-        // Create peer connection configuration
+    /// Creates a WebRTC peer connection
+    async fn create_peer_connection(
+        &self,
+        api: webrtc::api::API,
+    ) -> Result<Arc<RTCPeerConnection>> {
         let rtc_config = RTCConfiguration {
             ice_servers: self.config.ice_servers.clone(),
             ..Default::default()
         };
 
-        // Create peer connection
-        let peer_connection = Arc::new(api.new_peer_connection(rtc_config).await.map_err(|e| {
+        let peer_connection = api.new_peer_connection(rtc_config).await.map_err(|e| {
             OpenAIError::InvalidRequest(format!("Failed to create peer connection: {e}"))
-        })?);
+        })?;
 
-        // Create channels
-        let (event_sender, event_receiver) = mpsc::unbounded_channel();
-        let (audio_sender, audio_receiver) = mpsc::unbounded_channel();
+        Ok(Arc::new(peer_connection))
+    }
 
-        // Create session
-        let session = Arc::new(RealtimeSession {
-            id: response.id.clone(),
+    /// Creates communication channels for events and audio
+    fn create_communication_channels(
+        &self,
+    ) -> (
+        (
+            mpsc::UnboundedSender<RealtimeEvent>,
+            mpsc::UnboundedReceiver<RealtimeEvent>,
+        ),
+        (
+            mpsc::UnboundedSender<AudioBuffer>,
+            mpsc::UnboundedReceiver<AudioBuffer>,
+        ),
+    ) {
+        let event_channels = mpsc::unbounded_channel();
+        let audio_channels = mpsc::unbounded_channel();
+        (event_channels, audio_channels)
+    }
+
+    /// Builds the RealtimeSession struct
+    fn build_session(
+        &self,
+        response: RealtimeSessionResponse,
+        peer_connection: Arc<RTCPeerConnection>,
+        event_channels: (
+            mpsc::UnboundedSender<RealtimeEvent>,
+            mpsc::UnboundedReceiver<RealtimeEvent>,
+        ),
+        audio_channels: (
+            mpsc::UnboundedSender<AudioBuffer>,
+            mpsc::UnboundedReceiver<AudioBuffer>,
+        ),
+        config: Option<RealtimeSessionConfig>,
+    ) -> Arc<RealtimeSession> {
+        let (event_sender, event_receiver) = event_channels;
+        let (audio_sender, audio_receiver) = audio_channels;
+
+        Arc::new(RealtimeSession {
+            id: response.id,
             peer_connection: peer_connection.clone(),
             data_channel: Arc::new(Mutex::new(None)),
             audio_track: Arc::new(Mutex::new(None)),
@@ -335,12 +388,7 @@ impl RealtimeAudioApi {
             started_at: Utc::now(),
             is_active: Arc::new(AtomicBool::new(true)),
             reconnect_handler: Arc::new(Mutex::new(None)),
-        });
-
-        // Set up WebRTC connection
-        self.setup_webrtc_connection(&session, &response).await?;
-
-        Ok(session)
+        })
     }
 
     /// Set up WebRTC connection
@@ -349,24 +397,25 @@ impl RealtimeAudioApi {
         session: &Arc<RealtimeSession>,
         _response: &RealtimeSessionResponse,
     ) -> Result<()> {
-        let peer_connection = session.peer_connection.clone();
         let session_weak = Arc::downgrade(session);
 
-        // Set up connection state change handler
+        self.setup_connection_state_handler(session).await;
+        self.setup_data_channel(session, &session_weak).await?;
+        self.setup_audio_track(session, &session_weak).await?;
+
+        Ok(())
+    }
+
+    /// Sets up the connection state change handler
+    async fn setup_connection_state_handler(&self, session: &Arc<RealtimeSession>) {
+        let peer_connection = session.peer_connection.clone();
         let state_handler = session.connection_state.clone();
+
         peer_connection.on_peer_connection_state_change(Box::new(move |state| {
             let state_handler = state_handler.clone();
             Box::pin(async move {
                 let mut connection_state = state_handler.lock().await;
-                *connection_state = match state {
-                    RTCPeerConnectionState::New => WebRtcConnectionState::New,
-                    RTCPeerConnectionState::Connecting => WebRtcConnectionState::Connecting,
-                    RTCPeerConnectionState::Connected => WebRtcConnectionState::Connected,
-                    RTCPeerConnectionState::Disconnected => WebRtcConnectionState::Disconnected,
-                    RTCPeerConnectionState::Failed => WebRtcConnectionState::Failed,
-                    RTCPeerConnectionState::Closed => WebRtcConnectionState::Closed,
-                    _ => WebRtcConnectionState::New,
-                };
+                *connection_state = Self::map_connection_state(state);
 
                 info!(
                     "WebRTC connection state changed to: {:?}",
@@ -374,8 +423,29 @@ impl RealtimeAudioApi {
                 );
             })
         }));
+    }
 
-        // Create data channel for events
+    /// Maps WebRTC connection state to internal state
+    fn map_connection_state(state: RTCPeerConnectionState) -> WebRtcConnectionState {
+        match state {
+            RTCPeerConnectionState::New => WebRtcConnectionState::New,
+            RTCPeerConnectionState::Connecting => WebRtcConnectionState::Connecting,
+            RTCPeerConnectionState::Connected => WebRtcConnectionState::Connected,
+            RTCPeerConnectionState::Disconnected => WebRtcConnectionState::Disconnected,
+            RTCPeerConnectionState::Failed => WebRtcConnectionState::Failed,
+            RTCPeerConnectionState::Closed => WebRtcConnectionState::Closed,
+            _ => WebRtcConnectionState::New,
+        }
+    }
+
+    /// Sets up the data channel for event communication
+    async fn setup_data_channel(
+        &self,
+        session: &Arc<RealtimeSession>,
+        session_weak: &std::sync::Weak<RealtimeSession>,
+    ) -> Result<()> {
+        let peer_connection = session.peer_connection.clone();
+
         let data_channel = peer_connection
             .create_data_channel(
                 "events",
@@ -390,8 +460,17 @@ impl RealtimeAudioApi {
             })?;
 
         *session.data_channel.lock().await = Some(data_channel.clone());
+        self.setup_data_channel_handlers(data_channel, session_weak);
 
-        // Set up data channel handlers
+        Ok(())
+    }
+
+    /// Sets up data channel message handlers
+    fn setup_data_channel_handlers(
+        &self,
+        data_channel: Arc<RTCDataChannel>,
+        session_weak: &std::sync::Weak<RealtimeSession>,
+    ) {
         let session_for_events = session_weak.clone();
         data_channel.on_message(Box::new(move |msg| {
             let session_for_events = session_for_events.clone();
@@ -403,27 +482,59 @@ impl RealtimeAudioApi {
                 }
             })
         }));
+    }
 
-        // Create audio track
-        let audio_track = Arc::new(TrackLocalStaticSample::new(
+    /// Sets up audio track for sending audio
+    async fn setup_audio_track(
+        &self,
+        session: &Arc<RealtimeSession>,
+        session_weak: &std::sync::Weak<RealtimeSession>,
+    ) -> Result<()> {
+        let audio_track = self.create_audio_track();
+        *session.audio_track.lock().await = Some(audio_track.clone());
+
+        self.add_audio_track_to_connection(session, audio_track)
+            .await?;
+        self.setup_incoming_track_handler(session, session_weak);
+
+        Ok(())
+    }
+
+    /// Creates an audio track for Opus codec
+    fn create_audio_track(&self) -> Arc<TrackLocalStaticSample> {
+        Arc::new(TrackLocalStaticSample::new(
             RTCRtpCodecCapability {
                 mime_type: MIME_TYPE_OPUS.to_owned(),
                 ..Default::default()
             },
             "audio".to_owned(),
             "realtime-audio".to_owned(),
-        ));
+        ))
+    }
 
-        *session.audio_track.lock().await = Some(audio_track.clone());
-
-        // Add track to peer connection
+    /// Adds the audio track to the peer connection
+    async fn add_audio_track_to_connection(
+        &self,
+        session: &Arc<RealtimeSession>,
+        audio_track: Arc<TrackLocalStaticSample>,
+    ) -> Result<()> {
+        let peer_connection = session.peer_connection.clone();
         let _rtp_sender = peer_connection
-            .add_track(audio_track.clone() as Arc<dyn TrackLocal + Send + Sync>)
+            .add_track(audio_track as Arc<dyn TrackLocal + Send + Sync>)
             .await
             .map_err(crate::invalid_request_err!("Failed to add audio track: {}"))?;
+        Ok(())
+    }
 
-        // Set up track handlers for incoming audio
+    /// Sets up handler for incoming audio tracks
+    fn setup_incoming_track_handler(
+        &self,
+        session: &Arc<RealtimeSession>,
+        session_weak: &std::sync::Weak<RealtimeSession>,
+    ) {
+        let peer_connection = session.peer_connection.clone();
         let session_for_track = session_weak.clone();
+
         peer_connection.on_track(Box::new(move |track, _receiver, _transceiver| {
             let session_for_track = session_for_track.clone();
             Box::pin(async move {
@@ -432,8 +543,6 @@ impl RealtimeAudioApi {
                 }
             })
         }));
-
-        Ok(())
     }
 
     /// Connect to WebRTC endpoint using ephemeral key

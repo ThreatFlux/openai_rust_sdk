@@ -403,24 +403,50 @@ fn demo_cleanup() {
     println!("   • Use verbose_json for detailed transcription metadata");
 }
 
+/// Run speech synthesis demonstrations
+async fn run_speech_demos(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_voice_generation(audio_api).await?;
+    demo_hq_formats(audio_api).await?;
+    demo_streaming_audio(audio_api).await?;
+    demo_voice_recommendations(audio_api).await?;
+    Ok(())
+}
+
+/// Run transcription and format demonstrations
+async fn run_transcription_demos(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_transcription(audio_api).await?;
+    demo_response_formats(audio_api).await?;
+    Ok(())
+}
+
+/// Run utility and information demonstrations
+async fn run_utility_demos(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_audio_info().await;
+    demo_error_handling(audio_api).await?;
+    demo_cleanup();
+    Ok(())
+}
+
+async fn run_audio_demos(audio_api: &AudioApi) -> Result<(), Box<dyn std::error::Error>> {
+    run_speech_demos(audio_api).await?;
+    run_transcription_demos(audio_api).await?;
+    run_utility_demos(audio_api).await?;
+    Ok(())
+}
+
+fn initialize_audio_api() -> Result<AudioApi, Box<dyn std::error::Error>> {
+    let api_key =
+        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable must be set");
+    Ok(AudioApi::new(api_key)?)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎵 OpenAI Audio API Demo");
     println!("========================\n");
 
-    let api_key =
-        env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable must be set");
-    let audio_api = AudioApi::new(api_key)?;
-
-    demo_voice_generation(&audio_api).await?;
-    demo_hq_formats(&audio_api).await?;
-    demo_streaming_audio(&audio_api).await?;
-    demo_voice_recommendations(&audio_api).await?;
-    demo_transcription(&audio_api).await?;
-    demo_response_formats(&audio_api).await?;
-    demo_audio_info().await;
-    demo_error_handling(&audio_api).await?;
-    demo_cleanup();
+    let audio_api = initialize_audio_api()?;
+    run_audio_demos(&audio_api).await?;
 
     Ok(())
 }

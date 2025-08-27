@@ -30,12 +30,8 @@ use std::time::Duration;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🎙️  OpenAI Real-time Audio API Demo");
-    println!("===================================\n");
-
-    // Initialize the API client
+/// Initialize the API client with configuration
+fn create_api_client() -> Result<RealtimeAudioApi, Box<dyn std::error::Error>> {
     let api_key =
         env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable must be set");
 
@@ -56,9 +52,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    let realtime_api = RealtimeAudioApi::new_with_config(api_key, config)?;
+    Ok(RealtimeAudioApi::new_with_config(api_key, config)?)
+}
 
-    // Demo 1: Create a real-time audio session
+/// Demo 1: Create a real-time audio session
+async fn demo_session_creation(
+    realtime_api: &RealtimeAudioApi,
+) -> Result<
+    std::sync::Arc<openai_rust_sdk::api::realtime_audio::RealtimeSession>,
+    Box<dyn std::error::Error>,
+> {
     println!("🎯 Demo 1: Creating Real-time Audio Session");
     println!("============================================");
 
@@ -83,18 +86,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .build();
 
-    let session = match realtime_api.create_session(&session_request).await {
+    match realtime_api.create_session(&session_request).await {
         Ok(session) => {
             println!("✅ Session created successfully: {}", session.id);
-            session
+            Ok(session)
         }
         Err(e) => {
             println!("❌ Failed to create session: {e}");
-            return Err(e.into());
+            Err(e.into())
         }
-    };
+    }
+}
 
-    // Demo 2: Session Management
+/// Demo 2: Session Management
+async fn demo_session_management(
+    realtime_api: &RealtimeAudioApi,
+    session: &openai_rust_sdk::api::realtime_audio::RealtimeSession,
+) -> Vec<String> {
     println!("\n📋 Demo 2: Session Management");
     println!("=============================");
 
@@ -110,7 +118,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  - Started at: {}", session.started_at());
     println!("  - Is active: {}", session.is_active());
 
-    // Demo 3: Event Handling
+    sessions
+}
+
+/// Demo 3: Event Handling
+async fn demo_event_handling(
+    session: &openai_rust_sdk::api::realtime_audio::RealtimeSession,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎭 Demo 3: Event Handling");
     println!("=========================");
 
@@ -144,7 +158,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Demo 4: Audio Processing and Voice Activity Detection
+    Ok(())
+}
+
+/// Demo 4: Audio Processing and Voice Activity Detection
+fn demo_audio_processing() {
     println!("\n🎵 Demo 4: Audio Processing & Voice Activity Detection");
     println!("======================================================");
 
@@ -161,8 +179,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  - Duration: {:.3}s", speech_audio.duration_seconds());
     println!("  - Frame count: {}", speech_audio.frame_count());
     println!("  - RMS energy: {:.2}", speech_audio.rms_energy());
+}
 
-    // Demo 5: Audio Streaming
+/// Demo 5: Audio Streaming
+async fn demo_audio_streaming(
+    session: &openai_rust_sdk::api::realtime_audio::RealtimeSession,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎶 Demo 5: Audio Streaming");
     println!("==========================");
 
@@ -202,7 +224,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Demo 6: Real-time Conversation Simulation
+    Ok(())
+}
+
+/// Demo 6: Real-time Conversation Simulation
+async fn demo_conversation_simulation(
+    session: &openai_rust_sdk::api::realtime_audio::RealtimeSession,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n💬 Demo 6: Real-time Conversation Simulation");
     println!("============================================");
 
@@ -252,7 +280,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("🤖 Requested AI response");
     }
 
-    // Demo 7: Advanced Audio Features
+    Ok(())
+}
+
+/// Demo 7: Advanced Audio Features
+fn demo_advanced_audio_features() {
     println!("\n🎛️  Demo 7: Advanced Audio Features");
     println!("===================================");
 
@@ -289,8 +321,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ] {
         println!("  - {voice:?}");
     }
+}
 
-    // Demo 8: Error Handling and Cleanup
+/// Demo 8: Error Handling and Cleanup
+async fn demo_cleanup(
+    realtime_api: &RealtimeAudioApi,
+    session: &openai_rust_sdk::api::realtime_audio::RealtimeSession,
+    sessions: Vec<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🧹 Demo 8: Error Handling and Cleanup");
     println!("======================================");
 
@@ -309,6 +347,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    Ok(())
+}
+
+/// Print completion summary
+fn print_completion_summary() {
     println!("\n🎊 Demo completed successfully!");
     println!("===============================");
     println!("✨ All real-time audio features demonstrated:");
@@ -320,6 +363,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - Audio processing and format conversion");
     println!("   - Real-time conversation handling");
     println!("   - Graceful error handling and cleanup");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("🎙️  OpenAI Real-time Audio API Demo");
+    println!("===================================\n");
+
+    // Initialize the API client
+    let realtime_api = create_api_client()?;
+
+    // Demo 1: Create a real-time audio session
+    let session = demo_session_creation(&realtime_api).await?;
+
+    // Demo 2: Session Management
+    let sessions = demo_session_management(&realtime_api, &session).await;
+
+    // Demo 3: Event Handling
+    demo_event_handling(&session).await?;
+
+    // Demo 4: Audio Processing and Voice Activity Detection
+    demo_audio_processing();
+
+    // Demo 5: Audio Streaming
+    demo_audio_streaming(&session).await?;
+
+    // Demo 6: Real-time Conversation Simulation
+    demo_conversation_simulation(&session).await?;
+
+    // Demo 7: Advanced Audio Features
+    demo_advanced_audio_features();
+
+    // Demo 8: Error Handling and Cleanup
+    demo_cleanup(&realtime_api, &session, sessions).await?;
+
+    // Print completion summary
+    print_completion_summary();
 
     Ok(())
 }

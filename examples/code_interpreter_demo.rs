@@ -364,26 +364,54 @@ fn print_demo_summary() {
     println!("   • Files can be uploaded/downloaded for data exchange");
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
+async fn run_all_demos(
+    containers_api: &ContainersApi,
+    responses_api: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
+    demo_auto_mode(responses_api).await?;
+    let container = demo_explicit_mode(containers_api, responses_api).await?;
+    run_container_demos(containers_api, responses_api, &container.id).await?;
+    demo_cleanup(containers_api, &container.id).await?;
+    print_demo_summary();
+    Ok(())
+}
 
-    println!("🐍 Code Interpreter Demo");
-    println!("=======================");
+async fn run_container_demos(
+    containers_api: &ContainersApi,
+    responses_api: &ResponsesApi,
+    container_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    demo_direct_code_execution(containers_api, container_id).await?;
+    demo_file_management(containers_api, container_id).await?;
+    demo_container_lifecycle(containers_api, container_id).await?;
+    demo_multi_step_analysis(responses_api, container_id).await?;
+    Ok(())
+}
 
+fn initialize_apis(
+    api_key: String,
+) -> Result<(ContainersApi, ResponsesApi), Box<dyn std::error::Error>> {
     let containers_api = ContainersApi::new(api_key.clone())?;
     let responses_api = ResponsesApi::new(api_key)?;
+    Ok((containers_api, responses_api))
+}
 
-    demo_auto_mode(&responses_api).await?;
-    let container = demo_explicit_mode(&containers_api, &responses_api).await?;
-    demo_direct_code_execution(&containers_api, &container.id).await?;
-    demo_file_management(&containers_api, &container.id).await?;
-    demo_container_lifecycle(&containers_api, &container.id).await?;
-    demo_multi_step_analysis(&responses_api, &container.id).await?;
-    demo_cleanup(&containers_api, &container.id).await?;
-    print_demo_summary();
+fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
+    env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here".into()
+    })
+}
 
+fn print_header() {
+    println!("🐍 Code Interpreter Demo");
+    println!("=======================");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = get_api_key()?;
+    print_header();
+    let (containers_api, responses_api) = initialize_apis(api_key)?;
+    run_all_demos(&containers_api, &responses_api).await?;
     Ok(())
 }

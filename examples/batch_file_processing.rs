@@ -97,31 +97,48 @@ impl BatchProcessor {
         yara_count: usize,
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("   📝 YARA rule files created:");
-        if let Ok(entries) = std::fs::read_dir(yara_dir) {
-            for (i, entry) in entries.enumerate().take(10) {
-                if let Ok(entry) = entry {
-                    let file_name = entry.file_name();
-                    let file_path = entry.path();
 
-                    let size = if let Ok(metadata) = std::fs::metadata(&file_path) {
-                        format!("{} bytes", metadata.len())
-                    } else {
-                        "unknown size".to_string()
-                    };
+        let entries = match std::fs::read_dir(yara_dir) {
+            Ok(entries) => entries,
+            Err(_) => return Ok(()),
+        };
 
-                    println!(
-                        "      {}. {} ({})",
-                        i + 1,
-                        file_name.to_string_lossy(),
-                        size
-                    );
-                }
-            }
-            if yara_count > 10 {
-                println!("      ... and {} more rule files", yara_count - 10);
-            }
+        self.display_yara_file_list(entries)?;
+        self.display_remaining_file_count(yara_count);
+        Ok(())
+    }
+
+    fn display_yara_file_list(
+        &self,
+        entries: std::fs::ReadDir,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for (i, entry) in entries.enumerate().take(10) {
+            let entry = entry?;
+            let file_name = entry.file_name();
+            let file_path = entry.path();
+            let size = self.get_file_size_string(&file_path);
+
+            println!(
+                "      {}. {} ({})",
+                i + 1,
+                file_name.to_string_lossy(),
+                size
+            );
         }
         Ok(())
+    }
+
+    fn get_file_size_string(&self, file_path: &Path) -> String {
+        match std::fs::metadata(file_path) {
+            Ok(metadata) => format!("{} bytes", metadata.len()),
+            Err(_) => "unknown size".to_string(),
+        }
+    }
+
+    fn display_remaining_file_count(&self, yara_count: usize) {
+        if yara_count > 10 {
+            println!("      ... and {} more rule files", yara_count - 10);
+        }
     }
 
     async fn generate_report(
@@ -155,38 +172,57 @@ impl BatchProcessor {
     fn display_statistics(&self, report: &BatchReport) {
         println!("\n📈 Step 5: Summary Statistics");
         println!("─────────────────────────────");
+
+        self.display_batch_processing_stats(report);
+        self.display_yara_analysis_stats(report);
+        self.display_content_analysis_stats(report);
+        self.display_error_analysis_stats(report);
+    }
+
+    fn display_batch_processing_stats(&self, report: &BatchReport) {
         println!("📊 Batch Processing Results:");
         println!("   • Total responses: {}", report.total_responses);
         println!("   • Successful responses: {}", report.successful_responses);
         println!("   • Error responses: {}", report.error_responses);
         println!("   • Success rate: {:.1}%", report.success_rate());
+    }
 
+    fn display_yara_analysis_stats(&self, report: &BatchReport) {
         println!("\n🔍 YARA Rule Analysis:");
         println!("   • YARA rules found: {}", report.yara_rules_found);
         println!(
             "   • YARA extraction rate: {:.1}%",
             report.yara_extraction_rate()
         );
+    }
+
+    fn display_content_analysis_stats(&self, report: &BatchReport) {
+        let avg_length = self.calculate_average_response_length(report);
 
         println!("\n📏 Content Analysis:");
         println!(
             "   • Total content length: {} characters",
             report.total_tokens
         );
-        println!(
-            "   • Average response length: {:.0} characters",
-            if report.successful_responses > 0 {
-                report.total_tokens as f64 / report.successful_responses as f64
-            } else {
-                0.0
-            }
-        );
+        println!("   • Average response length: {avg_length:.0} characters");
+    }
 
-        if !report.error_types.is_empty() {
-            println!("\n⚠️ Error Analysis:");
-            for (error_type, count) in &report.error_types {
-                println!("   • {error_type}: {count} occurrences");
-            }
+    fn calculate_average_response_length(&self, report: &BatchReport) -> f64 {
+        if report.successful_responses > 0 {
+            report.total_tokens as f64 / report.successful_responses as f64
+        } else {
+            0.0
+        }
+    }
+
+    fn display_error_analysis_stats(&self, report: &BatchReport) {
+        if report.error_types.is_empty() {
+            return;
+        }
+
+        println!("\n⚠️ Error Analysis:");
+        for (error_type, count) in &report.error_types {
+            println!("   • {error_type}: {count} occurrences");
         }
     }
 
@@ -202,20 +238,36 @@ impl BatchProcessor {
         println!("──────────────────────────────────");
 
         let yara_dir = self.output_dir.join("extracted_yara_rules");
-        if let Ok(entries) = std::fs::read_dir(&yara_dir) {
-            if let Some(Ok(entry)) = entries.take(1).next() {
-                let file_path = entry.path();
-                if let Ok(content) = std::fs::read_to_string(&file_path) {
-                    println!(
-                        "🔍 Sample rule from {}:",
-                        entry.file_name().to_string_lossy()
-                    );
-                    println!("```yara");
-                    println!("{content}");
-                    println!("```");
-                }
-            }
+        self.display_first_yara_rule(&yara_dir)?;
+        Ok(())
+    }
+
+    fn display_first_yara_rule(&self, yara_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        let entries = std::fs::read_dir(yara_dir)?;
+        let first_entry = entries.take(1).next();
+
+        if let Some(Ok(entry)) = first_entry {
+            self.display_yara_rule_content(&entry)?;
         }
+
+        Ok(())
+    }
+
+    fn display_yara_rule_content(
+        &self,
+        entry: &std::fs::DirEntry,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let file_path = entry.path();
+        let content = std::fs::read_to_string(&file_path)?;
+
+        println!(
+            "🔍 Sample rule from {}:",
+            entry.file_name().to_string_lossy()
+        );
+        println!("```yara");
+        println!("{content}");
+        println!("```");
+
         Ok(())
     }
 
@@ -223,29 +275,42 @@ impl BatchProcessor {
         println!("\n💡 Step 7: Recommendations");
         println!("──────────────────────────");
 
-        if report.success_rate() >= 95.0 {
+        self.display_success_rate_recommendations(report);
+
+        if yara_count > 0 {
+            self.display_yara_recommendations(report);
+            self.display_next_steps();
+        }
+    }
+
+    fn display_success_rate_recommendations(&self, report: &BatchReport) {
+        let success_rate = report.success_rate();
+
+        if success_rate >= 95.0 {
             println!("✅ Excellent success rate! Your batch configuration is working well.");
-        } else if report.success_rate() < 90.0 {
+        } else if success_rate < 90.0 {
             println!(
                 "⚠️ Success rate is below 90%. Consider reviewing your prompts or model parameters."
             );
         }
+    }
 
-        if yara_count > 0 {
-            if report.yara_extraction_rate() >= 90.0 {
-                println!("✅ High YARA rule extraction rate indicates effective prompts.");
-            } else if report.yara_extraction_rate() < 80.0 {
-                println!(
-                    "⚠️ YARA rule extraction rate is low. Consider improving prompt specificity."
-                );
-            }
+    fn display_yara_recommendations(&self, report: &BatchReport) {
+        let extraction_rate = report.yara_extraction_rate();
 
-            println!("🔧 Next steps:");
-            println!("   1. Validate extracted YARA rules with yara-x");
-            println!("   2. Test rules against sample malware datasets");
-            println!("   3. Integrate successful rules into your detection pipeline");
-            println!("   4. Consider batch processing for rule optimization");
+        if extraction_rate >= 90.0 {
+            println!("✅ High YARA rule extraction rate indicates effective prompts.");
+        } else if extraction_rate < 80.0 {
+            println!("⚠️ YARA rule extraction rate is low. Consider improving prompt specificity.");
         }
+    }
+
+    fn display_next_steps(&self) {
+        println!("🔧 Next steps:");
+        println!("   1. Validate extracted YARA rules with yara-x");
+        println!("   2. Test rules against sample malware datasets");
+        println!("   3. Integrate successful rules into your detection pipeline");
+        println!("   4. Consider batch processing for rule optimization");
     }
 }
 
@@ -278,8 +343,8 @@ fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
     })
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Initialize and validate the batch processor
+async fn initialize_processor() -> Result<BatchProcessor, Box<dyn std::error::Error>> {
     let api_key = get_api_key()?;
     let batch_id = parse_command_line_args()?;
 
@@ -288,16 +353,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📋 Batch ID: {batch_id}");
 
     let batch_api = BatchApi::new(api_key)?;
-    let processor = BatchProcessor::new(batch_api, batch_id)?;
+    Ok(BatchProcessor::new(batch_api, batch_id)?)
+}
 
+/// Execute the main batch processing pipeline
+async fn execute_batch_processing(
+    processor: &BatchProcessor,
+) -> Result<ProcessingResults, Box<dyn std::error::Error>> {
     processor.check_batch_status().await?;
     let (_, error_count) = processor.download_files().await?;
     let yara_count = processor.extract_yara_rules().await?;
     let report = processor.generate_report(error_count).await?;
 
-    processor.display_statistics(&report);
-    processor.display_sample_yara_content(yara_count)?;
-    processor.display_recommendations(&report, yara_count);
+    Ok(ProcessingResults { yara_count, report })
+}
+
+/// Display final results and recommendations
+fn display_final_results(
+    processor: &BatchProcessor,
+    results: &ProcessingResults,
+) -> Result<(), Box<dyn std::error::Error>> {
+    processor.display_statistics(&results.report);
+    processor.display_sample_yara_content(results.yara_count)?;
+    processor.display_recommendations(&results.report, results.yara_count);
 
     println!("\n✨ Batch file processing completed!");
     println!(
@@ -305,5 +383,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         processor.output_dir.display()
     );
 
+    Ok(())
+}
+
+/// Structure to hold processing results
+struct ProcessingResults {
+    yara_count: usize,
+    report: BatchReport,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let processor = initialize_processor().await?;
+    let results = execute_batch_processing(&processor).await?;
+    display_final_results(&processor, &results)?;
     Ok(())
 }

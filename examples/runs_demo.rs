@@ -32,6 +32,98 @@ use std::env;
 use std::time::Duration;
 use tokio::time::sleep;
 
+/// Initialize API clients with the provided API key
+fn initialize_api_clients(
+    api_key: &str,
+) -> Result<(RunsApi, AssistantsApi, ThreadsApi), Box<dyn std::error::Error>> {
+    let runs_api = RunsApi::new(api_key)?;
+    let assistants_api = AssistantsApi::new(api_key)?;
+    let threads_api = ThreadsApi::new(api_key)?;
+    Ok((runs_api, assistants_api, threads_api))
+}
+
+/// Setup initial resources (assistant and thread)
+async fn setup_demo_resources(
+    assistants_api: &AssistantsApi,
+    threads_api: &ThreadsApi,
+) -> Result<(String, String), Box<dyn std::error::Error>> {
+    // Demo 1: Create an assistant with tools
+    println!("📋 Demo 1: Creating an assistant with tools...");
+    let assistant = create_demo_assistant(assistants_api).await?;
+    println!(
+        "✅ Created assistant: {} ({})",
+        assistant.name.unwrap_or_else(|| "Unnamed".to_string()),
+        assistant.id
+    );
+
+    // Demo 2: Create a thread
+    println!("\n🧵 Demo 2: Creating a thread...");
+    let thread = create_demo_thread(threads_api).await?;
+    println!("✅ Created thread: {}", thread.id);
+
+    Ok((assistant.id, thread.id))
+}
+
+/// Run basic demonstrations of run creation and execution
+async fn run_basic_demos(
+    runs_api: &RunsApi,
+    thread_id: &str,
+    assistant_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Demo 3: Basic run creation and execution
+    println!("\n▶️ Demo 3: Creating and executing a basic run...");
+    let run = basic_run_demo(runs_api, thread_id, assistant_id).await?;
+    println!("✅ Basic run completed: {}", run.id);
+
+    // Demo 4: Run with tool calls
+    println!("\n🔧 Demo 4: Creating a run with tool calls...");
+    tool_calling_demo(runs_api, thread_id, assistant_id).await?;
+
+    // Demo 5: Create thread and run in one call
+    println!("\n🚀 Demo 5: Creating thread and run in one call...");
+    thread_and_run_demo(runs_api, assistant_id).await?;
+
+    Ok(())
+}
+
+/// Run advanced demonstrations of run management
+async fn run_advanced_demos(
+    runs_api: &RunsApi,
+    thread_id: &str,
+    assistant_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Demo 6: List runs and run steps
+    println!("\n📋 Demo 6: Listing runs and run steps...");
+    list_runs_demo(runs_api, thread_id).await?;
+
+    // Demo 7: Run modification
+    println!("\n✏️ Demo 7: Modifying run metadata...");
+    modify_run_demo(runs_api, thread_id, assistant_id).await?;
+
+    // Demo 8: Run cancellation
+    println!("\n❌ Demo 8: Cancelling a run...");
+    cancel_run_demo(runs_api, thread_id, assistant_id).await?;
+
+    Ok(())
+}
+
+/// Run specialized demonstrations (error handling and streaming)
+async fn run_specialized_demos(
+    runs_api: &RunsApi,
+    thread_id: &str,
+    assistant_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Demo 9: Error handling
+    println!("\n🚨 Demo 9: Demonstrating error handling...");
+    error_handling_demo(runs_api).await?;
+
+    // Demo 10: Streaming runs
+    println!("\n📡 Demo 10: Creating streaming runs...");
+    streaming_demo(runs_api, thread_id, assistant_id).await?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load API key from environment
@@ -41,60 +133,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 OpenAI Runs API Demo Starting...\n");
 
     // Initialize API clients
-    let runs_api = RunsApi::new(&api_key)?;
-    let assistants_api = AssistantsApi::new(&api_key)?;
-    let threads_api = ThreadsApi::new(&api_key)?;
+    let (runs_api, assistants_api, threads_api) = initialize_api_clients(&api_key)?;
 
-    // Demo 1: Create an assistant with tools
-    println!("📋 Demo 1: Creating an assistant with tools...");
-    let assistant = create_demo_assistant(&assistants_api).await?;
-    println!(
-        "✅ Created assistant: {} ({})",
-        assistant.name.unwrap_or_else(|| "Unnamed".to_string()),
-        assistant.id
-    );
+    // Setup initial resources
+    let (assistant_id, thread_id) = setup_demo_resources(&assistants_api, &threads_api).await?;
 
-    // Demo 2: Create a thread
-    println!("\n🧵 Demo 2: Creating a thread...");
-    let thread = create_demo_thread(&threads_api).await?;
-    println!("✅ Created thread: {}", thread.id);
-
-    // Demo 3: Basic run creation and execution
-    println!("\n▶️ Demo 3: Creating and executing a basic run...");
-    let run = basic_run_demo(&runs_api, &thread.id, &assistant.id).await?;
-    println!("✅ Basic run completed: {}", run.id);
-
-    // Demo 4: Run with tool calls
-    println!("\n🔧 Demo 4: Creating a run with tool calls...");
-    tool_calling_demo(&runs_api, &thread.id, &assistant.id).await?;
-
-    // Demo 5: Create thread and run in one call
-    println!("\n🚀 Demo 5: Creating thread and run in one call...");
-    thread_and_run_demo(&runs_api, &assistant.id).await?;
-
-    // Demo 6: List runs and run steps
-    println!("\n📋 Demo 6: Listing runs and run steps...");
-    list_runs_demo(&runs_api, &thread.id).await?;
-
-    // Demo 7: Run modification
-    println!("\n✏️ Demo 7: Modifying run metadata...");
-    modify_run_demo(&runs_api, &thread.id, &assistant.id).await?;
-
-    // Demo 8: Run cancellation
-    println!("\n❌ Demo 8: Cancelling a run...");
-    cancel_run_demo(&runs_api, &thread.id, &assistant.id).await?;
-
-    // Demo 9: Error handling
-    println!("\n🚨 Demo 9: Demonstrating error handling...");
-    error_handling_demo(&runs_api).await?;
-
-    // Demo 10: Streaming runs
-    println!("\n📡 Demo 10: Creating streaming runs...");
-    streaming_demo(&runs_api, &thread.id, &assistant.id).await?;
+    // Run demo groups
+    run_basic_demos(&runs_api, &thread_id, &assistant_id).await?;
+    run_advanced_demos(&runs_api, &thread_id, &assistant_id).await?;
+    run_specialized_demos(&runs_api, &thread_id, &assistant_id).await?;
 
     // Clean up
     println!("\n🧹 Cleaning up...");
-    cleanup(&assistants_api, &threads_api, &assistant.id, &thread.id).await?;
+    cleanup(&assistants_api, &threads_api, &assistant_id, &thread_id).await?;
 
     println!("\n🎉 All demos completed successfully!");
     Ok(())
@@ -197,59 +248,42 @@ async fn tool_calling_demo(
     thread_id: &str,
     assistant_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut run = create_tool_calling_run(api, thread_id, assistant_id).await?;
+    monitor_and_handle_tool_calls(api, thread_id, &mut run).await?;
+    Ok(())
+}
+
+async fn create_tool_calling_run(
+    api: &RunsApi,
+    thread_id: &str,
+    assistant_id: &str,
+) -> Result<openai_rust_sdk::models::runs::Run, Box<dyn std::error::Error>> {
     let run_request = RunRequest::builder()
         .assistant_id(assistant_id)
         .instructions("The user wants to know the weather in San Francisco. Use the get_weather function to help them.")
         .metadata_pair("demo", "tool_calling")
         .build()?;
 
-    let mut run = api.create_run(thread_id, run_request).await?;
+    let run = api.create_run(thread_id, run_request).await?;
     println!(
         "  📝 Created tool calling run: {} with status: {:?}",
         run.id, run.status
     );
+    Ok(run)
+}
 
-    // Monitor run and handle tool calls
+async fn monitor_and_handle_tool_calls(
+    api: &RunsApi,
+    thread_id: &str,
+    run: &mut openai_rust_sdk::models::runs::Run,
+) -> Result<(), Box<dyn std::error::Error>> {
     loop {
-        run = api.retrieve_run(thread_id, &run.id).await?;
+        *run = api.retrieve_run(thread_id, &run.id).await?;
         println!("  🔄 Run status: {:?}", run.status);
 
         match run.status {
             RunStatus::RequiresAction => {
-                if let Some(required_action) = &run.required_action {
-                    println!("  🔧 Run requires action: submitting tool outputs");
-
-                    let tool_outputs: Vec<ToolOutput> = required_action
-                        .submit_tool_outputs
-                        .tool_calls
-                        .iter()
-                        .map(|call| {
-                            println!("  📞 Tool call: {} - {}", call.id, call.call_type);
-                            if let Some(function) = &call.function {
-                                println!(
-                                    "    Function: {} with args: {}",
-                                    function.name, function.arguments
-                                );
-                            }
-
-                            ToolOutput {
-                                tool_call_id: call.id.clone(),
-                                output: json!({
-                                    "location": "San Francisco, CA",
-                                    "temperature": 72,
-                                    "unit": "fahrenheit",
-                                    "description": "Sunny and pleasant",
-                                    "humidity": 65
-                                })
-                                .to_string(),
-                            }
-                        })
-                        .collect();
-
-                    let request = SubmitToolOutputsRequest { tool_outputs };
-                    run = api.submit_tool_outputs(thread_id, &run.id, request).await?;
-                    println!("  ✅ Submitted tool outputs");
-                }
+                handle_required_action(api, thread_id, run).await?;
             }
             RunStatus::Completed => {
                 println!("  ✅ Tool calling run completed successfully!");
@@ -272,8 +306,57 @@ async fn tool_calling_demo(
             }
         }
     }
-
     Ok(())
+}
+
+async fn handle_required_action(
+    api: &RunsApi,
+    thread_id: &str,
+    run: &mut openai_rust_sdk::models::runs::Run,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(required_action) = &run.required_action {
+        println!("  🔧 Run requires action: submitting tool outputs");
+
+        let tool_outputs = process_tool_calls(&required_action.submit_tool_outputs.tool_calls);
+        let request = SubmitToolOutputsRequest { tool_outputs };
+        *run = api.submit_tool_outputs(thread_id, &run.id, request).await?;
+        println!("  ✅ Submitted tool outputs");
+    }
+    Ok(())
+}
+
+fn process_tool_calls(tool_calls: &[openai_rust_sdk::models::runs::ToolCall]) -> Vec<ToolOutput> {
+    tool_calls
+        .iter()
+        .map(|call| {
+            print_tool_call_info(call);
+            create_weather_tool_output(&call.id)
+        })
+        .collect()
+}
+
+fn print_tool_call_info(call: &openai_rust_sdk::models::runs::ToolCall) {
+    println!("  📞 Tool call: {} - {}", call.id, call.call_type);
+    if let Some(function) = &call.function {
+        println!(
+            "    Function: {} with args: {}",
+            function.name, function.arguments
+        );
+    }
+}
+
+fn create_weather_tool_output(tool_call_id: &str) -> ToolOutput {
+    ToolOutput {
+        tool_call_id: tool_call_id.to_string(),
+        output: json!({
+            "location": "San Francisco, CA",
+            "temperature": 72,
+            "unit": "fahrenheit",
+            "description": "Sunny and pleasant",
+            "humidity": 65
+        })
+        .to_string(),
+    }
 }
 
 /// Demo creating thread and run in a single call

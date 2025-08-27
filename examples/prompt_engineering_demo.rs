@@ -26,7 +26,6 @@ mod common;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
     let api_key = common::try_get_api_key()?;
 
     println!("🎯 Prompt Engineering Demo");
@@ -34,7 +33,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api = ResponsesApi::new(api_key)?;
 
-    // Example 1: Message Roles and Instructions
+    demo_message_roles(&api).await?;
+    demo_prompt_templates(&api).await?;
+    demo_structured_prompts(&api).await?;
+    demo_few_shot_learning(&api).await?;
+    demo_xml_structured_content(&api).await?;
+    demo_prompt_patterns(&api).await?;
+    demo_context_window_management(&api).await?;
+    demo_code_generation(&api).await?;
+    demo_complex_multi_section_prompt(&api).await?;
+    print_best_practices();
+
+    Ok(())
+}
+
+async fn demo_message_roles(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📝 Example 1: Message Roles (Developer vs User)");
     println!("───────────────────────────────────────────────");
 
@@ -67,7 +80,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Response: {}", response.output_text());
     println!("(Notice: Developer instructions take priority!)\n");
 
-    // Example 2: Reusable Prompt Templates
+    Ok(())
+}
+
+async fn demo_prompt_templates(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("📋 Example 2: Reusable Prompt Templates");
     println!("────────────────────────────────────────");
 
@@ -92,7 +108,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = api.create_response(&template_request).await?;
     println!("Response: {}\n", response.output_text());
 
-    // Example 3: Structured Prompts with PromptBuilder
+    Ok(())
+}
+
+async fn demo_structured_prompts(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🏗️ Example 3: Structured Prompts with Sections");
     println!("───────────────────────────────────────────────");
 
@@ -121,7 +140,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = api.create_response(&structured_request).await?;
     println!("{}\n", response.output_text());
 
-    // Example 4: Few-Shot Learning with Examples
+    Ok(())
+}
+
+async fn demo_few_shot_learning(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎓 Example 4: Few-Shot Learning");
     println!("────────────────────────────────");
 
@@ -179,7 +201,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Classification: {}\n", response.output_text().trim());
     }
 
-    // Example 5: XML-Structured Content
+    Ok(())
+}
+
+async fn demo_xml_structured_content(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🏷️ Example 5: XML-Structured Content");
     println!("────────────────────────────────────");
 
@@ -213,7 +238,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Q: Can I return an opened product?");
     println!("A: {}\n", response.output_text());
 
-    // Example 6: Using Prompt Patterns
+    Ok(())
+}
+
+async fn demo_prompt_patterns(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎨 Example 6: Pre-built Prompt Patterns");
     println!("────────────────────────────────────────");
 
@@ -272,7 +300,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = api.create_response(&extraction_request).await?;
     println!("Extracted data:\n{}\n", response.output_text());
 
-    // Example 7: Context Window Management
+    Ok(())
+}
+
+async fn demo_context_window_management(
+    api: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("📏 Example 7: Context Window Management");
     println!("───────────────────────────────────────");
 
@@ -316,7 +349,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = api.create_response(&rag_request).await?;
     println!("A: {}\n", response.output_text());
 
-    // Example 8: Code Generation with Requirements
+    Ok(())
+}
+
+async fn demo_code_generation(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("💻 Example 8: Code Generation Pattern");
     println!("─────────────────────────────────────");
 
@@ -345,7 +381,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = api.create_response(&code_request).await?;
     println!("{}\n", response.output_text());
 
-    // Example 9: Complex Multi-Section Prompt
+    Ok(())
+}
+
+async fn demo_complex_multi_section_prompt(
+    api: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎭 Example 9: Complex Multi-Section Prompt");
     println!("──────────────────────────────────────────");
 
@@ -376,7 +417,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = api.create_response(&ethics_request).await?;
     println!("{}\n", response.output_text());
 
-    // Summary
+    Ok(())
+}
+
+fn print_best_practices() {
     println!("✨ Prompt Engineering Best Practices");
     println!("────────────────────────────────────");
     println!("1. 👤 Use developer messages for high-priority, unchangeable instructions");
@@ -389,6 +433,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("8. 💾 Include relevant context near the end of prompts");
     println!("9. 🔍 Be explicit about output format and constraints");
     println!("10. ⚡ Use appropriate temperature and model settings");
-
-    Ok(())
 }

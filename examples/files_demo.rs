@@ -112,8 +112,8 @@ impl DemoFiles {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Initialize the Files API client and demo files tracker
+async fn initialize_demo() -> Result<(FilesApi, DemoFiles), Box<dyn std::error::Error>> {
     println!("🚀 OpenAI Files API Demo");
     println!("========================\n");
 
@@ -123,51 +123,67 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize the Files API client
     let files_api = FilesApi::new(api_key)?;
-    let mut demo_files = DemoFiles::new();
+    let demo_files = DemoFiles::new();
 
     println!("✅ Files API client initialized\n");
+    Ok((files_api, demo_files))
+}
 
+/// Run core file management demos (1-4)
+async fn run_core_demos(
+    files_api: &FilesApi,
+    demo_files: &mut DemoFiles,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Create sample files for demonstration
     println!("📝 Creating sample files for demonstration...");
-    create_sample_files(&mut demo_files).await?;
+    create_sample_files(demo_files).await?;
 
     // Demo 1: Upload files with different purposes
     println!("\n🔄 Demo 1: Uploading files with different purposes");
-    upload_demo_files(&files_api, &mut demo_files).await?;
+    upload_demo_files(files_api, demo_files).await?;
 
     // Demo 2: List and filter files
     println!("\n📋 Demo 2: Listing and filtering files");
-    list_files_demo(&files_api).await?;
+    list_files_demo(files_api).await?;
 
     // Demo 3: Retrieve file information and content
     println!("\n📄 Demo 3: Retrieving file information and content");
     if !demo_files.uploaded_file_ids.is_empty() {
-        retrieve_file_demo(&files_api, &demo_files.uploaded_file_ids[0]).await?;
+        retrieve_file_demo(files_api, &demo_files.uploaded_file_ids[0]).await?;
     }
 
     // Demo 4: Download files
     println!("\n💾 Demo 4: Downloading files");
     if !demo_files.uploaded_file_ids.is_empty() {
         let file_id = demo_files.uploaded_file_ids[0].clone();
-        download_file_demo(&files_api, &file_id, &mut demo_files).await?;
+        download_file_demo(files_api, &file_id, demo_files).await?;
     }
 
+    Ok(())
+}
+
+/// Run advanced file operation demos (5-7)
+async fn run_advanced_demos(
+    files_api: &FilesApi,
+    demo_files: &mut DemoFiles,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Demo 5: File usage statistics
     println!("\n📊 Demo 5: File usage statistics");
-    file_statistics_demo(&files_api).await?;
+    file_statistics_demo(files_api).await?;
 
     // Demo 6: Bulk operations
     println!("\n🔄 Demo 6: Bulk file operations");
-    bulk_operations_demo(&files_api, &mut demo_files).await?;
+    bulk_operations_demo(files_api, demo_files).await?;
 
     // Demo 7: File validation and error handling
     println!("\n⚠️  Demo 7: File validation and error handling");
-    error_handling_demo(&files_api).await?;
+    error_handling_demo(files_api).await?;
 
-    // Cleanup
-    println!("\n🧹 Cleaning up demo files...");
-    cleanup_demo_files(&files_api, &demo_files).await?;
+    Ok(())
+}
 
+/// Print the summary of what was learned in the demo
+fn print_demo_summary() {
     println!("\n✅ Files API demo completed successfully!");
     println!("\n📚 What you learned:");
     println!("   • How to upload files with different purposes");
@@ -177,7 +193,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   • How to perform bulk operations");
     println!("   • How to handle errors and validate files");
     println!("\n🚀 You're ready to integrate the Files API into your applications!");
+}
 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let (files_api, mut demo_files) = initialize_demo().await?;
+    run_core_demos(&files_api, &mut demo_files).await?;
+    run_advanced_demos(&files_api, &mut demo_files).await?;
+
+    // Cleanup
+    println!("\n🧹 Cleaning up demo files...");
+    cleanup_demo_files(&files_api, &demo_files).await?;
+
+    print_demo_summary();
     Ok(())
 }
 
@@ -286,60 +314,92 @@ async fn upload_demo_files(
 
 /// Demonstrate listing and filtering files
 async fn list_files_demo(files_api: &FilesApi) -> Result<(), Box<dyn std::error::Error>> {
-    // List all files
+    list_all_files(files_api).await;
+    list_files_by_purposes(files_api).await;
+    list_files_with_pagination(files_api).await;
+    Ok(())
+}
+
+async fn list_all_files(files_api: &FilesApi) {
     println!("   📋 Listing all files...");
     match files_api.list_files(None).await {
         Ok(response) => {
-            println!(
-                "      ✅ Found {} total files ({})",
-                response.data.len(),
-                response.total_size_human_readable()
-            );
-
-            for file in response.data.iter().take(5) {
-                println!(
-                    "         • {} - {} ({}, {})",
-                    file.filename,
-                    file.id,
-                    file.purpose,
-                    file.size_human_readable()
-                );
-            }
-
-            if response.data.len() > 5 {
-                println!("         ... and {} more files", response.data.len() - 5);
-            }
+            print_all_files_summary(&response);
+            print_file_samples(&response.data);
         }
         Err(e) => println!("      ❌ Failed to list files: {}", e),
     }
+}
 
-    // List files by purpose
-    for purpose in &[
+fn print_all_files_summary(response: &openai_rust_sdk::models::files::ListFilesResponse) {
+    println!(
+        "      ✅ Found {} total files ({})",
+        response.data.len(),
+        response.total_size_human_readable()
+    );
+}
+
+fn print_file_samples(files: &[openai_rust_sdk::models::files::File]) {
+    for file in files.iter().take(5) {
+        println!(
+            "         • {} - {} ({}, {})",
+            file.filename,
+            file.id,
+            file.purpose,
+            file.size_human_readable()
+        );
+    }
+
+    if files.len() > 5 {
+        println!("         ... and {} more files", files.len() - 5);
+    }
+}
+
+async fn list_files_by_purposes(files_api: &FilesApi) {
+    let purposes = [
         FilePurpose::FineTune,
         FilePurpose::Assistants,
         FilePurpose::Batch,
-    ] {
-        println!("   📋 Listing {} files...", purpose);
-        match files_api
-            .list_files_by_purpose(purpose.clone(), Some(10))
-            .await
-        {
-            Ok(response) => {
-                println!("      ✅ Found {} {} files", response.data.len(), purpose);
-                for file in &response.data {
-                    println!(
-                        "         • {} - {} ({})",
-                        file.filename,
-                        file.id,
-                        file.size_human_readable()
-                    );
-                }
-            }
-            Err(e) => println!("      ❌ Failed to list {} files: {}", purpose, e),
-        }
-    }
+    ];
 
-    // List files with pagination and sorting
+    for purpose in &purposes {
+        list_files_by_purpose(files_api, purpose).await;
+    }
+}
+
+async fn list_files_by_purpose(files_api: &FilesApi, purpose: &FilePurpose) {
+    println!("   📋 Listing {} files...", purpose);
+    match files_api
+        .list_files_by_purpose(purpose.clone(), Some(10))
+        .await
+    {
+        Ok(response) => {
+            print_purpose_files_summary(&response, purpose);
+            print_purpose_files_list(&response.data);
+        }
+        Err(e) => println!("      ❌ Failed to list {} files: {}", purpose, e),
+    }
+}
+
+fn print_purpose_files_summary(
+    response: &openai_rust_sdk::models::files::ListFilesResponse,
+    purpose: &FilePurpose,
+) {
+    println!("      ✅ Found {} {} files", response.data.len(), purpose);
+}
+
+fn print_purpose_files_list(files: &[openai_rust_sdk::models::files::File]) {
+    for file in files {
+        println!(
+            "         • {} - {} ({})",
+            file.filename,
+            file.id,
+            file.size_human_readable()
+        );
+    }
+}
+
+async fn list_files_with_pagination(files_api: &FilesApi) {
     println!("   📋 Listing files with pagination (newest first)...");
     let params = ListFilesParams::new()
         .with_limit(3)
@@ -347,23 +407,29 @@ async fn list_files_demo(files_api: &FilesApi) -> Result<(), Box<dyn std::error:
 
     match files_api.list_files(Some(params)).await {
         Ok(response) => {
-            println!(
-                "      ✅ Found {} files (limited to 3, newest first)",
-                response.data.len()
-            );
-            for file in &response.data {
-                println!(
-                    "         • {} - {} (created: {})",
-                    file.filename,
-                    file.id,
-                    file.created_at_formatted()
-                );
-            }
+            print_paginated_files_summary(&response);
+            print_paginated_files_list(&response.data);
         }
         Err(e) => println!("      ❌ Failed to list files with pagination: {}", e),
     }
+}
 
-    Ok(())
+fn print_paginated_files_summary(response: &openai_rust_sdk::models::files::ListFilesResponse) {
+    println!(
+        "      ✅ Found {} files (limited to 3, newest first)",
+        response.data.len()
+    );
+}
+
+fn print_paginated_files_list(files: &[openai_rust_sdk::models::files::File]) {
+    for file in files {
+        println!(
+            "         • {} - {} (created: {})",
+            file.filename,
+            file.id,
+            file.created_at_formatted()
+        );
+    }
 }
 
 /// Display file metadata in a formatted way

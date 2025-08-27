@@ -480,38 +480,85 @@ async fn demo_store_management(
     Ok(updated_store)
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+/// Initialize API clients and print startup message
+async fn initialize_apis(api_key: &str) -> Result<(VectorStoresApi, FilesApi)> {
     println!("🚀 OpenAI Vector Stores API Demo");
     println!("=================================\n");
 
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        OpenAIError::Authentication("Please set OPENAI_API_KEY environment variable".to_string())
-    })?;
-
-    let vector_stores_api = VectorStoresApi::new(&api_key)?;
-    let files_api = FilesApi::new(&api_key)?;
+    let vector_stores_api = VectorStoresApi::new(api_key)?;
+    let files_api = FilesApi::new(api_key)?;
 
     println!("✅ Initialized Vector Stores and Files APIs\n");
+    Ok((vector_stores_api, files_api))
+}
 
-    let basic_store = demo_basic_vector_store(&vector_stores_api).await?;
-    let expiring_store = demo_expiring_vector_store(&vector_stores_api).await?;
-    let uploaded_file_ids = demo_file_upload(&files_api).await?;
+/// Create basic and expiring vector stores
+async fn create_demo_stores(
+    vector_stores_api: &VectorStoresApi,
+) -> Result<(
+    openai_rust_sdk::models::vector_stores::VectorStore,
+    openai_rust_sdk::models::vector_stores::VectorStore,
+)> {
+    let basic_store = demo_basic_vector_store(vector_stores_api).await?;
+    let expiring_store = demo_expiring_vector_store(vector_stores_api).await?;
+    Ok((basic_store, expiring_store))
+}
 
-    demo_file_operations(&vector_stores_api, &basic_store.id, &uploaded_file_ids).await?;
-    let _updated_store = demo_store_management(&vector_stores_api, &basic_store.id).await?;
-    let advanced_store = demo_advanced_features(&vector_stores_api, &uploaded_file_ids).await?;
+/// Run the complete demo workflow
+async fn run_demo_workflow(
+    vector_stores_api: &VectorStoresApi,
+    _files_api: &FilesApi,
+    basic_store: &openai_rust_sdk::models::vector_stores::VectorStore,
+    uploaded_file_ids: &[String],
+) -> Result<openai_rust_sdk::models::vector_stores::VectorStore> {
+    demo_file_operations(vector_stores_api, &basic_store.id, uploaded_file_ids).await?;
+    let _updated_store = demo_store_management(vector_stores_api, &basic_store.id).await?;
+    let advanced_store = demo_advanced_features(vector_stores_api, uploaded_file_ids).await?;
+    Ok(advanced_store)
+}
 
+/// Clean up all created resources
+async fn cleanup_resources(
+    files_api: &FilesApi,
+    vector_stores_api: &VectorStoresApi,
+    uploaded_file_ids: &[String],
+    basic_store: &openai_rust_sdk::models::vector_stores::VectorStore,
+    expiring_store: &openai_rust_sdk::models::vector_stores::VectorStore,
+    advanced_store: &openai_rust_sdk::models::vector_stores::VectorStore,
+) -> Result<()> {
     let store_ids = vec![
         basic_store.id.as_str(),
         expiring_store.id.as_str(),
         advanced_store.id.as_str(),
     ];
-    demo_cleanup(
+    demo_cleanup(files_api, vector_stores_api, uploaded_file_ids, &store_ids).await
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        OpenAIError::Authentication("Please set OPENAI_API_KEY environment variable".to_string())
+    })?;
+
+    let (vector_stores_api, files_api) = initialize_apis(&api_key).await?;
+    let (basic_store, expiring_store) = create_demo_stores(&vector_stores_api).await?;
+    let uploaded_file_ids = demo_file_upload(&files_api).await?;
+
+    let advanced_store = run_demo_workflow(
+        &vector_stores_api,
+        &files_api,
+        &basic_store,
+        &uploaded_file_ids,
+    )
+    .await?;
+
+    cleanup_resources(
         &files_api,
         &vector_stores_api,
         &uploaded_file_ids,
-        &store_ids,
+        &basic_store,
+        &expiring_store,
+        &advanced_store,
     )
     .await?;
 

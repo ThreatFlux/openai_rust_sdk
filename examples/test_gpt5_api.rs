@@ -247,10 +247,27 @@ async fn demo_frontend_development(gpt5_api: &GPT5Api) {
 }
 
 async fn demo_conversation_continuation(gpt5_api: &GPT5Api) {
+    print_conversation_header();
+
+    let first_messages = create_logic_puzzle_messages();
+    match execute_first_conversation_turn(gpt5_api, first_messages).await {
+        Ok((response_id, first_response)) => {
+            print_first_response_success(&first_response);
+            execute_followup_conversation(gpt5_api, response_id).await;
+        }
+        Err(e) => {
+            println!("❌ First conversation turn failed: {e}");
+        }
+    }
+}
+
+fn print_conversation_header() {
     println!("\n🔗 Test 7: Conversation Continuation");
     println!("{}", "-".repeat(60));
+}
 
-    let first_messages = vec![Message {
+fn create_logic_puzzle_messages() -> Vec<Message> {
+    vec![Message {
         role: MessageRole::User,
         content: MessageContentInput::Text(
             "Let's solve a logic puzzle. There are 3 boxes: A, B, and C. \
@@ -259,68 +276,83 @@ async fn demo_conversation_continuation(gpt5_api: &GPT5Api) {
              Box C says 'The gold is in B'. Only one statement is true. Where is the gold?"
                 .to_string(),
         ),
-    }];
+    }]
+}
 
-    match gpt5_api
+async fn execute_first_conversation_turn(
+    gpt5_api: &GPT5Api,
+    messages: Vec<Message>,
+) -> std::result::Result<
+    (String, openai_rust_sdk::models::responses::ResponseResult),
+    Box<dyn std::error::Error>,
+> {
+    let response = gpt5_api
         .create_reasoned_response(
             models::GPT_5,
-            ResponseInput::Messages(first_messages),
+            ResponseInput::Messages(messages),
             ReasoningEffort::High,
             Verbosity::Medium,
         )
+        .await?;
+
+    let response_id = response.id.clone().unwrap_or_else(|| "test-id".to_string());
+    Ok((response_id, response))
+}
+
+fn print_first_response_success(response: &openai_rust_sdk::models::responses::ResponseResult) {
+    println!("✅ First conversation turn successful!");
+    if let Some(choice) = response.choices.first() {
+        if let Some(content) = &choice.message.content {
+            println!("   First response: {content}");
+        }
+    }
+}
+
+async fn execute_followup_conversation(gpt5_api: &GPT5Api, response_id: String) {
+    let followup_messages = create_followup_messages();
+
+    match gpt5_api
+        .continue_conversation(
+            models::GPT_5,
+            ResponseInput::Messages(followup_messages),
+            response_id,
+            ReasoningEffort::Medium,
+        )
         .await
     {
-        Ok(first_response) => {
-            println!("✅ First conversation turn successful!");
-            let response_id = first_response
-                .id
-                .clone()
-                .unwrap_or_else(|| "test-id".to_string());
-
-            if let Some(choice) = first_response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    println!("   First response: {content}");
-                }
-            }
-
-            let followup_messages = vec![Message {
-                role: MessageRole::User,
-                content: MessageContentInput::Text(
-                    "Great! Now, can you verify your answer by checking each possibility?"
-                        .to_string(),
-                ),
-            }];
-
-            match gpt5_api
-                .continue_conversation(
-                    models::GPT_5,
-                    ResponseInput::Messages(followup_messages),
-                    response_id,
-                    ReasoningEffort::Medium,
-                )
-                .await
-            {
-                Ok(followup_response) => {
-                    println!("✅ Conversation continuation successful!");
-                    if let Some(choice) = followup_response.choices.first() {
-                        if let Some(content) = &choice.message.content {
-                            let preview = if content.len() > 200 {
-                                format!("{}...", &content[..200])
-                            } else {
-                                content.clone()
-                            };
-                            println!("   Followup response: {preview}");
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("❌ Conversation continuation failed: {e}");
-                }
-            }
+        Ok(followup_response) => {
+            print_followup_response_success(&followup_response);
         }
         Err(e) => {
-            println!("❌ First conversation turn failed: {e}");
+            println!("❌ Conversation continuation failed: {e}");
         }
+    }
+}
+
+fn create_followup_messages() -> Vec<Message> {
+    vec![Message {
+        role: MessageRole::User,
+        content: MessageContentInput::Text(
+            "Great! Now, can you verify your answer by checking each possibility?".to_string(),
+        ),
+    }]
+}
+
+fn print_followup_response_success(response: &openai_rust_sdk::models::responses::ResponseResult) {
+    println!("✅ Conversation continuation successful!");
+    if let Some(choice) = response.choices.first() {
+        if let Some(content) = &choice.message.content {
+            let preview = create_content_preview(content);
+            println!("   Followup response: {preview}");
+        }
+    }
+}
+
+fn create_content_preview(content: &str) -> String {
+    if content.len() > 200 {
+        format!("{}...", &content[..200])
+    } else {
+        content.to_string()
     }
 }
 

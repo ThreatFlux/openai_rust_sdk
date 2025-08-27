@@ -339,10 +339,25 @@ async fn complete_conversation_flow(
 async fn weather_assistant_example(
     client: &OpenAIClient,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    print_weather_assistant_header();
+
+    let tools = create_weather_tools()?;
+    let conversation = create_weather_conversation();
+    let config = create_weather_function_config(tools);
+    let request = create_weather_request(conversation);
+
+    execute_weather_assistant_flow(client, &request, &config).await?;
+
+    println!();
+    Ok(())
+}
+
+fn print_weather_assistant_header() {
     println!("6. Weather Assistant with Error Handling");
     println!("=======================================");
+}
 
-    // Create comprehensive weather functions
+fn create_weather_tools() -> Result<Vec<Tool>, Box<dyn std::error::Error>> {
     let current_weather = FunctionBuilder::weather_function(
         "get_current_weather",
         "Get current weather for a location",
@@ -362,13 +377,14 @@ async fn weather_assistant_example(
         .required_string("location", "Location to check for alerts")
         .build()?;
 
-    let tools = vec![
+    Ok(vec![
         Tool::function(current_weather),
         Tool::function(weather_forecast),
         Tool::function(weather_alerts),
-    ];
+    ])
+}
 
-    // Create a conversation with the weather assistant
+fn create_weather_conversation() -> ChatBuilder {
     let conversation = ChatBuilder::new()
         .developer("You are a helpful weather assistant. Use the available functions to provide accurate weather information. Always check for weather alerts when appropriate.")
         .user("I'm planning a camping trip to Yellowstone National Park next weekend. What should I expect weather-wise?");
@@ -377,68 +393,100 @@ async fn weather_assistant_example(
         "User: I'm planning a camping trip to Yellowstone National Park next weekend. What should I expect weather-wise?"
     );
 
-    // Configure function calling with strict mode
-    let config = FunctionConfig::new()
+    conversation
+}
+
+fn create_weather_function_config(tools: Vec<Tool>) -> FunctionConfig {
+    FunctionConfig::new()
         .with_tools(tools)
         .with_tool_choice(ToolChoice::auto())
         .with_strict_mode(true)
-        .with_parallel_calls(true);
+        .with_parallel_calls(true)
+}
 
-    let request = openai_rust_sdk::models::responses::ResponseRequest::new_messages(
-        "gpt-4",
-        conversation.build(),
-    );
+fn create_weather_request(
+    conversation: ChatBuilder,
+) -> openai_rust_sdk::models::responses::ResponseRequest {
+    openai_rust_sdk::models::responses::ResponseRequest::new_messages("gpt-4", conversation.build())
+}
 
-    // Execute with error handling
-    match client.create_function_response(&request, &config).await {
+async fn execute_weather_assistant_flow(
+    client: &OpenAIClient,
+    request: &openai_rust_sdk::models::responses::ResponseRequest,
+    config: &FunctionConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match client.create_function_response(request, config).await {
         Ok(response) => {
-            if let Some(content) = &response.content {
-                println!("Assistant: {content}");
-            }
-
-            // Handle function calls
-            let mut all_results = Vec::new();
-            for call in &response.function_calls {
-                match client.execute_function_with_result(call).await {
-                    Ok(result) => {
-                        println!("✅ {}: {}", call.name, result.output);
-                        all_results.push(result);
-                    }
-                    Err(e) => {
-                        println!("❌ Error executing {}: {}", call.name, e);
-                        // Create error result
-                        all_results.push(FunctionCallOutput::new(
-                            &call.call_id,
-                            format!("Error: {e}"),
-                        ));
-                    }
-                }
-            }
-
-            // Get final response with all results
-            if !all_results.is_empty() {
-                match client
-                    .submit_function_results(all_results, &request, &config)
-                    .await
-                {
-                    Ok(final_response) => {
-                        if let Some(final_content) = final_response.content {
-                            println!("Assistant (final): {final_content}");
-                        }
-                    }
-                    Err(e) => {
-                        println!("❌ Error getting final response: {e}");
-                    }
-                }
-            }
+            handle_weather_response(client, response, request, config).await?;
         }
         Err(e) => {
             println!("❌ Error in function calling: {e}");
         }
     }
-
-    println!();
     Ok(())
+}
+
+async fn handle_weather_response(
+    client: &OpenAIClient,
+    response: openai_rust_sdk::api::functions::FunctionResponseResult,
+    request: &openai_rust_sdk::models::responses::ResponseRequest,
+    config: &FunctionConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(content) = &response.content {
+        println!("Assistant: {content}");
+    }
+
+    let all_results = execute_weather_function_calls(client, &response.function_calls).await;
+
+    if !all_results.is_empty() {
+        submit_weather_function_results(client, all_results, request, config).await;
+    }
+
+    Ok(())
+}
+
+async fn execute_weather_function_calls(
+    client: &OpenAIClient,
+    function_calls: &[openai_rust_sdk::models::functions::FunctionCall],
+) -> Vec<FunctionCallOutput> {
+    let mut all_results = Vec::new();
+    for call in function_calls {
+        match client.execute_function_with_result(call).await {
+            Ok(result) => {
+                println!("✅ {}: {}", call.name, result.output);
+                all_results.push(result);
+            }
+            Err(e) => {
+                println!("❌ Error executing {}: {}", call.name, e);
+                all_results.push(FunctionCallOutput::new(
+                    &call.call_id,
+                    format!("Error: {e}"),
+                ));
+            }
+        }
+    }
+    all_results
+}
+
+async fn submit_weather_function_results(
+    client: &OpenAIClient,
+    all_results: Vec<FunctionCallOutput>,
+    request: &openai_rust_sdk::models::responses::ResponseRequest,
+    config: &FunctionConfig,
+) {
+    match client
+        .submit_function_results(all_results, request, config)
+        .await
+    {
+        Ok(final_response) => {
+            if let Some(final_content) = final_response.content {
+                println!("Assistant (final): {final_content}");
+            }
+        }
+        Err(e) => {
+            println!("❌ Error getting final response: {e}");
+        }
+    }
 }
 
 /// Helper function to demonstrate function result formats

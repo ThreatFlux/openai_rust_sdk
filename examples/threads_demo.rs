@@ -35,19 +35,28 @@ use openai_rust_sdk::models::threads::{
 };
 use std::env;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let api = initialize_api()?;
-
+/// Print demo introduction and initialize API
+fn print_demo_intro_and_get_api() -> Result<ThreadsApi> {
     println!("💬 OpenAI Threads & Messages API Demo");
     println!("=====================================\n");
+    initialize_api()
+}
+
+/// Print demo completion message
+fn print_demo_completion() {
+    println!("🎉 Demo completed successfully!");
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let api = print_demo_intro_and_get_api()?;
 
     let (support_thread, analysis_thread) = run_thread_creation_demos(&api).await?;
     run_thread_management_demos(&api, &support_thread.id, &analysis_thread.id).await?;
     run_advanced_demos(&api, &analysis_thread.id).await?;
     cleanup_threads(&api, vec![support_thread.id, analysis_thread.id]).await?;
 
-    println!("🎉 Demo completed successfully!");
+    print_demo_completion();
     Ok(())
 }
 

@@ -201,23 +201,37 @@ fn demo_migration_recommendations() {
 }
 
 fn demo_mode() {
+    print_demo_header();
+    show_reasoning_levels();
+    show_verbosity_control();
+    show_model_family();
+    show_optimal_settings();
+    demonstrate_request_builder();
+    show_advanced_features();
+    print_setup_instructions();
+}
+
+fn print_demo_header() {
     println!("Demo Mode - Showing GPT-5 Configuration Examples");
     println!("=================================================\n");
+}
 
-    // Example 1: Different reasoning levels
+fn show_reasoning_levels() {
     println!("1. Reasoning Effort Levels:");
     println!("   - Minimal: Fastest time-to-first-token, best for simple tasks");
     println!("   - Low: Balance of speed and quality");
     println!("   - Medium: Default, good for most tasks");
     println!("   - High: Most thorough reasoning for complex problems\n");
+}
 
-    // Example 2: Verbosity control
+fn show_verbosity_control() {
     println!("2. Verbosity Control:");
     println!("   - Low: Concise answers (e.g., '42' or short SQL queries)");
     println!("   - Medium: Balanced responses");
     println!("   - High: Detailed explanations with examples\n");
+}
 
-    // Example 3: Model variants
+fn show_model_family() {
     println!("3. GPT-5 Model Family:");
     println!(
         "   - {}: Best for complex reasoning and code",
@@ -231,14 +245,24 @@ fn demo_mode() {
         "   - {}: High-throughput, simple tasks\n",
         models::GPT_5_NANO
     );
+}
 
-    // Example 4: Optimal settings for different tasks
+fn show_optimal_settings() {
     println!("4. Optimal Settings by Task Type:");
+    show_coding_settings();
+    show_quick_answer_settings();
+    show_analysis_settings();
+    show_chat_settings();
+}
+
+fn show_coding_settings() {
     println!("   Coding:");
     println!("     - Model: {}", models::GPT_5);
     println!("     - Reasoning: Medium");
     println!("     - Verbosity: Medium-High\n");
+}
 
+fn show_quick_answer_settings() {
     println!("   Quick Answers:");
     println!(
         "     - Model: {} or {}",
@@ -247,18 +271,23 @@ fn demo_mode() {
     );
     println!("     - Reasoning: Minimal");
     println!("     - Verbosity: Low\n");
+}
 
+fn show_analysis_settings() {
     println!("   Complex Analysis:");
     println!("     - Model: {}", models::GPT_5);
     println!("     - Reasoning: High");
     println!("     - Verbosity: High\n");
+}
 
+fn show_chat_settings() {
     println!("   Chat Applications:");
     println!("     - Model: {}", models::GPT_5_CHAT_LATEST);
     println!("     - Reasoning: Low-Medium");
     println!("     - Verbosity: Medium\n");
+}
 
-    // Example 5: Request builder usage
+fn demonstrate_request_builder() {
     println!("5. Building a GPT-5 Request:");
     let request = GPT5RequestBuilder::new()
         .gpt5_mini()
@@ -273,19 +302,28 @@ fn demo_mode() {
     println!("   Reasoning: {:?}", request.reasoning);
     println!("   Text: {:?}", request.text);
     println!("   Temperature: {:?}\n", request.temperature);
+}
 
-    // Example 6: Multi-turn conversation
+fn show_advanced_features() {
+    show_conversation_features();
+    show_function_calling_features();
+}
+
+fn show_conversation_features() {
     println!("6. Multi-turn Conversations:");
     println!("   - Use previous_response_id to maintain chain of thought");
     println!("   - Reduces re-reasoning and improves context awareness");
     println!("   - Lower latency due to cached reasoning\n");
+}
 
-    // Example 7: Custom tools with minimal reasoning
+fn show_function_calling_features() {
     println!("7. Function Calling with GPT-5:");
     println!("   - Use minimal reasoning for tool selection");
     println!("   - Faster tool calls with low verbosity");
     println!("   - Preambles for transparency\n");
+}
 
+fn print_setup_instructions() {
     println!("To run actual API calls, set OPENAI_API_KEY environment variable:");
     println!("  export OPENAI_API_KEY=your_api_key_here");
     println!("  cargo run --example gpt5_features");

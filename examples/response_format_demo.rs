@@ -51,46 +51,71 @@ enum Priority {
     Critical,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize API client
+/// Initialize the responses API client
+fn initialize_responses_api() -> Result<ResponsesApi, Box<dyn std::error::Error>> {
     let api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
-    let client = ResponsesApi::new(api_key)?;
+    Ok(ResponsesApi::new(api_key)?)
+}
 
-    println!("🚀 Response Format Enforcement Demo");
-    println!("====================================\\n");
-
+/// Run basic format demonstrations
+async fn run_basic_format_demos(client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Basic JSON Object Mode
     println!("📝 Example 1: JSON Object Mode");
     println!("-----------------------------");
-    demo_json_object_mode(&client).await?;
+    demo_json_object_mode(client).await?;
 
     // Example 2: JSON Schema with Simple Validation
-    println!("\\n🔍 Example 2: Simple Schema Validation");
+    println!("\n🔍 Example 2: Simple Schema Validation");
     println!("--------------------------------------");
-    demo_simple_schema_validation(&client).await?;
+    demo_simple_schema_validation(client).await?;
 
+    Ok(())
+}
+
+/// Run advanced schema demonstrations
+async fn run_advanced_schema_demos(
+    client: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Example 3: Complex Schema with Schema Builder
-    println!("\\n🏗️  Example 3: Complex Schema with Builder");
+    println!("\n🏗️  Example 3: Complex Schema with Builder");
     println!("------------------------------------------");
-    demo_complex_schema_builder(&client).await?;
+    demo_complex_schema_builder(client).await?;
 
     // Example 4: Strict Mode Schema Enforcement
-    println!("\\n🔒 Example 4: Strict Mode Enforcement");
+    println!("\n🔒 Example 4: Strict Mode Enforcement");
     println!("-------------------------------------");
-    demo_strict_mode_enforcement(&client).await?;
+    demo_strict_mode_enforcement(client).await?;
 
+    Ok(())
+}
+
+/// Run validation and error handling demonstrations
+async fn run_validation_demos(client: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     // Example 5: Type-Safe Structured Responses
-    println!("\\n🎯 Example 5: Type-Safe Responses");
+    println!("\n🎯 Example 5: Type-Safe Responses");
     println!("---------------------------------");
-    demo_type_safe_responses(&client).await?;
+    demo_type_safe_responses(client).await?;
 
     // Example 6: Error Handling and Validation
-    println!("\\n❌ Example 6: Error Handling");
+    println!("\n❌ Example 6: Error Handling");
     println!("----------------------------");
-    demo_error_handling(&client).await?;
+    demo_error_handling(client).await?;
 
-    println!("\\n✅ All examples completed successfully!");
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("🚀 Response Format Enforcement Demo");
+    println!("====================================\n");
+
+    let client = initialize_responses_api()?;
+
+    run_basic_format_demos(&client).await?;
+    run_advanced_schema_demos(&client).await?;
+    run_validation_demos(&client).await?;
+
+    println!("\n✅ All examples completed successfully!");
 
     Ok(())
 }
@@ -162,7 +187,34 @@ async fn demo_complex_schema_builder(
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Building complex task list schema...");
 
-    let task_schema = SchemaBuilder::object()
+    let schemas = build_task_list_schemas();
+    let request = create_task_list_request(schemas.task_list_schema.clone());
+    demonstrate_schema_output(&request, &schemas.task_list_schema)?;
+    validate_example_data(&schemas.task_list_schema)?;
+
+    Ok(())
+}
+
+struct TaskListSchemas {
+    task_schema: SchemaBuilder,
+    priority_schema: SchemaBuilder,
+    task_list_schema: SchemaBuilder,
+}
+
+fn build_task_list_schemas() -> TaskListSchemas {
+    let task_schema = build_task_schema();
+    let priority_schema = build_priority_schema();
+    let task_list_schema = build_task_list_schema(&task_schema, &priority_schema);
+
+    TaskListSchemas {
+        task_schema,
+        priority_schema,
+        task_list_schema,
+    }
+}
+
+fn build_task_schema() -> SchemaBuilder {
+    SchemaBuilder::object()
         .property(
             "id",
             SchemaBuilder::string().description("Unique task identifier"),
@@ -173,47 +225,77 @@ async fn demo_complex_schema_builder(
         )
         .property("completed", SchemaBuilder::boolean())
         .required(&["id", "description", "completed"])
-        .additional_properties(false);
+        .additional_properties(false)
+}
 
-    let priority_schema = SchemaBuilder::string()
+fn build_priority_schema() -> SchemaBuilder {
+    SchemaBuilder::string()
         .enum_values(&[
             json!("low"),
             json!("medium"),
             json!("high"),
             json!("critical"),
         ])
-        .description("Task priority level");
+        .description("Task priority level")
+}
 
-    let task_list_schema = SchemaBuilder::object()
+fn build_task_list_schema(
+    task_schema: &SchemaBuilder,
+    priority_schema: &SchemaBuilder,
+) -> SchemaBuilder {
+    SchemaBuilder::object()
         .property("title", SchemaBuilder::string().min_length(1))
         .property(
             "tasks",
-            SchemaBuilder::array().items(task_schema).min_items(1),
+            SchemaBuilder::array()
+                .items(task_schema.clone())
+                .min_items(1),
         )
-        .property("priority", priority_schema)
+        .property("priority", priority_schema.clone())
         .property("estimated_hours", SchemaBuilder::number().minimum(0.0))
         .required(&["title", "tasks", "priority", "estimated_hours"])
         .description("A list of tasks with metadata")
-        .additional_properties(false);
+        .additional_properties(false)
+}
 
-    let request = ResponseRequest::new_text(
+fn create_task_list_request(task_list_schema: SchemaBuilder) -> ResponseRequest {
+    ResponseRequest::new_text(
         "gpt-4",
         "Create a task list for developing a web application with 3 tasks",
     )
-    .with_schema_builder("task_list", task_list_schema.clone());
+    .with_schema_builder("task_list", task_list_schema)
+}
 
+fn demonstrate_schema_output(
+    request: &ResponseRequest,
+    task_list_schema: &SchemaBuilder,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("Request format: {:?}", request.response_format);
 
-    // Show the generated schema
-    let schema_json = task_list_schema.build().to_value();
+    let schema_json = task_list_schema.clone().build().to_value();
     println!(
         "Generated schema: {}",
         serde_json::to_string_pretty(&schema_json)?
     );
 
-    // Validate example complex data
+    Ok(())
+}
+
+fn validate_example_data(
+    task_list_schema: &SchemaBuilder,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let schema_json = task_list_schema.clone().build().to_value();
     let spec = JsonSchemaSpec::new("task_list", schema_json);
-    let example_task_list = json!({
+    let example_task_list = create_example_task_list();
+
+    let validation = spec.validate(&example_task_list);
+    println!("✅ Complex schema validation: {:?}", validation.is_valid);
+
+    Ok(())
+}
+
+fn create_example_task_list() -> serde_json::Value {
+    json!({
         "title": "Web App Development",
         "tasks": [
             {
@@ -234,12 +316,7 @@ async fn demo_complex_schema_builder(
         ],
         "priority": "high",
         "estimated_hours": 40.5
-    });
-
-    let validation = spec.validate(&example_task_list);
-    println!("✅ Complex schema validation: {:?}", validation.is_valid);
-
-    Ok(())
+    })
 }
 
 async fn demo_strict_mode_enforcement(
@@ -438,8 +515,20 @@ async fn demo_error_handling(_client: &ResponsesApi) -> Result<(), Box<dyn std::
 pub fn create_example_schemas() -> std::collections::HashMap<String, serde_json::Value> {
     let mut schemas = std::collections::HashMap::new();
 
-    // Product schema
-    schemas.insert("product".to_string(), json!({
+    add_product_schema(&mut schemas);
+    add_article_schema(&mut schemas);
+    add_analytics_report_schema(&mut schemas);
+
+    schemas
+}
+
+fn add_product_schema(schemas: &mut std::collections::HashMap<String, serde_json::Value>) {
+    let product_schema = create_product_schema();
+    schemas.insert("product".to_string(), product_schema);
+}
+
+fn create_product_schema() -> serde_json::Value {
+    json!({
         "type": "object",
         "properties": {
             "id": {"type": "string"},
@@ -451,77 +540,97 @@ pub fn create_example_schemas() -> std::collections::HashMap<String, serde_json:
         },
         "required": ["id", "name", "price", "category"],
         "additionalProperties": false
-    }));
+    })
+}
 
-    // Article schema
-    schemas.insert(
-        "article".to_string(),
-        json!({
+fn add_article_schema(schemas: &mut std::collections::HashMap<String, serde_json::Value>) {
+    let article_schema = create_article_schema();
+    schemas.insert("article".to_string(), article_schema);
+}
+
+fn create_article_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "title": {"type": "string", "maxLength": 200},
+            "content": {"type": "string"},
+            "author": create_author_schema(),
+            "published_at": {"type": "string", "format": "date-time"},
+            "tags": {"type": "array", "items": {"type": "string"}},
+            "word_count": {"type": "integer", "minimum": 1}
+        },
+        "required": ["title", "content", "author"],
+        "additionalProperties": false
+    })
+}
+
+fn create_author_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "email": {"type": "string", "format": "email"}
+        },
+        "required": ["name"]
+    })
+}
+
+fn add_analytics_report_schema(schemas: &mut std::collections::HashMap<String, serde_json::Value>) {
+    let analytics_schema = create_analytics_report_schema();
+    schemas.insert("analytics_report".to_string(), analytics_schema);
+}
+
+fn create_analytics_report_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "report_id": {"type": "string"},
+            "period": create_period_schema(),
+            "metrics": create_metrics_schema(),
+            "top_pages": create_top_pages_schema()
+        },
+        "required": ["report_id", "period", "metrics"],
+        "additionalProperties": false
+    })
+}
+
+fn create_period_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "start_date": {"type": "string", "format": "date"},
+            "end_date": {"type": "string", "format": "date"}
+        },
+        "required": ["start_date", "end_date"]
+    })
+}
+
+fn create_metrics_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "page_views": {"type": "integer", "minimum": 0},
+            "unique_visitors": {"type": "integer", "minimum": 0},
+            "bounce_rate": {"type": "number", "minimum": 0, "maximum": 1},
+            "conversion_rate": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "required": ["page_views", "unique_visitors"]
+    })
+}
+
+fn create_top_pages_schema() -> serde_json::Value {
+    json!({
+        "type": "array",
+        "items": {
             "type": "object",
             "properties": {
-                "title": {"type": "string", "maxLength": 200},
-                "content": {"type": "string"},
-                "author": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "email": {"type": "string", "format": "email"}
-                    },
-                    "required": ["name"]
-                },
-                "published_at": {"type": "string", "format": "date-time"},
-                "tags": {"type": "array", "items": {"type": "string"}},
-                "word_count": {"type": "integer", "minimum": 1}
+                "url": {"type": "string"},
+                "views": {"type": "integer", "minimum": 0}
             },
-            "required": ["title", "content", "author"],
-            "additionalProperties": false
-        }),
-    );
-
-    // Analytics report schema
-    schemas.insert(
-        "analytics_report".to_string(),
-        json!({
-            "type": "object",
-            "properties": {
-                "report_id": {"type": "string"},
-                "period": {
-                    "type": "object",
-                    "properties": {
-                        "start_date": {"type": "string", "format": "date"},
-                        "end_date": {"type": "string", "format": "date"}
-                    },
-                    "required": ["start_date", "end_date"]
-                },
-                "metrics": {
-                    "type": "object",
-                    "properties": {
-                        "page_views": {"type": "integer", "minimum": 0},
-                        "unique_visitors": {"type": "integer", "minimum": 0},
-                        "bounce_rate": {"type": "number", "minimum": 0, "maximum": 1},
-                        "conversion_rate": {"type": "number", "minimum": 0, "maximum": 1}
-                    },
-                    "required": ["page_views", "unique_visitors"]
-                },
-                "top_pages": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "url": {"type": "string"},
-                            "views": {"type": "integer", "minimum": 0}
-                        },
-                        "required": ["url", "views"]
-                    },
-                    "maxItems": 10
-                }
-            },
-            "required": ["report_id", "period", "metrics"],
-            "additionalProperties": false
-        }),
-    );
-
-    schemas
+            "required": ["url", "views"]
+        },
+        "maxItems": 10
+    })
 }
 
 #[cfg(test)]
