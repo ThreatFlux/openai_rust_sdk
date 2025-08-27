@@ -444,105 +444,11 @@ pub struct CodeInterpreterImage {
     pub file_id: String,
 }
 
-/// Response containing a list of runs
-#[derive(Debug, Clone, PartialEq, Ser, De)]
-pub struct ListRunsResponse {
-    /// The object type, which is always `list`
-    pub object: String,
-    /// The list of runs
-    pub data: Vec<Run>,
-    /// The first ID in the list
-    pub first_id: Option<String>,
-    /// The last ID in the list
-    pub last_id: Option<String>,
-    /// Whether there are more results available
-    pub has_more: bool,
-}
-
-/// Parameters for listing runs
-#[derive(Debug, Clone, PartialEq, Ser, De)]
-pub struct ListRunsParams {
-    /// A limit on the number of objects to be returned (1-100, default 20)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<u32>,
-    /// Sort order by the `created_at` timestamp (asc or desc, default desc)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<String>,
-    /// A cursor for use in pagination. after is an object ID that defines your place in the list
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub after: Option<String>,
-    /// A cursor for use in pagination. before is an object ID that defines your place in the list
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub before: Option<String>,
-}
-
-impl ListParams for ListRunsParams {
-    fn get_limit(&self) -> Option<u32> {
-        self.limit
-    }
-
-    fn get_order(&self) -> Option<&String> {
-        self.order.as_ref()
-    }
-
-    fn get_after(&self) -> Option<&String> {
-        self.after.as_ref()
-    }
-
-    fn get_before(&self) -> Option<&String> {
-        self.before.as_ref()
-    }
-}
-
-/// Response containing a list of run steps
-#[derive(Debug, Clone, PartialEq, Ser, De)]
-pub struct ListRunStepsResponse {
-    /// The object type, which is always `list`
-    pub object: String,
-    /// The list of run steps
-    pub data: Vec<RunStep>,
-    /// The first ID in the list
-    pub first_id: Option<String>,
-    /// The last ID in the list
-    pub last_id: Option<String>,
-    /// Whether there are more results available
-    pub has_more: bool,
-}
-
-/// Parameters for listing run steps
-#[derive(Debug, Clone, PartialEq, Ser, De)]
-pub struct ListRunStepsParams {
-    /// A limit on the number of objects to be returned (1-100, default 20)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<u32>,
-    /// Sort order by the `created_at` timestamp (asc or desc, default desc)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<String>,
-    /// A cursor for use in pagination. after is an object ID that defines your place in the list
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub after: Option<String>,
-    /// A cursor for use in pagination. before is an object ID that defines your place in the list
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub before: Option<String>,
-}
-
-impl ListParams for ListRunStepsParams {
-    fn get_limit(&self) -> Option<u32> {
-        self.limit
-    }
-
-    fn get_order(&self) -> Option<&String> {
-        self.order.as_ref()
-    }
-
-    fn get_after(&self) -> Option<&String> {
-        self.after.as_ref()
-    }
-
-    fn get_before(&self) -> Option<&String> {
-        self.before.as_ref()
-    }
-}
+// Generate list response and parameter structures using macros
+crate::impl_list_response!(ListRunsResponse, Run, "runs");
+crate::impl_list_params!(ListRunsParams, "runs");
+crate::impl_list_response!(ListRunStepsResponse, RunStep, "run steps");
+crate::impl_list_params!(ListRunStepsParams, "run steps");
 
 /// Usage statistics for a run or run step
 #[derive(Debug, Clone, PartialEq, Ser, De)]
@@ -660,27 +566,7 @@ pub struct RunRequestBuilder {
     metadata: Option<HashMap<String, String>>,
 }
 
-impl RunConfigurationBuilder for RunRequestBuilder {
-    fn get_model_mut(&mut self) -> &mut Option<String> {
-        &mut self.model
-    }
-
-    fn get_instructions_mut(&mut self) -> &mut Option<String> {
-        &mut self.instructions
-    }
-
-    fn get_tools_mut(&mut self) -> &mut Option<Vec<AssistantTool>> {
-        &mut self.tools
-    }
-
-    fn get_file_ids_mut(&mut self) -> &mut Option<Vec<String>> {
-        &mut self.file_ids
-    }
-
-    fn get_metadata_mut(&mut self) -> &mut Option<HashMap<String, String>> {
-        &mut self.metadata
-    }
-}
+crate::impl_run_config_builder!(RunRequestBuilder);
 
 impl RunRequestBuilder {
     /// Set the assistant ID
@@ -689,48 +575,7 @@ impl RunRequestBuilder {
         self
     }
 
-    /// Set the model
-    pub fn model<S: Into<String>>(self, model: S) -> Self {
-        RunConfigurationBuilder::model(self, model)
-    }
-
-    /// Set the instructions
-    pub fn instructions<S: Into<String>>(self, instructions: S) -> Self {
-        RunConfigurationBuilder::instructions(self, instructions)
-    }
-
-    /// Add a tool
-    pub fn tool(self, tool: AssistantTool) -> Self {
-        RunConfigurationBuilder::tool(self, tool)
-    }
-
-    /// Set tools
-    #[must_use]
-    pub fn tools(self, tools: Vec<AssistantTool>) -> Self {
-        RunConfigurationBuilder::tools(self, tools)
-    }
-
-    /// Add a file ID
-    pub fn file_id<S: Into<String>>(self, file_id: S) -> Self {
-        RunConfigurationBuilder::file_id(self, file_id)
-    }
-
-    /// Set file IDs
-    #[must_use]
-    pub fn file_ids(self, file_ids: Vec<String>) -> Self {
-        RunConfigurationBuilder::file_ids(self, file_ids)
-    }
-
-    /// Add metadata key-value pair
-    pub fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
-        RunConfigurationBuilder::metadata_pair(self, key, value)
-    }
-
-    /// Set metadata
-    #[must_use]
-    pub fn metadata(self, metadata: HashMap<String, String>) -> Self {
-        RunConfigurationBuilder::metadata(self, metadata)
-    }
+    crate::impl_run_builder_methods!();
 }
 
 // Generate the build method for RunRequestBuilder
@@ -769,27 +614,7 @@ pub struct CreateThreadAndRunRequestBuilder {
     metadata: Option<HashMap<String, String>>,
 }
 
-impl RunConfigurationBuilder for CreateThreadAndRunRequestBuilder {
-    fn get_model_mut(&mut self) -> &mut Option<String> {
-        &mut self.model
-    }
-
-    fn get_instructions_mut(&mut self) -> &mut Option<String> {
-        &mut self.instructions
-    }
-
-    fn get_tools_mut(&mut self) -> &mut Option<Vec<AssistantTool>> {
-        &mut self.tools
-    }
-
-    fn get_file_ids_mut(&mut self) -> &mut Option<Vec<String>> {
-        &mut self.file_ids
-    }
-
-    fn get_metadata_mut(&mut self) -> &mut Option<HashMap<String, String>> {
-        &mut self.metadata
-    }
-}
+crate::impl_run_config_builder!(CreateThreadAndRunRequestBuilder);
 
 impl CreateThreadAndRunRequestBuilder {
     /// Set the assistant ID
@@ -805,48 +630,7 @@ impl CreateThreadAndRunRequestBuilder {
         self
     }
 
-    /// Set the model
-    pub fn model<S: Into<String>>(self, model: S) -> Self {
-        RunConfigurationBuilder::model(self, model)
-    }
-
-    /// Set the instructions
-    pub fn instructions<S: Into<String>>(self, instructions: S) -> Self {
-        RunConfigurationBuilder::instructions(self, instructions)
-    }
-
-    /// Add a tool
-    pub fn tool(self, tool: AssistantTool) -> Self {
-        RunConfigurationBuilder::tool(self, tool)
-    }
-
-    /// Set tools
-    #[must_use]
-    pub fn tools(self, tools: Vec<AssistantTool>) -> Self {
-        RunConfigurationBuilder::tools(self, tools)
-    }
-
-    /// Add a file ID
-    pub fn file_id<S: Into<String>>(self, file_id: S) -> Self {
-        RunConfigurationBuilder::file_id(self, file_id)
-    }
-
-    /// Set file IDs
-    #[must_use]
-    pub fn file_ids(self, file_ids: Vec<String>) -> Self {
-        RunConfigurationBuilder::file_ids(self, file_ids)
-    }
-
-    /// Add metadata key-value pair
-    pub fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
-        RunConfigurationBuilder::metadata_pair(self, key, value)
-    }
-
-    /// Set metadata
-    #[must_use]
-    pub fn metadata(self, metadata: HashMap<String, String>) -> Self {
-        RunConfigurationBuilder::metadata(self, metadata)
-    }
+    crate::impl_run_builder_methods!();
 }
 
 // Generate the build method for CreateThreadAndRunRequestBuilder
@@ -860,44 +644,4 @@ crate::impl_builder_build! {
 /// Create default list parameters
 fn create_default_list_params() -> (Option<u32>, Option<String>, Option<String>, Option<String>) {
     (Some(20), Some("desc".to_string()), None, None)
-}
-
-impl Default for ListRunsParams {
-    fn default() -> Self {
-        let (limit, order, after, before) = create_default_list_params();
-        Self {
-            limit,
-            order,
-            after,
-            before,
-        }
-    }
-}
-
-impl ListRunsParams {
-    /// Build query parameters for the API request
-    #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
-        self.build_query_params()
-    }
-}
-
-impl Default for ListRunStepsParams {
-    fn default() -> Self {
-        let (limit, order, after, before) = create_default_list_params();
-        Self {
-            limit,
-            order,
-            after,
-            before,
-        }
-    }
-}
-
-impl ListRunStepsParams {
-    /// Build query parameters for the API request
-    #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
-        self.build_query_params()
-    }
 }

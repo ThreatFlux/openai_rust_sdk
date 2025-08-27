@@ -165,6 +165,169 @@ macro_rules! impl_map_setters {
     };
 }
 
+/// Macro to generate list parameter structures with pagination support
+#[macro_export]
+macro_rules! impl_list_params {
+    ($struct_name:ident, $doc_prefix:literal) => {
+        #[doc = concat!("Parameters for listing ", $doc_prefix)]
+        #[derive(Debug, Clone, PartialEq, $crate::macros::Ser, $crate::macros::De)]
+        pub struct $struct_name {
+            /// A limit on the number of objects to be returned (1-100, default 20)
+            #[serde(skip_serializing_if = "Option::is_none")]
+            pub limit: Option<u32>,
+            /// Sort order by the `created_at` timestamp (asc or desc, default desc)
+            #[serde(skip_serializing_if = "Option::is_none")]
+            pub order: Option<String>,
+            /// A cursor for use in pagination. after is an object ID that defines your place in the list
+            #[serde(skip_serializing_if = "Option::is_none")]
+            pub after: Option<String>,
+            /// A cursor for use in pagination. before is an object ID that defines your place in the list
+            #[serde(skip_serializing_if = "Option::is_none")]
+            pub before: Option<String>,
+        }
+
+        impl ListParams for $struct_name {
+            fn get_limit(&self) -> Option<u32> {
+                self.limit
+            }
+
+            fn get_order(&self) -> Option<&String> {
+                self.order.as_ref()
+            }
+
+            fn get_after(&self) -> Option<&String> {
+                self.after.as_ref()
+            }
+
+            fn get_before(&self) -> Option<&String> {
+                self.before.as_ref()
+            }
+        }
+
+        impl Default for $struct_name {
+            fn default() -> Self {
+                let (limit, order, after, before) = create_default_list_params();
+                Self {
+                    limit,
+                    order,
+                    after,
+                    before,
+                }
+            }
+        }
+
+        impl $struct_name {
+            /// Build query parameters for the API request
+            #[must_use]
+            pub fn to_query_params(&self) -> Vec<(String, String)> {
+                self.build_query_params()
+            }
+        }
+    };
+}
+
+/// Macro to generate list response structures
+#[macro_export]
+macro_rules! impl_list_response {
+    ($struct_name:ident, $data_type:ty, $doc_prefix:literal) => {
+        #[doc = concat!("Response containing a list of ", $doc_prefix)]
+        #[derive(Debug, Clone, PartialEq, $crate::macros::Ser, $crate::macros::De)]
+        pub struct $struct_name {
+            /// The object type, which is always `list`
+            pub object: String,
+            #[doc = concat!("The list of ", $doc_prefix)]
+            pub data: Vec<$data_type>,
+            /// The first ID in the list
+            pub first_id: Option<String>,
+            /// The last ID in the list
+            pub last_id: Option<String>,
+            /// Whether there are more results available
+            pub has_more: bool,
+        }
+    };
+}
+
+/// Macro to generate RunConfigurationBuilder trait implementations
+#[macro_export]
+macro_rules! impl_run_config_builder {
+    ($struct_name:ident) => {
+        impl RunConfigurationBuilder for $struct_name {
+            fn get_model_mut(&mut self) -> &mut Option<String> {
+                &mut self.model
+            }
+
+            fn get_instructions_mut(&mut self) -> &mut Option<String> {
+                &mut self.instructions
+            }
+
+            fn get_tools_mut(
+                &mut self,
+            ) -> &mut Option<Vec<$crate::models::assistants::AssistantTool>> {
+                &mut self.tools
+            }
+
+            fn get_file_ids_mut(&mut self) -> &mut Option<Vec<String>> {
+                &mut self.file_ids
+            }
+
+            fn get_metadata_mut(
+                &mut self,
+            ) -> &mut Option<std::collections::HashMap<String, String>> {
+                &mut self.metadata
+            }
+        }
+    };
+}
+
+/// Macro to generate run builder methods that delegate to RunConfigurationBuilder trait
+#[macro_export]
+macro_rules! impl_run_builder_methods {
+    () => {
+        /// Set the model
+        pub fn model<S: Into<String>>(self, model: S) -> Self {
+            RunConfigurationBuilder::model(self, model)
+        }
+
+        /// Set the instructions
+        pub fn instructions<S: Into<String>>(self, instructions: S) -> Self {
+            RunConfigurationBuilder::instructions(self, instructions)
+        }
+
+        /// Add a tool
+        pub fn tool(self, tool: $crate::models::assistants::AssistantTool) -> Self {
+            RunConfigurationBuilder::tool(self, tool)
+        }
+
+        /// Set tools
+        #[must_use]
+        pub fn tools(self, tools: Vec<$crate::models::assistants::AssistantTool>) -> Self {
+            RunConfigurationBuilder::tools(self, tools)
+        }
+
+        /// Add a file ID
+        pub fn file_id<S: Into<String>>(self, file_id: S) -> Self {
+            RunConfigurationBuilder::file_id(self, file_id)
+        }
+
+        /// Set file IDs
+        #[must_use]
+        pub fn file_ids(self, file_ids: Vec<String>) -> Self {
+            RunConfigurationBuilder::file_ids(self, file_ids)
+        }
+
+        /// Add metadata key-value pair
+        pub fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
+            RunConfigurationBuilder::metadata_pair(self, key, value)
+        }
+
+        /// Set metadata
+        #[must_use]
+        pub fn metadata(self, metadata: std::collections::HashMap<String, String>) -> Self {
+            RunConfigurationBuilder::metadata(self, metadata)
+        }
+    };
+}
+
 /// Macro to generate simple HTTP GET method wrappers
 #[macro_export]
 macro_rules! http_get {
