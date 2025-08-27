@@ -54,7 +54,7 @@ pub mod store_types;
 pub use batch_types::*;
 pub use common_types::*;
 pub use file_types::*;
-pub use request_types::{ListVectorStoreFilesParams, ListVectorStoresParams};
+pub use request_types::*;
 // Alias to avoid conflict with realtime_audio module
 pub use response_types::{
     ListVectorStoreFilesResponse, ListVectorStoresResponse, VectorStoreDeleteResponse,

@@ -51,7 +51,7 @@ use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::vector_stores::{
     ListVectorStoreFilesParams, ListVectorStoreFilesResponse, ListVectorStoresParams,
-    ListVectorStoresResponse, VectorStore, VectorStoreDeleteResponse, VectorStoreFile,
+    ListVectorStoresResponse, QueryParamBuilder, VectorStore, VectorStoreDeleteResponse, VectorStoreFile,
     VectorStoreFileBatch, VectorStoreFileBatchRequest, VectorStoreFileDeleteResponse,
     VectorStoreFileRequest, VectorStoreRequest,
 };

@@ -75,6 +75,7 @@ mod tests {
     use super::*;
     #[cfg(test)]
     use crate::models::audio::{TranscriptionFormat, TranslationBuilder};
+    use crate::models::common_builder::Builder;
 
     #[tokio::test]
     async fn test_translation_request_creation() {

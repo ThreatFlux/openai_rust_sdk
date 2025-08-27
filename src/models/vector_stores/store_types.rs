@@ -3,9 +3,11 @@
 //! This module contains the main VectorStore type and its associated
 //! request types and builder patterns.
 
-use crate::models::vector_stores::common_types::{ChunkingStrategy, ExpirationPolicy, FileCounts};
+use crate::models::vector_stores::common_types::{
+    ChunkingStrategy, ExpirationPolicy, FileCounts, MetadataBuilder, FileIdBuilder, StatusChecker,
+};
 use crate::models::vector_stores::status_types::VectorStoreStatus;
-use crate::{De, Ser};
+use crate::{De, Ser, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -40,30 +42,15 @@ pub struct VectorStore {
     pub metadata: HashMap<String, String>,
 }
 
+// Use macro to generate status checking methods
+impl_status_methods!(VectorStore, VectorStoreStatus, {
+    is_ready => Completed,
+    is_processing => InProgress,
+    has_failed => Failed,
+    has_expired => Expired,
+});
+
 impl VectorStore {
-    /// Check if the vector store is ready for use
-    #[must_use]
-    pub fn is_ready(&self) -> bool {
-        matches!(self.status, VectorStoreStatus::Completed)
-    }
-
-    /// Check if the vector store is still being processed
-    #[must_use]
-    pub fn is_processing(&self) -> bool {
-        matches!(self.status, VectorStoreStatus::InProgress)
-    }
-
-    /// Check if the vector store has failed
-    #[must_use]
-    pub fn has_failed(&self) -> bool {
-        matches!(self.status, VectorStoreStatus::Failed)
-    }
-
-    /// Check if the vector store has expired
-    #[must_use]
-    pub fn has_expired(&self) -> bool {
-        matches!(self.status, VectorStoreStatus::Expired)
-    }
 
     /// Get human-readable usage size
     #[must_use]
@@ -157,14 +144,20 @@ impl VectorStoreRequest {
 
     /// Add a single metadata key-value pair
     pub fn add_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        if self.metadata.is_none() {
-            self.metadata = Some(HashMap::new());
-        }
-        self.metadata
-            .as_mut()
-            .unwrap()
-            .insert(key.into(), value.into());
+        self.add_metadata_pair(key, value);
         self
+    }
+}
+
+impl MetadataBuilder for VectorStoreRequest {
+    fn metadata_mut(&mut self) -> &mut Option<HashMap<String, String>> {
+        &mut self.metadata
+    }
+}
+
+impl FileIdBuilder for VectorStoreRequest {
+    fn file_ids_mut(&mut self) -> &mut Option<Vec<String>> {
+        &mut self.file_ids
     }
 }
 
@@ -191,10 +184,7 @@ impl VectorStoreRequestBuilder {
 
     /// Add a single file ID to the vector store
     pub fn add_file_id(mut self, file_id: impl Into<String>) -> Self {
-        if self.request.file_ids.is_none() {
-            self.request.file_ids = Some(Vec::new());
-        }
-        self.request.file_ids.as_mut().unwrap().push(file_id.into());
+        self.request.add_file_id_to_list(file_id);
         self
     }
 
@@ -227,14 +217,7 @@ impl VectorStoreRequestBuilder {
 
     /// Add a single metadata key-value pair
     pub fn add_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        if self.request.metadata.is_none() {
-            self.request.metadata = Some(HashMap::new());
-        }
-        self.request
-            .metadata
-            .as_mut()
-            .unwrap()
-            .insert(key.into(), value.into());
+        self.request.add_metadata_pair(key, value);
         self
     }
 

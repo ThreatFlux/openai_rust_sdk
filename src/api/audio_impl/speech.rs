@@ -82,6 +82,7 @@ mod tests {
     use super::*;
     #[cfg(test)]
     use crate::models::audio::SpeechBuilder;
+    use crate::models::common_builder::{Builder, WithSpeed};
 
     #[tokio::test]
     async fn test_speech_request_serialization() {

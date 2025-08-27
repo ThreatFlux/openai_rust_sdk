@@ -24,6 +24,7 @@ pub use types::*;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::common_builder::{Builder, WithFormat, WithSpeed, WithTemperature};
 
     #[test]
     fn test_speech_request_creation() {

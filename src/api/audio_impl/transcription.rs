@@ -90,6 +90,7 @@ mod tests {
     use super::*;
     #[cfg(test)]
     use crate::models::audio::{TranscriptionBuilder, TranscriptionFormat};
+    use crate::models::common_builder::Builder;
 
     #[tokio::test]
     async fn test_transcription_request_creation() {

@@ -3,7 +3,9 @@
 //! This module contains parameter types for listing and filtering vector store
 //! operations, providing convenient builders for API requests.
 
+use crate::models::vector_stores::common_types::QueryParamBuilder;
 use crate::models::vector_stores::status_types::VectorStoreFileStatus;
+use crate::impl_query_params;
 
 /// Parameters for listing vector stores
 #[derive(Debug, Clone, Default)]
@@ -49,10 +51,11 @@ impl ListVectorStoresParams {
         self.before = Some(before.into());
         self
     }
+}
 
-    /// Build query parameters for the API request
-    #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
+// Use macro to generate query parameter methods for ListVectorStoresParams
+impl QueryParamBuilder for ListVectorStoresParams {
+    fn to_query_params(&self) -> Vec<(String, String)> {
         let mut params = Vec::new();
 
         if let Some(limit) = self.limit {
@@ -74,9 +77,7 @@ impl ListVectorStoresParams {
         params
     }
 
-    /// Check if any parameters are set
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.limit.is_none()
             && self.order.is_none()
             && self.after.is_none()
@@ -138,9 +139,21 @@ impl ListVectorStoreFilesParams {
         self
     }
 
-    /// Build query parameters for the API request
+    /// Check if pagination parameters are set
     #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
+    pub fn has_pagination(&self) -> bool {
+        self.after.is_some() || self.before.is_some()
+    }
+
+    /// Check if filtering parameters are set
+    #[must_use]
+    pub fn has_filters(&self) -> bool {
+        self.filter.is_some()
+    }
+}
+
+impl QueryParamBuilder for ListVectorStoreFilesParams {
+    fn to_query_params(&self) -> Vec<(String, String)> {
         let mut params = Vec::new();
 
         if let Some(limit) = self.limit {
@@ -166,26 +179,12 @@ impl ListVectorStoreFilesParams {
         params
     }
 
-    /// Check if any parameters are set
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.limit.is_none()
             && self.order.is_none()
             && self.after.is_none()
             && self.before.is_none()
             && self.filter.is_none()
-    }
-
-    /// Check if pagination parameters are set
-    #[must_use]
-    pub fn has_pagination(&self) -> bool {
-        self.after.is_some() || self.before.is_some()
-    }
-
-    /// Check if filtering parameters are set
-    #[must_use]
-    pub fn has_filters(&self) -> bool {
-        self.filter.is_some()
     }
 }
 

@@ -3,9 +3,9 @@
 //! This module contains types and functions for managing individual files
 //! within vector stores, including file associations and their processing status.
 
-use crate::models::vector_stores::common_types::{ChunkingStrategy, VectorStoreFileError};
+use crate::models::vector_stores::common_types::{ChunkingStrategy, VectorStoreFileError, StatusChecker};
 use crate::models::vector_stores::status_types::VectorStoreFileStatus;
-use crate::{De, Ser};
+use crate::{De, Ser, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 
 /// A vector store file represents the association between a file and a vector store
@@ -31,30 +31,15 @@ pub struct VectorStoreFile {
     pub chunking_strategy: Option<ChunkingStrategy>,
 }
 
+// Use macro to generate status checking methods
+impl_status_methods!(VectorStoreFile, VectorStoreFileStatus, {
+    is_completed => Completed,
+    is_processing => InProgress,
+    has_failed => Failed,
+    was_cancelled => Cancelled,
+});
+
 impl VectorStoreFile {
-    /// Check if the file processing is complete
-    #[must_use]
-    pub fn is_completed(&self) -> bool {
-        matches!(self.status, VectorStoreFileStatus::Completed)
-    }
-
-    /// Check if the file processing is in progress
-    #[must_use]
-    pub fn is_processing(&self) -> bool {
-        matches!(self.status, VectorStoreFileStatus::InProgress)
-    }
-
-    /// Check if the file processing has failed
-    #[must_use]
-    pub fn has_failed(&self) -> bool {
-        matches!(self.status, VectorStoreFileStatus::Failed)
-    }
-
-    /// Check if the file processing was cancelled
-    #[must_use]
-    pub fn was_cancelled(&self) -> bool {
-        matches!(self.status, VectorStoreFileStatus::Cancelled)
-    }
 
     /// Get human-readable usage size
     #[must_use]

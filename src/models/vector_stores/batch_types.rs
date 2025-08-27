@@ -3,9 +3,9 @@
 //! This module contains types and functions for managing batch operations
 //! on multiple files within vector stores.
 
-use crate::models::vector_stores::common_types::{ChunkingStrategy, FileCounts};
+use crate::models::vector_stores::common_types::{ChunkingStrategy, FileCounts, StatusChecker};
 use crate::models::vector_stores::status_types::VectorStoreFileBatchStatus;
-use crate::{De, Ser};
+use crate::{De, Ser, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 
 /// A vector store file batch represents a batch operation on multiple files
@@ -25,30 +25,15 @@ pub struct VectorStoreFileBatch {
     pub file_counts: FileCounts,
 }
 
+// Use macro to generate status checking methods
+impl_status_methods!(VectorStoreFileBatch, VectorStoreFileBatchStatus, {
+    is_completed => Completed,
+    is_processing => InProgress,
+    has_failed => Failed,
+    was_cancelled => Cancelled,
+});
+
 impl VectorStoreFileBatch {
-    /// Check if the batch processing is complete
-    #[must_use]
-    pub fn is_completed(&self) -> bool {
-        matches!(self.status, VectorStoreFileBatchStatus::Completed)
-    }
-
-    /// Check if the batch processing is in progress
-    #[must_use]
-    pub fn is_processing(&self) -> bool {
-        matches!(self.status, VectorStoreFileBatchStatus::InProgress)
-    }
-
-    /// Check if the batch processing has failed
-    #[must_use]
-    pub fn has_failed(&self) -> bool {
-        matches!(self.status, VectorStoreFileBatchStatus::Failed)
-    }
-
-    /// Check if the batch processing was cancelled
-    #[must_use]
-    pub fn was_cancelled(&self) -> bool {
-        matches!(self.status, VectorStoreFileBatchStatus::Cancelled)
-    }
 
     /// Get the creation date as a formatted string
     #[must_use]

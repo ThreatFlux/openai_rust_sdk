@@ -1,5 +1,7 @@
 /// Common utilities for models
 pub mod common;
+/// Common builder patterns to reduce duplication
+pub mod common_builder;
 
 /// Assistants models for AI assistant creation and management  
 pub mod assistants;

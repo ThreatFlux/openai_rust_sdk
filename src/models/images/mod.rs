@@ -33,6 +33,7 @@ pub use validation::validate_request;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::common_builder::Builder;
 
     #[test]
     fn test_integration_image_generation_request_creation() {

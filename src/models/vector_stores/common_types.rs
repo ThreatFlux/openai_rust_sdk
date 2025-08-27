@@ -6,6 +6,7 @@
 
 use crate::{De, Ser};
 use serde::{self, Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Expiration policy for vector stores
 #[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
@@ -196,6 +197,151 @@ pub mod utils {
             .unwrap_or_default()
             .as_secs()
     }
+}
+
+/// Trait for types that have status checking functionality
+pub trait StatusChecker<T> {
+    /// Get the current status
+    fn status(&self) -> &T;
+    
+    /// Check if the status matches a specific value
+    fn has_status(&self, status: &T) -> bool
+    where 
+        T: PartialEq,
+    {
+        self.status() == status
+    }
+}
+
+/// Trait for builder patterns with optional fields
+pub trait OptionalFieldBuilder<T> {
+    /// Set an optional field if the value is Some
+    fn set_optional<V>(&mut self, field: &mut Option<V>, value: Option<V>) -> &mut Self {
+        if let Some(v) = value {
+            *field = Some(v);
+        }
+        self
+    }
+}
+
+/// Trait for managing metadata in request builders
+pub trait MetadataBuilder {
+    /// Get a mutable reference to the metadata field
+    fn metadata_mut(&mut self) -> &mut Option<HashMap<String, String>>;
+    
+    /// Add a metadata key-value pair
+    fn add_metadata_pair(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
+        if self.metadata_mut().is_none() {
+            *self.metadata_mut() = Some(HashMap::new());
+        }
+        self.metadata_mut()
+            .as_mut()
+            .unwrap()
+            .insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Trait for managing file ID lists in request builders
+pub trait FileIdBuilder {
+    /// Get a mutable reference to the file_ids field
+    fn file_ids_mut(&mut self) -> &mut Option<Vec<String>>;
+    
+    /// Add a file ID to the list
+    fn add_file_id_to_list(&mut self, file_id: impl Into<String>) -> &mut Self {
+        if self.file_ids_mut().is_none() {
+            *self.file_ids_mut() = Some(Vec::new());
+        }
+        self.file_ids_mut()
+            .as_mut()
+            .unwrap()
+            .push(file_id.into());
+        self
+    }
+}
+
+/// Trait for building query parameters
+pub trait QueryParamBuilder {
+    /// Convert to query parameter vector
+    fn to_query_params(&self) -> Vec<(String, String)>;
+    
+    /// Check if any parameters are set
+    fn is_empty(&self) -> bool;
+}
+
+/// Macro for implementing status checking methods for different status enums
+#[macro_export]
+macro_rules! impl_status_methods {
+    ($struct_name:ty, $status_enum:ty, {
+        $(
+            $method_name:ident => $variant:ident,
+        )*
+    }) => {
+        impl $struct_name {
+            $(
+                /// Check if the status matches the specified variant
+                #[must_use]
+                pub fn $method_name(&self) -> bool {
+                    matches!(self.status, <$status_enum>::$variant)
+                }
+            )*
+        }
+        
+        impl StatusChecker<$status_enum> for $struct_name {
+            fn status(&self) -> &$status_enum {
+                &self.status
+            }
+        }
+    };
+}
+
+/// Macro for implementing common builder methods
+#[macro_export]
+macro_rules! impl_builder_methods {
+    ($builder_type:ty, {
+        $(
+            $method_name:ident: $field_type:ty => $field_name:ident,
+        )*
+    }) => {
+        impl $builder_type {
+            $(
+                /// Set the field value
+                #[must_use]
+                pub fn $method_name(mut self, value: $field_type) -> Self {
+                    self.request.$field_name = Some(value);
+                    self
+                }
+            )*
+        }
+    };
+}
+
+/// Macro for implementing query parameter building with common fields
+#[macro_export]
+macro_rules! impl_query_params {
+    ($struct_name:ty, {
+        $(
+            $field_name:ident: $field_type:ty,
+        )*
+    }) => {
+        impl QueryParamBuilder for $struct_name {
+            fn to_query_params(&self) -> Vec<(String, String)> {
+                let mut params = Vec::new();
+                
+                $(
+                    if let Some(ref value) = self.$field_name {
+                        params.push((stringify!($field_name).to_string(), value.to_string()));
+                    }
+                )*
+                
+                params
+            }
+            
+            fn is_empty(&self) -> bool {
+                true $(&& self.$field_name.is_none())*
+            }
+        }
+    };
 }
 
 #[cfg(test)]

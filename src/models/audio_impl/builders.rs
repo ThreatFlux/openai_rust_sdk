@@ -5,6 +5,8 @@
 use super::models::AudioModels;
 use super::requests::{AudioSpeechRequest, AudioTranscriptionRequest, AudioTranslationRequest};
 use super::types::{AudioFormat, TranscriptionFormat, Voice};
+use crate::models::common_builder::{Builder, WithFormat, WithSpeed, WithTemperature};
+use crate::{impl_builder, impl_with_format, impl_with_speed, impl_with_temperature, impl_audio_format_methods, impl_transcription_format_methods};
 
 /// Builder for creating speech requests
 pub struct SpeechBuilder {
@@ -29,55 +31,15 @@ impl SpeechBuilder {
     pub fn tts_1_hd(input: impl Into<String>, voice: Voice) -> Self {
         Self::new(AudioModels::TTS_1_HD, input, voice)
     }
-
-    /// Set the audio format
-    #[must_use]
-    pub fn format(mut self, format: AudioFormat) -> Self {
-        self.request.response_format = Some(format);
-        self
-    }
-
-    /// Set the speech speed
-    #[must_use]
-    pub fn speed(mut self, speed: f32) -> Self {
-        self.request.speed = Some(speed.clamp(0.25, 4.0));
-        self
-    }
-
-    /// Use MP3 format
-    #[must_use]
-    pub fn mp3(mut self) -> Self {
-        self.request.response_format = Some(AudioFormat::Mp3);
-        self
-    }
-
-    /// Use Opus format
-    #[must_use]
-    pub fn opus(mut self) -> Self {
-        self.request.response_format = Some(AudioFormat::Opus);
-        self
-    }
-
-    /// Use AAC format
-    #[must_use]
-    pub fn aac(mut self) -> Self {
-        self.request.response_format = Some(AudioFormat::Aac);
-        self
-    }
-
-    /// Use FLAC format
-    #[must_use]
-    pub fn flac(mut self) -> Self {
-        self.request.response_format = Some(AudioFormat::Flac);
-        self
-    }
-
-    /// Build the request
-    #[must_use]
-    pub fn build(self) -> AudioSpeechRequest {
-        self.request
-    }
 }
+
+// Apply common builder traits
+impl_builder!(SpeechBuilder, AudioSpeechRequest, request);
+impl_with_format!(SpeechBuilder, AudioSpeechRequest, request, AudioFormat);
+impl_with_speed!(SpeechBuilder, AudioSpeechRequest, request, (0.25, 4.0));
+
+// Generate audio format convenience methods
+impl_audio_format_methods!(SpeechBuilder, request);
 
 /// Builder for creating transcription requests
 pub struct TranscriptionBuilder {
@@ -110,61 +72,21 @@ impl TranscriptionBuilder {
         self
     }
 
-    /// Use JSON format
-    #[must_use]
-    pub fn json(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::Json);
-        self
-    }
-
-    /// Use verbose JSON format with timestamps
-    #[must_use]
-    pub fn verbose_json(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::VerboseJson);
-        self
-    }
-
-    /// Use plain text format
-    #[must_use]
-    pub fn text(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::Text);
-        self
-    }
-
-    /// Use SRT subtitle format
-    #[must_use]
-    pub fn srt(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::Srt);
-        self
-    }
-
-    /// Use `WebVTT` subtitle format
-    #[must_use]
-    pub fn vtt(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::Vtt);
-        self
-    }
-
-    /// Set temperature
-    #[must_use]
-    pub fn temperature(mut self, temperature: f32) -> Self {
-        self.request.temperature = Some(temperature.clamp(0.0, 1.0));
-        self
-    }
-
     /// Enable word timestamps
     #[must_use]
     pub fn word_timestamps(mut self) -> Self {
         self.request.timestamp_granularities = Some(vec![super::types::TimestampGranularity::Word]);
         self
     }
-
-    /// Build the request
-    #[must_use]
-    pub fn build(self) -> AudioTranscriptionRequest {
-        self.request
-    }
 }
+
+// Apply common builder traits
+impl_builder!(TranscriptionBuilder, AudioTranscriptionRequest, request);
+impl_with_format!(TranscriptionBuilder, AudioTranscriptionRequest, request, TranscriptionFormat);
+impl_with_temperature!(TranscriptionBuilder, AudioTranscriptionRequest, request);
+
+// Generate transcription format convenience methods
+impl_transcription_format_methods!(TranscriptionBuilder, request);
 
 /// Builder for creating translation requests
 pub struct TranslationBuilder {
@@ -190,38 +112,12 @@ impl TranslationBuilder {
         self.request.prompt = Some(prompt.into());
         self
     }
-
-    /// Use JSON format
-    #[must_use]
-    pub fn json(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::Json);
-        self
-    }
-
-    /// Use verbose JSON format
-    #[must_use]
-    pub fn verbose_json(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::VerboseJson);
-        self
-    }
-
-    /// Use plain text format
-    #[must_use]
-    pub fn text(mut self) -> Self {
-        self.request.response_format = Some(TranscriptionFormat::Text);
-        self
-    }
-
-    /// Set temperature
-    #[must_use]
-    pub fn temperature(mut self, temperature: f32) -> Self {
-        self.request.temperature = Some(temperature.clamp(0.0, 1.0));
-        self
-    }
-
-    /// Build the request
-    #[must_use]
-    pub fn build(self) -> AudioTranslationRequest {
-        self.request
-    }
 }
+
+// Apply common builder traits
+impl_builder!(TranslationBuilder, AudioTranslationRequest, request);
+impl_with_format!(TranslationBuilder, AudioTranslationRequest, request, TranscriptionFormat);
+impl_with_temperature!(TranslationBuilder, AudioTranslationRequest, request);
+
+// Generate transcription format convenience methods (works for translation too)
+impl_transcription_format_methods!(TranslationBuilder, request);

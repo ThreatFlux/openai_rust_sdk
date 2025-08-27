@@ -22,59 +22,32 @@ pub fn clamp_image_count(n: u32) -> u32 {
     n.clamp(1, 10)
 }
 
-impl ImageRequestCommon for ImageGenerationRequest {
-    fn set_n(&mut self, n: u32) {
-        self.n = Some(clamp_image_count(n));
-    }
+/// Macro to implement the ImageRequestCommon trait for any request type
+macro_rules! impl_image_request_common {
+    ($request_type:ty) => {
+        impl ImageRequestCommon for $request_type {
+            fn set_n(&mut self, n: u32) {
+                self.n = Some(clamp_image_count(n));
+            }
 
-    fn set_response_format(&mut self, format: ImageResponseFormat) {
-        self.response_format = Some(format);
-    }
+            fn set_response_format(&mut self, format: ImageResponseFormat) {
+                self.response_format = Some(format);
+            }
 
-    fn set_size(&mut self, size: ImageSize) {
-        self.size = Some(size);
-    }
+            fn set_size(&mut self, size: ImageSize) {
+                self.size = Some(size);
+            }
 
-    fn set_user(&mut self, user: String) {
-        self.user = Some(user);
-    }
+            fn set_user(&mut self, user: String) {
+                self.user = Some(user);
+            }
+        }
+    };
 }
 
-impl ImageRequestCommon for ImageEditRequest {
-    fn set_n(&mut self, n: u32) {
-        self.n = Some(clamp_image_count(n));
-    }
-
-    fn set_response_format(&mut self, format: ImageResponseFormat) {
-        self.response_format = Some(format);
-    }
-
-    fn set_size(&mut self, size: ImageSize) {
-        self.size = Some(size);
-    }
-
-    fn set_user(&mut self, user: String) {
-        self.user = Some(user);
-    }
-}
-
-impl ImageRequestCommon for ImageVariationRequest {
-    fn set_n(&mut self, n: u32) {
-        self.n = Some(clamp_image_count(n));
-    }
-
-    fn set_response_format(&mut self, format: ImageResponseFormat) {
-        self.response_format = Some(format);
-    }
-
-    fn set_size(&mut self, size: ImageSize) {
-        self.size = Some(size);
-    }
-
-    fn set_user(&mut self, user: String) {
-        self.user = Some(user);
-    }
-}
+impl_image_request_common!(ImageGenerationRequest);
+impl_image_request_common!(ImageEditRequest);
+impl_image_request_common!(ImageVariationRequest);
 
 #[cfg(test)]
 mod tests {

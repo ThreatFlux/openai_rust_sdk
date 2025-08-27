@@ -6,6 +6,8 @@
 use super::common::ImageRequestCommon;
 use super::requests::{ImageEditRequest, ImageGenerationRequest, ImageVariationRequest};
 use super::types::{ImageModels, ImageQuality, ImageResponseFormat, ImageSize, ImageStyle};
+use crate::models::common_builder::{Builder, WithFormat, WithN, WithSize, WithUser, WithQuality};
+use crate::{impl_builder, impl_with_n, impl_with_format, impl_with_size, impl_with_user, impl_with_quality, impl_format_methods, impl_image_size_methods};
 
 /// Builder for creating image generation requests
 pub struct ImageGenerationBuilder {
@@ -31,13 +33,6 @@ impl ImageGenerationBuilder {
         Self::new(ImageModels::DALL_E_2, prompt)
     }
 
-    /// Set number of images (1-10 for DALL-E 2, only 1 for DALL-E 3)
-    #[must_use]
-    pub fn n(mut self, n: u32) -> Self {
-        self.request.set_n(n);
-        self
-    }
-
     /// Set quality to standard
     #[must_use]
     pub fn standard_quality(mut self) -> Self {
@@ -49,56 +44,6 @@ impl ImageGenerationBuilder {
     #[must_use]
     pub fn hd_quality(mut self) -> Self {
         self.request.quality = Some(ImageQuality::Hd);
-        self
-    }
-
-    /// Return URLs
-    #[must_use]
-    pub fn url_format(mut self) -> Self {
-        self.request.set_response_format(ImageResponseFormat::Url);
-        self
-    }
-
-    /// Return base64 JSON
-    #[must_use]
-    pub fn b64_json_format(mut self) -> Self {
-        self.request
-            .set_response_format(ImageResponseFormat::B64Json);
-        self
-    }
-
-    /// Set size to 256x256
-    #[must_use]
-    pub fn size_256x256(mut self) -> Self {
-        self.request.set_size(ImageSize::Size256x256);
-        self
-    }
-
-    /// Set size to 512x512
-    #[must_use]
-    pub fn size_512x512(mut self) -> Self {
-        self.request.set_size(ImageSize::Size512x512);
-        self
-    }
-
-    /// Set size to 1024x1024
-    #[must_use]
-    pub fn size_1024x1024(mut self) -> Self {
-        self.request.set_size(ImageSize::Size1024x1024);
-        self
-    }
-
-    /// Set size to 1792x1024 (landscape)
-    #[must_use]
-    pub fn size_1792x1024(mut self) -> Self {
-        self.request.set_size(ImageSize::Size1792x1024);
-        self
-    }
-
-    /// Set size to 1024x1792 (portrait)
-    #[must_use]
-    pub fn size_1024x1792(mut self) -> Self {
-        self.request.set_size(ImageSize::Size1024x1792);
         self
     }
 
@@ -115,19 +60,19 @@ impl ImageGenerationBuilder {
         self.request.style = Some(ImageStyle::Natural);
         self
     }
-
-    /// Set user identifier
-    pub fn user(mut self, user: impl Into<String>) -> Self {
-        self.request.set_user(user.into());
-        self
-    }
-
-    /// Build the request
-    #[must_use]
-    pub fn build(self) -> ImageGenerationRequest {
-        self.request
-    }
 }
+
+// Apply common builder traits
+impl_builder!(ImageGenerationBuilder, ImageGenerationRequest, request);
+impl_with_n!(ImageGenerationBuilder, ImageGenerationRequest, request, |n: u32| n.clamp(1, 10));
+impl_with_format!(ImageGenerationBuilder, ImageGenerationRequest, request, ImageResponseFormat);
+impl_with_size!(ImageGenerationBuilder, ImageGenerationRequest, request, ImageSize);
+impl_with_user!(ImageGenerationBuilder, ImageGenerationRequest, request);
+impl_with_quality!(ImageGenerationBuilder, ImageGenerationRequest, request, ImageQuality);
+
+// Generate format and size convenience methods
+impl_format_methods!(ImageGenerationBuilder, ImageResponseFormat, request);
+impl_image_size_methods!(ImageGenerationBuilder, request);
 
 /// Builder for creating image edit requests
 pub struct ImageEditBuilder {
@@ -157,48 +102,17 @@ impl ImageEditBuilder {
         self.request.mask = Some(mask.into());
         self
     }
-
-    /// Set number of images
-    #[must_use]
-    pub fn n(mut self, n: u32) -> Self {
-        self.request.set_n(n);
-        self
-    }
-
-    /// Return URLs
-    #[must_use]
-    pub fn url_format(mut self) -> Self {
-        self.request.set_response_format(ImageResponseFormat::Url);
-        self
-    }
-
-    /// Return base64 JSON
-    #[must_use]
-    pub fn b64_json_format(mut self) -> Self {
-        self.request
-            .set_response_format(ImageResponseFormat::B64Json);
-        self
-    }
-
-    /// Set size
-    #[must_use]
-    pub fn size(mut self, size: ImageSize) -> Self {
-        self.request.set_size(size);
-        self
-    }
-
-    /// Set user identifier
-    pub fn user(mut self, user: impl Into<String>) -> Self {
-        self.request.set_user(user.into());
-        self
-    }
-
-    /// Build the request
-    #[must_use]
-    pub fn build(self) -> ImageEditRequest {
-        self.request
-    }
 }
+
+// Apply common builder traits
+impl_builder!(ImageEditBuilder, ImageEditRequest, request);
+impl_with_n!(ImageEditBuilder, ImageEditRequest, request, |n: u32| n.clamp(1, 10));
+impl_with_format!(ImageEditBuilder, ImageEditRequest, request, ImageResponseFormat);
+impl_with_size!(ImageEditBuilder, ImageEditRequest, request, ImageSize);
+impl_with_user!(ImageEditBuilder, ImageEditRequest, request);
+
+// Generate format convenience methods
+impl_format_methods!(ImageEditBuilder, ImageResponseFormat, request);
 
 /// Builder for creating image variation requests
 pub struct ImageVariationBuilder {
@@ -218,48 +132,17 @@ impl ImageVariationBuilder {
     pub fn dall_e_2(image: impl Into<String>) -> Self {
         Self::new(ImageModels::DALL_E_2, image)
     }
-
-    /// Set number of images
-    #[must_use]
-    pub fn n(mut self, n: u32) -> Self {
-        self.request.set_n(n);
-        self
-    }
-
-    /// Return URLs
-    #[must_use]
-    pub fn url_format(mut self) -> Self {
-        self.request.set_response_format(ImageResponseFormat::Url);
-        self
-    }
-
-    /// Return base64 JSON
-    #[must_use]
-    pub fn b64_json_format(mut self) -> Self {
-        self.request
-            .set_response_format(ImageResponseFormat::B64Json);
-        self
-    }
-
-    /// Set size
-    #[must_use]
-    pub fn size(mut self, size: ImageSize) -> Self {
-        self.request.set_size(size);
-        self
-    }
-
-    /// Set user identifier
-    pub fn user(mut self, user: impl Into<String>) -> Self {
-        self.request.set_user(user.into());
-        self
-    }
-
-    /// Build the request
-    #[must_use]
-    pub fn build(self) -> ImageVariationRequest {
-        self.request
-    }
 }
+
+// Apply common builder traits
+impl_builder!(ImageVariationBuilder, ImageVariationRequest, request);
+impl_with_n!(ImageVariationBuilder, ImageVariationRequest, request, |n: u32| n.clamp(1, 10));
+impl_with_format!(ImageVariationBuilder, ImageVariationRequest, request, ImageResponseFormat);
+impl_with_size!(ImageVariationBuilder, ImageVariationRequest, request, ImageSize);
+impl_with_user!(ImageVariationBuilder, ImageVariationRequest, request);
+
+// Generate format convenience methods
+impl_format_methods!(ImageVariationBuilder, ImageResponseFormat, request);
 
 #[cfg(test)]
 mod tests {

@@ -121,217 +121,53 @@ mod tests {
     use std::io::{Error, ErrorKind};
     use tempfile::NamedTempFile;
 
-    #[tokio::test]
-    async fn test_read_bytes_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_data = b"Hello, world!";
-        std::fs::write(&temp_file, test_data).unwrap();
-
-        let result = read_bytes(&temp_file).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), test_data);
+    macro_rules! test_file_op {
+        (read: $s:ident $t:ident, $f:ident, $d:expr, $e:expr) => { test_file_op!(@r: $s $t, $f, $d, $e); };
+        (write: $s:ident $t:ident, $f:ident, $d:expr, $v:ident) => { test_file_op!(@w: $s $t, $f, $d, $v); };
+        (not_found: $s:ident $t:ident, $f:ident, $o:literal) => { test_file_op!(@e: $s $t, $f, "/nonexistent/file.txt", $o); };
+        (perm_denied: $s:ident $t:ident, $f:ident, $d:expr, $o:literal) => { test_file_op!(@p: $s $t, $f, $d, $o); };
+        (@r: async $t:ident, $f:ident, $d:expr, $e:expr) => {
+            #[tokio::test] async fn $t() { let tmp = NamedTempFile::new().unwrap(); std::fs::write(&tmp, $d).unwrap(); assert_eq!($f(&tmp).await.unwrap(), $e); }
+        };
+        (@r: sync $t:ident, $f:ident, $d:expr, $e:expr) => {
+            #[test] fn $t() { let tmp = NamedTempFile::new().unwrap(); std::fs::write(&tmp, $d).unwrap(); assert_eq!($f(&tmp).unwrap(), $e); }
+        };
+        (@w: async $t:ident, $f:ident, $d:expr, $v:ident) => {
+            #[tokio::test] async fn $t() { let tmp = NamedTempFile::new().unwrap(); $f(&tmp, $d).await.unwrap(); assert_eq!(std::fs::$v(&tmp).unwrap(), $d); }
+        };
+        (@w: sync $t:ident, $f:ident, $d:expr, $v:ident) => {
+            #[test] fn $t() { let tmp = NamedTempFile::new().unwrap(); $f(&tmp, $d).unwrap(); assert_eq!(std::fs::$v(&tmp).unwrap(), $d); }
+        };
+        (@e: async $t:ident, $f:ident, $p:literal, $o:literal) => {
+            #[tokio::test] async fn $t() { match $f($p).await.unwrap_err() { OpenAIError::FileError(msg) => { assert!(msg.contains(concat!("Failed to ", $o, " file"))); assert!(msg.contains($p)); } _ => panic!("Expected FileError"), } }
+        };
+        (@e: sync $t:ident, $f:ident, $p:literal, $o:literal) => {
+            #[test] fn $t() { match $f($p).unwrap_err() { OpenAIError::FileError(msg) => { assert!(msg.contains(concat!("Failed to ", $o, " file"))); assert!(msg.contains($p)); } _ => panic!("Expected FileError"), } }
+        };
+        (@p: async $t:ident, $f:ident, $d:expr, $o:literal) => {
+            #[tokio::test] async fn $t() { match $f("/root/nonexistent_dir/file.txt", $d).await.unwrap_err() { OpenAIError::FileError(msg) => { assert!(msg.contains(concat!("Failed to ", $o, " file"))); assert!(msg.contains("/root/nonexistent_dir/file.txt")); } _ => panic!("Expected FileError"), } }
+        };
+        (@p: sync $t:ident, $f:ident, $d:expr, $o:literal) => {
+            #[test] fn $t() { match $f("/root/nonexistent_dir/file.txt", $d).unwrap_err() { OpenAIError::FileError(msg) => { assert!(msg.contains(concat!("Failed to ", $o, " file"))); assert!(msg.contains("/root/nonexistent_dir/file.txt")); } _ => panic!("Expected FileError"), } }
+        };
     }
 
-    #[tokio::test]
-    async fn test_read_bytes_not_found() {
-        let result = read_bytes("/nonexistent/file.txt").await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to read file"));
-                assert!(msg.contains("/nonexistent/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_read_string_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_content = "Hello, world!";
-        std::fs::write(&temp_file, test_content).unwrap();
-
-        let result = read_string(&temp_file).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), test_content);
-    }
-
-    #[tokio::test]
-    async fn test_read_string_not_found() {
-        let result = read_string("/nonexistent/file.txt").await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to read file"));
-                assert!(msg.contains("/nonexistent/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_write_bytes_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_data = b"Hello, world!";
-
-        let result = write_bytes(&temp_file, test_data).await;
-        assert!(result.is_ok());
-
-        // Verify the content was written correctly
-        let written_content = std::fs::read(&temp_file).unwrap();
-        assert_eq!(written_content, test_data);
-    }
-
-    #[tokio::test]
-    async fn test_write_bytes_permission_denied() {
-        // Try to write to a directory that doesn't exist or has no permissions
-        let result = write_bytes("/root/nonexistent_dir/file.txt", b"test").await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to write file"));
-                assert!(msg.contains("/root/nonexistent_dir/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_write_string_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_content = "Hello, world!";
-
-        let result = write_string(&temp_file, test_content).await;
-        assert!(result.is_ok());
-
-        // Verify the content was written correctly
-        let written_content = std::fs::read_to_string(&temp_file).unwrap();
-        assert_eq!(written_content, test_content);
-    }
-
-    #[tokio::test]
-    async fn test_write_string_permission_denied() {
-        // Try to write to a directory that doesn't exist or has no permissions
-        let result = write_string("/root/nonexistent_dir/file.txt", "test").await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to write file"));
-                assert!(msg.contains("/root/nonexistent_dir/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[test]
-    fn test_read_bytes_sync_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_data = b"Hello, world!";
-        std::fs::write(&temp_file, test_data).unwrap();
-
-        let result = read_bytes_sync(&temp_file);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), test_data);
-    }
-
-    #[test]
-    fn test_read_bytes_sync_not_found() {
-        let result = read_bytes_sync("/nonexistent/file.txt");
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to read file"));
-                assert!(msg.contains("/nonexistent/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[test]
-    fn test_read_string_sync_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_content = "Hello, world!";
-        std::fs::write(&temp_file, test_content).unwrap();
-
-        let result = read_string_sync(&temp_file);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), test_content);
-    }
-
-    #[test]
-    fn test_read_string_sync_not_found() {
-        let result = read_string_sync("/nonexistent/file.txt");
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to read file"));
-                assert!(msg.contains("/nonexistent/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[test]
-    fn test_write_bytes_sync_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_data = b"Hello, world!";
-
-        let result = write_bytes_sync(&temp_file, test_data);
-        assert!(result.is_ok());
-
-        // Verify the content was written correctly
-        let written_content = std::fs::read(&temp_file).unwrap();
-        assert_eq!(written_content, test_data);
-    }
-
-    #[test]
-    fn test_write_bytes_sync_permission_denied() {
-        // Try to write to a directory that doesn't exist or has no permissions
-        let result = write_bytes_sync("/root/nonexistent_dir/file.txt", b"test");
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to write file"));
-                assert!(msg.contains("/root/nonexistent_dir/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
-
-    #[test]
-    fn test_write_string_sync_success() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let test_content = "Hello, world!";
-
-        let result = write_string_sync(&temp_file, test_content);
-        assert!(result.is_ok());
-
-        // Verify the content was written correctly
-        let written_content = std::fs::read_to_string(&temp_file).unwrap();
-        assert_eq!(written_content, test_content);
-    }
-
-    #[test]
-    fn test_write_string_sync_permission_denied() {
-        // Try to write to a directory that doesn't exist or has no permissions
-        let result = write_string_sync("/root/nonexistent_dir/file.txt", "test");
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            OpenAIError::FileError(msg) => {
-                assert!(msg.contains("Failed to write file"));
-                assert!(msg.contains("/root/nonexistent_dir/file.txt"));
-            }
-            _ => panic!("Expected FileError"),
-        }
-    }
+    test_file_op!(read: async test_read_bytes_success, read_bytes, b"Hello, world!", b"Hello, world!");
+    test_file_op!(read: async test_read_string_success, read_string, "Hello, world!", "Hello, world!");
+    test_file_op!(write: async test_write_bytes_success, write_bytes, b"Hello, world!", read);
+    test_file_op!(write: async test_write_string_success, write_string, "Hello, world!", read_to_string);
+    test_file_op!(read: sync test_read_bytes_sync_success, read_bytes_sync, b"Hello, world!", b"Hello, world!");
+    test_file_op!(read: sync test_read_string_sync_success, read_string_sync, "Hello, world!", "Hello, world!");
+    test_file_op!(write: sync test_write_bytes_sync_success, write_bytes_sync, b"Hello, world!", read);
+    test_file_op!(write: sync test_write_string_sync_success, write_string_sync, "Hello, world!", read_to_string);
+    test_file_op!(not_found: async test_read_bytes_not_found, read_bytes, "read");
+    test_file_op!(not_found: async test_read_string_not_found, read_string, "read");
+    test_file_op!(not_found: sync test_read_bytes_sync_not_found, read_bytes_sync, "read");
+    test_file_op!(not_found: sync test_read_string_sync_not_found, read_string_sync, "read");
+    test_file_op!(perm_denied: async test_write_bytes_permission_denied, write_bytes, b"test", "write");
+    test_file_op!(perm_denied: async test_write_string_permission_denied, write_string, "test", "write");
+    test_file_op!(perm_denied: sync test_write_bytes_sync_permission_denied, write_bytes_sync, b"test", "write");
+    test_file_op!(perm_denied: sync test_write_string_sync_permission_denied, write_string_sync, "test", "write");
 
     #[test]
     fn test_consistent_error_messages() {
