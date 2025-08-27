@@ -107,60 +107,46 @@ fn test_file_status_display() {
 
 #[test]
 fn test_file_upload_request_validation_valid() {
-    let valid_requests = vec![
-        FileUploadRequest::new(
-            b"test content".to_vec(),
-            "test.jsonl".to_string(),
-            FilePurpose::FineTune,
-        ),
-        FileUploadRequest::new(
-            b"test content".to_vec(),
-            "batch.jsonl".to_string(),
-            FilePurpose::Batch,
-        ),
-        FileUploadRequest::new(
-            b"test content".to_vec(),
-            "doc.txt".to_string(),
-            FilePurpose::Assistants,
-        ),
-        FileUploadRequest::new(
-            b"test content".to_vec(),
-            "data.txt".to_string(),
-            FilePurpose::UserData,
-        ),
-        FileUploadRequest::new(
-            b"image data".to_vec(),
-            "image.png".to_string(),
-            FilePurpose::Vision,
-        ),
-        FileUploadRequest::new(
-            b"image data".to_vec(),
-            "image.jpg".to_string(),
-            FilePurpose::Vision,
-        ),
-        FileUploadRequest::new(
-            b"image data".to_vec(),
-            "image.jpeg".to_string(),
-            FilePurpose::Vision,
-        ),
-        FileUploadRequest::new(
-            b"image data".to_vec(),
-            "image.gif".to_string(),
-            FilePurpose::Vision,
-        ),
-        FileUploadRequest::new(
-            b"image data".to_vec(),
-            "image.webp".to_string(),
-            FilePurpose::Vision,
-        ),
+    let text_content = b"test content".to_vec();
+    let image_content = b"image data".to_vec();
+
+    // Text-based files
+    let text_cases = [
+        ("test.jsonl", FilePurpose::FineTune),
+        ("batch.jsonl", FilePurpose::Batch),
+        ("doc.txt", FilePurpose::Assistants),
+        ("data.txt", FilePurpose::UserData),
     ];
 
-    for request in valid_requests {
+    // Image files for vision
+    let vision_cases = [
+        "image.png",
+        "image.jpg",
+        "image.jpeg",
+        "image.gif",
+        "image.webp",
+    ];
+
+    // Test text files
+    for (filename, purpose) in text_cases {
+        let request =
+            FileUploadRequest::new(text_content.clone(), filename.to_string(), purpose.clone());
         assert!(
             request.validate().is_ok(),
-            "Failed validation for: {} with purpose {}",
-            request.filename,
-            request.purpose
+            "Failed validation for: {filename} with purpose {purpose}"
+        );
+    }
+
+    // Test vision files
+    for filename in vision_cases {
+        let request = FileUploadRequest::new(
+            image_content.clone(),
+            filename.to_string(),
+            FilePurpose::Vision,
+        );
+        assert!(
+            request.validate().is_ok(),
+            "Failed validation for: {filename} with purpose Vision"
         );
     }
 }
@@ -351,9 +337,9 @@ fn test_file_size_human_readable() {
     }
 }
 
-#[test]
-fn test_list_files_response_methods() {
-    let files = vec![
+/// Helper function to create test files for ListFilesResponse tests
+fn create_test_files() -> Vec<File> {
+    vec![
         File {
             id: "file-1".to_string(),
             object: "file".to_string(),
@@ -394,17 +380,22 @@ fn test_list_files_response_methods() {
             status: "processed".to_string(),
             status_details: None,
         },
-    ];
+    ]
+}
 
-    let response = ListFilesResponse {
+/// Helper function to create test ListFilesResponse
+fn create_test_list_files_response() -> ListFilesResponse {
+    ListFilesResponse {
         object: "list".to_string(),
-        data: files,
+        data: create_test_files(),
         has_more: false,
         first_id: Some("file-1".to_string()),
         last_id: Some("file-4".to_string()),
-    };
+    }
+}
 
-    // Test filtering by purpose
+/// Helper function to test filtering by purpose
+fn test_files_by_purpose_filtering(response: &ListFilesResponse) {
     let fine_tune_files = response.files_by_purpose(&FilePurpose::FineTune);
     assert_eq!(fine_tune_files.len(), 2);
     assert_eq!(fine_tune_files[0].id, "file-1");
@@ -420,18 +411,31 @@ fn test_list_files_response_methods() {
 
     let vision_files = response.files_by_purpose(&FilePurpose::Vision);
     assert_eq!(vision_files.len(), 0);
+}
 
-    // Test total size calculation
+/// Helper function to test total size calculations
+fn test_total_size_calculations(response: &ListFilesResponse) {
     assert_eq!(response.total_size(), 1024 + 2048 + 4096 + 8192);
     assert_eq!(response.total_size(), 15360);
     assert_eq!(response.total_size_human_readable(), "15.0 KB");
+}
 
-    // Test empty response
+/// Helper function to test empty response behavior
+fn test_empty_response_behavior() {
     let empty_response = ListFilesResponse::empty();
     assert_eq!(empty_response.data.len(), 0);
     assert!(!empty_response.has_more);
     assert_eq!(empty_response.total_size(), 0);
     assert_eq!(empty_response.total_size_human_readable(), "0 B");
+}
+
+#[test]
+fn test_list_files_response_methods() {
+    let response = create_test_list_files_response();
+
+    test_files_by_purpose_filtering(&response);
+    test_total_size_calculations(&response);
+    test_empty_response_behavior();
 }
 
 #[test]

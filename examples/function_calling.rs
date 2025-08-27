@@ -8,8 +8,10 @@
 //! - Streaming function calls
 //! - Complete conversation flow with function results
 
+use futures::StreamExt;
 use openai_rust_sdk::{
     api::functions::FunctionConfig,
+    api::streaming::FunctionStreamEvent,
     builders::FunctionBuilder,
     models::functions::{CustomTool, FunctionCallOutput, Tool, ToolChoice},
     ChatBuilder, Message, OpenAIClient,
@@ -222,10 +224,9 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
     println!("4. Streaming Function Calls");
     println!("===========================");
 
-    let weather_function =
-        FunctionBuilder::weather_function("get_weather", "Get weather information").build()?;
-
-    let tools = vec![Tool::function(weather_function)];
+    let tools = vec![Tool::function(
+        FunctionBuilder::weather_function("get_weather", "Get weather information").build()?,
+    )];
 
     // Create a streaming function call
     let mut stream = client
@@ -239,15 +240,9 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
         .await?;
 
     println!("Streaming function calls...");
-
-    use futures::StreamExt;
-    use openai_rust_sdk::api::streaming::FunctionStreamEvent;
-
     while let Some(event_result) = stream.next().await {
         match event_result? {
-            FunctionStreamEvent::ContentDelta { content } => {
-                print!("{content}");
-            }
+            FunctionStreamEvent::ContentDelta { content } => print!("{content}"),
             FunctionStreamEvent::FunctionCallStarted {
                 call_id,
                 function_name,
@@ -263,7 +258,6 @@ async fn streaming_function_calls(client: &OpenAIClient) -> Result<(), Box<dyn s
             FunctionStreamEvent::FunctionCallCompleted { call } => {
                 println!("\n✅ Function call completed: {}", call.name);
                 println!("   Final arguments: {}", call.arguments);
-
                 // Execute the function
                 let result = client.execute_function_with_result(&call).await?;
                 println!("   Result: {}", result.output);

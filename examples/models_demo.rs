@@ -16,14 +16,74 @@
 //! ```
 
 use openai_rust_sdk::{
-    api::{
-        common::ApiClientConstructors,
-        models::{ModelUtils, ModelsApi},
-    },
+    api::models::{ModelUtils, ModelsApi},
     models::models::{CompletionType, Model, ModelFamily, ModelRequirements},
 };
 use std::collections::HashMap;
 use std::env;
+
+/// Demo configuration for each example
+struct DemoConfig {
+    title: &'static str,
+    description: &'static str,
+}
+
+/// Configuration for use case demonstrations
+struct UseCaseConfig {
+    name: &'static str,
+    requirements: ModelRequirements,
+}
+
+/// Configuration for model cost comparisons
+struct CostConfig {
+    models: Vec<&'static str>,
+    monthly_input: u64,
+    monthly_output: u64,
+}
+
+/// Helper function to format model creation date
+fn format_creation_date(timestamp: u64) -> String {
+    chrono::DateTime::from_timestamp(timestamp as i64, 0)
+        .map(|dt| dt.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| timestamp.to_string())
+}
+
+/// Helper function to format deprecation status
+fn deprecation_status(model: &Model) -> &'static str {
+    if model.is_deprecated() {
+        " (DEPRECATED)"
+    } else {
+        ""
+    }
+}
+
+/// Helper function to print model summary
+fn print_model_summary(model: &Model, index: usize) {
+    let family = model.family();
+    let deprecated = deprecation_status(model);
+    println!("  {}. {} - {:?}{}", index + 1, model.id, family, deprecated);
+    println!(
+        "     Created: {}, Owner: {}",
+        format_creation_date(model.created),
+        model.owned_by
+    );
+}
+
+/// Helper function to print limited model list with optional count
+fn print_limited_models<'a>(
+    models: impl Iterator<Item = &'a Model>,
+    limit: usize,
+    total_count: usize,
+) {
+    for (_i, model) in models.take(limit).enumerate() {
+        let deprecated = deprecation_status(model);
+        println!("  • {}{}", model.id, deprecated);
+    }
+
+    if total_count > limit {
+        println!("  ... and {} more", total_count - limit);
+    }
+}
 
 async fn demo_list_all_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📋 Example 1: List All Available Models");
@@ -34,20 +94,7 @@ async fn demo_list_all_models(api: &ModelsApi) -> Result<(), Box<dyn std::error:
 
     println!("\nFirst 5 models:");
     for (i, model) in models_response.data.iter().take(5).enumerate() {
-        let family = model.family();
-        let deprecated = if model.is_deprecated() {
-            " (DEPRECATED)"
-        } else {
-            ""
-        };
-        println!("  {}. {} - {:?}{}", i + 1, model.id, family, deprecated);
-        println!(
-            "     Created: {}, Owner: {}",
-            chrono::DateTime::from_timestamp(model.created as i64, 0)
-                .map(|dt| dt.format("%Y-%m-%d").to_string())
-                .unwrap_or_else(|| model.created.to_string()),
-            model.owned_by
-        );
+        print_model_summary(model, i);
     }
 
     Ok(())
@@ -68,26 +115,34 @@ async fn demo_retrieve_specific_model(api: &ModelsApi) -> Result<(), Box<dyn std
     Ok(())
 }
 
-fn print_model_details(model: &Model) {
+/// Helper function to format detailed timestamp
+fn format_detailed_timestamp(timestamp: u64) -> String {
+    chrono::DateTime::from_timestamp(timestamp as i64, 0)
+        .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+        .unwrap_or_else(|| timestamp.to_string())
+}
+
+/// Helper function to print basic model info
+fn print_basic_model_info(model: &Model) {
     println!("Model: {}", model.id);
     println!("Owner: {}", model.owned_by);
-    println!(
-        "Created: {}",
-        chrono::DateTime::from_timestamp(model.created as i64, 0)
-            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-            .unwrap_or_else(|| model.created.to_string())
-    );
+    println!("Created: {}", format_detailed_timestamp(model.created));
+}
 
-    let capabilities = model.capabilities();
+/// Helper function to print capabilities info
+fn print_capabilities_info(capabilities: &openai_rust_sdk::models::models::ModelCapabilities) {
     println!("\nCapabilities:");
     println!("  Family: {:?}", capabilities.family);
     println!("  Tier: {:?}", capabilities.tier);
+
     if let Some(max_tokens) = capabilities.max_tokens {
         println!("  Max Tokens: {max_tokens}");
     }
+
     if let Some(cutoff) = &capabilities.training_cutoff {
         println!("  Training Cutoff: {cutoff}");
     }
+
     println!("  Completion Types: {:?}", capabilities.completion_types);
     println!(
         "  Function Calling: {}",
@@ -98,7 +153,10 @@ fn print_model_details(model: &Model) {
         "  Code Interpreter: {}",
         capabilities.supports_code_interpreter
     );
+}
 
+/// Helper function to print cost info
+fn print_cost_info(capabilities: &openai_rust_sdk::models::models::ModelCapabilities) {
     if let (Some(input_cost), Some(output_cost)) = (
         capabilities.input_cost_per_1m_tokens,
         capabilities.output_cost_per_1m_tokens,
@@ -108,27 +166,74 @@ fn print_model_details(model: &Model) {
     }
 }
 
+fn print_model_details(model: &Model) {
+    print_basic_model_info(model);
+    let capabilities = model.capabilities();
+    print_capabilities_info(&capabilities);
+    print_cost_info(&capabilities);
+}
+
+/// Helper function to print model families with limited output
+fn print_model_families(grouped_models: &HashMap<ModelFamily, Vec<Model>>, limit: usize) {
+    for (family, models) in grouped_models {
+        if !models.is_empty() {
+            println!("\n{:?} Family ({} models):", family, models.len());
+
+            for model in models.iter().take(limit) {
+                let deprecated = deprecation_status(model);
+                println!("  • {}{}", model.id, deprecated);
+            }
+
+            if models.len() > limit {
+                println!("  ... and {} more", models.len() - limit);
+            }
+        }
+    }
+}
+
 async fn demo_group_models_by_family(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n👨‍👩‍👧‍👦 Example 3: Group Models by Family");
     println!("──────────────────────────────────────");
 
     let grouped_models = api.group_models_by_family().await?;
+    print_model_families(&grouped_models, 3);
 
-    for (family, models) in &grouped_models {
-        if !models.is_empty() {
-            println!("\n{:?} Family ({} models):", family, models.len());
-            for model in models.iter().take(3) {
-                let deprecated = if model.is_deprecated() {
-                    " (DEPRECATED)"
-                } else {
-                    ""
-                };
-                println!("  • {}{}", model.id, deprecated);
-            }
-            if models.len() > 3 {
-                println!("  ... and {} more", models.len() - 3);
-            }
-        }
+    Ok(())
+}
+
+/// Helper function to get completion types to demo
+fn get_completion_types_config() -> Vec<CompletionType> {
+    vec![
+        CompletionType::Chat,
+        CompletionType::Image,
+        CompletionType::Audio,
+        CompletionType::Embeddings,
+    ]
+}
+
+/// Helper function to print models by completion type
+async fn print_models_by_completion_type(
+    api: &ModelsApi,
+    completion_type: &CompletionType,
+    limit: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let models = api
+        .list_models_by_completion_type(completion_type.clone())
+        .await?;
+
+    println!(
+        "\n{:?} Models ({} available):",
+        completion_type,
+        models.len()
+    );
+
+    for model in models.iter().take(limit) {
+        let deprecated = deprecation_status(model);
+        println!("  • {}{}", model.id, deprecated);
+    }
+
+    if models.len() > limit {
+        println!("  ... and {} more", models.len() - limit);
     }
 
     Ok(())
@@ -138,34 +243,10 @@ async fn demo_filter_by_completion_type(api: &ModelsApi) -> Result<(), Box<dyn s
     println!("\n🎯 Example 4: Filter Models by Completion Type");
     println!("──────────────────────────────────────────────");
 
-    let completion_types = [
-        CompletionType::Chat,
-        CompletionType::Image,
-        CompletionType::Audio,
-        CompletionType::Embeddings,
-    ];
+    let completion_types = get_completion_types_config();
 
     for completion_type in &completion_types {
-        let models = api
-            .list_models_by_completion_type(completion_type.clone())
-            .await?;
-        println!(
-            "\n{:?} Models ({} available):",
-            completion_type,
-            models.len()
-        );
-
-        for model in models.iter().take(3) {
-            let deprecated = if model.is_deprecated() {
-                " (DEPRECATED)"
-            } else {
-                ""
-            };
-            println!("  • {}{}", model.id, deprecated);
-        }
-        if models.len() > 3 {
-            println!("  ... and {} more", models.len() - 3);
-        }
+        print_models_by_completion_type(api, completion_type, 3).await?;
     }
 
     Ok(())
@@ -210,62 +291,123 @@ async fn demo_latest_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
+/// Helper function to get use case configurations
+fn get_use_case_configs() -> Vec<UseCaseConfig> {
+    vec![
+        UseCaseConfig {
+            name: "Basic Chat",
+            requirements: ModelRequirements::chat(),
+        },
+        UseCaseConfig {
+            name: "Function Calling",
+            requirements: ModelRequirements::function_calling(),
+        },
+        UseCaseConfig {
+            name: "Vision Tasks",
+            requirements: ModelRequirements::vision(),
+        },
+        UseCaseConfig {
+            name: "Code Tasks",
+            requirements: ModelRequirements::code_interpreter(),
+        },
+        UseCaseConfig {
+            name: "High Context (100k+ tokens)",
+            requirements: ModelRequirements::high_context(100_000),
+        },
+    ]
+}
+
+/// Helper function to format context tokens
+fn format_context_tokens(max_tokens: Option<u32>) -> String {
+    max_tokens
+        .map(|t| format!("{}k", t / 1000))
+        .unwrap_or_else(|| "N/A".to_string())
+}
+
+/// Helper function to print use case results
+async fn print_use_case_results(
+    api: &ModelsApi,
+    use_case: &UseCaseConfig,
+    limit: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let suitable_models = api.find_suitable_models(&use_case.requirements).await?;
+    println!(
+        "\n{} ({} models found):",
+        use_case.name,
+        suitable_models.len()
+    );
+
+    for model in suitable_models.iter().take(limit) {
+        let caps = model.capabilities();
+        let context = format_context_tokens(caps.max_tokens);
+        println!("  • {} (context: {})", model.id, context);
+    }
+
+    if suitable_models.len() > limit {
+        println!("  ... and {} more", suitable_models.len() - limit);
+    }
+
+    Ok(())
+}
+
 async fn demo_find_models_for_use_cases(
     api: &ModelsApi,
-) -> Result<Vec<(&'static str, ModelRequirements)>, Box<dyn std::error::Error>> {
+) -> Result<Vec<UseCaseConfig>, Box<dyn std::error::Error>> {
     println!("\n🔎 Example 7: Find Models for Specific Use Cases");
     println!("────────────────────────────────────────────");
 
-    let use_cases = [
-        ("Basic Chat", ModelRequirements::chat()),
-        ("Function Calling", ModelRequirements::function_calling()),
-        ("Vision Tasks", ModelRequirements::vision()),
-        ("Code Tasks", ModelRequirements::code()),
-        (
-            "High Context (100k+ tokens)",
-            ModelRequirements::high_context(100_000),
-        ),
-    ];
+    let use_cases = get_use_case_configs();
 
-    for (use_case, requirements) in &use_cases {
-        let suitable_models = api.find_suitable_models(requirements).await?;
-        println!("\n{} ({} models found):", use_case, suitable_models.len());
-
-        for model in suitable_models.iter().take(3) {
-            let caps = model.capabilities();
-            let context = caps
-                .max_tokens
-                .map(|t| format!("{}k", t / 1000))
-                .unwrap_or_else(|| "N/A".to_string());
-            println!("  • {} (context: {})", model.id, context);
-        }
-        if suitable_models.len() > 3 {
-            println!("  ... and {} more", suitable_models.len() - 3);
-        }
+    for use_case in &use_cases {
+        print_use_case_results(api, use_case, 3).await?;
     }
 
-    Ok(use_cases.to_vec())
+    Ok(use_cases)
 }
 
 async fn demo_remaining_examples(
     api: &ModelsApi,
-    use_cases: &[(&str, ModelRequirements)],
+    use_cases: &[UseCaseConfig],
+) -> Result<(), Box<dyn std::error::Error>> {
+    demo_recommended_models(api, use_cases).await?;
+    run_cost_and_analytics_demos(api).await?;
+    Ok(())
+}
+
+async fn run_cost_and_analytics_demos(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
+    const MONTHLY_INPUT_TOKENS: u64 = 1_000_000;
+    const MONTHLY_OUTPUT_TOKENS: u64 = 500_000;
+
+    demo_additional_features(api, MONTHLY_INPUT_TOKENS, MONTHLY_OUTPUT_TOKENS).await
+}
+
+async fn demo_recommended_models(
+    api: &ModelsApi,
+    use_cases: &[UseCaseConfig],
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n⭐ Example 8: Get Recommended Models for Use Cases");
     println!("─────────────────────────────────────────────");
 
-    for (use_case, requirements) in use_cases {
-        if let Some(recommended) = api.get_recommended_model(requirements).await? {
+    for use_case in use_cases {
+        if let Some(recommended) = api.get_recommended_model(&use_case.requirements).await? {
             let caps = recommended.capabilities();
-            println!("{}: {} ({:?} tier)", use_case, recommended.id, caps.tier);
+            println!(
+                "{}: {} ({:?} tier)",
+                use_case.name, recommended.id, caps.tier
+            );
         } else {
-            println!("{use_case}: No suitable model found");
+            println!("{}: No suitable model found", use_case.name);
         }
     }
 
-    let monthly_input_tokens = 1_000_000u64;
-    let monthly_output_tokens = 500_000u64;
+    Ok(())
+}
 
+async fn demo_additional_features(
+    api: &ModelsApi,
+    monthly_input_tokens: u64,
+    monthly_output_tokens: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
     demo_cost_comparison(api, monthly_input_tokens, monthly_output_tokens).await?;
     demo_models_sorted_by_cost(api, monthly_input_tokens, monthly_output_tokens).await?;
     demo_model_statistics(api).await?;
@@ -276,6 +418,23 @@ async fn demo_remaining_examples(
     Ok(())
 }
 
+/// Helper function to get chat models for cost comparison
+fn get_chat_models_for_comparison() -> Vec<&'static str> {
+    vec!["gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+}
+
+/// Helper function to print cost results
+fn print_cost_results(costs: &std::collections::HashMap<String, Option<f64>>, models: &[&str]) {
+    for model_id in models {
+        if let Some(cost_option) = costs.get(*model_id) {
+            match cost_option {
+                Some(cost) => println!("  {model_id}: ${cost:.2}/month"),
+                None => println!("  {model_id}: Cost data not available"),
+            }
+        }
+    }
+}
+
 async fn demo_cost_comparison(
     api: &ModelsApi,
     monthly_input_tokens: u64,
@@ -284,7 +443,7 @@ async fn demo_cost_comparison(
     println!("\n💰 Example 9: Model Cost Comparison");
     println!("───────────────────────────────────");
 
-    let chat_models = ["gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"];
+    let chat_models = get_chat_models_for_comparison();
 
     println!(
         "Estimated monthly costs for {}M input + {}k output tokens:",
@@ -296,16 +455,20 @@ async fn demo_cost_comparison(
         .compare_model_costs(&chat_models, monthly_input_tokens, monthly_output_tokens)
         .await?;
 
-    for model_id in &chat_models {
-        if let Some(cost_option) = costs.get(*model_id) {
-            match cost_option {
-                Some(cost) => println!("  {model_id}: ${cost:.2}/month"),
-                None => println!("  {model_id}: Cost data not available"),
-            }
-        }
-    }
+    print_cost_results(&costs, &chat_models);
 
     Ok(())
+}
+
+/// Helper function to print sorted cost models
+fn print_sorted_cost_models(models_by_cost: &[(Model, Option<f64>)], limit: usize) {
+    println!("Chat models sorted by estimated monthly cost:");
+    for (i, (model, cost)) in models_by_cost.iter().take(limit).enumerate() {
+        match cost {
+            Some(cost) => println!("  {}. {}: ${:.2}/month", i + 1, model.id, cost),
+            None => println!("  {}. {}: Cost data not available", i + 1, model.id),
+        }
+    }
 }
 
 async fn demo_models_sorted_by_cost(
@@ -325,13 +488,7 @@ async fn demo_models_sorted_by_cost(
         )
         .await?;
 
-    println!("Chat models sorted by estimated monthly cost:");
-    for (i, (model, cost)) in models_by_cost.iter().take(5).enumerate() {
-        match cost {
-            Some(cost) => println!("  {}. {}: ${:.2}/month", i + 1, model.id, cost),
-            None => println!("  {}. {}: Cost data not available", i + 1, model.id),
-        }
-    }
+    print_sorted_cost_models(&models_by_cost, 5);
 
     Ok(())
 }
@@ -480,25 +637,42 @@ fn print_demo_summary() {
     println!("• Feature compatibility checking");
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn run_basic_demos(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_list_all_models(api).await?;
+    demo_retrieve_specific_model(api).await?;
+    demo_group_models_by_family(api).await?;
+    demo_filter_by_completion_type(api).await?;
+    Ok(())
+}
+
+async fn run_advanced_demos(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_available_models(api).await?;
+    demo_latest_models(api).await?;
+    let use_cases = demo_find_models_for_use_cases(api).await?;
+    demo_remaining_examples(api, &use_cases).await?;
+    Ok(())
+}
+
+async fn run_all_demos(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
+    run_basic_demos(api).await?;
+    run_advanced_demos(api).await?;
+    Ok(())
+}
+
+fn setup_api() -> Result<ModelsApi, Box<dyn std::error::Error>> {
     let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
         "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
     })?;
+    Ok(ModelsApi::new(api_key)?)
+}
 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🤖 OpenAI Models API Demo");
     println!("=========================");
 
-    let api = ModelsApi::new(api_key)?;
-
-    demo_list_all_models(&api).await?;
-    demo_retrieve_specific_model(&api).await?;
-    demo_group_models_by_family(&api).await?;
-    demo_filter_by_completion_type(&api).await?;
-    demo_available_models(&api).await?;
-    demo_latest_models(&api).await?;
-    let use_cases = demo_find_models_for_use_cases(&api).await?;
-    demo_remaining_examples(&api, &use_cases).await?;
+    let api = setup_api()?;
+    run_all_demos(&api).await?;
     print_demo_summary();
 
     Ok(())

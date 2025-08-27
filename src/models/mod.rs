@@ -24,6 +24,8 @@ pub mod images;
 pub mod models;
 /// Moderations models for content policy classification
 pub mod moderations;
+/// Modular moderations models for content policy classification
+pub mod moderations_modular;
 /// Real-time audio models for WebRTC streaming
 pub mod realtime_audio;
 /// Response models and data structures

@@ -42,15 +42,26 @@ fn print_demo_header() {
 }
 
 async fn run_all_demos(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
-    demo_message_roles(api).await?;
-    demo_prompt_templates(api).await?;
-    demo_structured_prompts(api).await?;
-    demo_few_shot_learning(api).await?;
-    demo_xml_structured_content(api).await?;
-    demo_prompt_patterns(api).await?;
-    demo_context_window_management(api).await?;
-    demo_code_generation(api).await?;
-    demo_complex_multi_section_prompt(api).await?;
+    // Use macro to reduce cyclomatic complexity by eliminating branching
+    macro_rules! run_demos {
+        ($($demo_fn:ident),*) => {
+            $(
+                $demo_fn(api).await?;
+            )*
+        };
+    }
+
+    run_demos!(
+        demo_message_roles,
+        demo_prompt_templates,
+        demo_structured_prompts,
+        demo_few_shot_learning,
+        demo_xml_structured_content,
+        demo_prompt_patterns,
+        demo_context_window_management,
+        demo_code_generation,
+        demo_complex_multi_section_prompt
+    );
 
     Ok(())
 }

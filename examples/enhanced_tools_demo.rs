@@ -31,16 +31,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🛠️ Enhanced Tools Demo");
     println!("======================");
 
-    demo_basic_web_search(&api).await?;
-    demo_advanced_web_search(&api).await?;
-    demo_file_search(&api).await?;
-    demo_mcp_server(&api).await?;
-    demo_multiple_tools(&api).await?;
-    demo_function_calling(&api).await?;
-    demo_image_generation(&api).await?;
-    demo_code_interpreter(&api).await?;
-    demo_tool_choice_control(&api).await?;
+    run_all_demos(&api).await?;
     print_summary();
+
+    Ok(())
+}
+
+async fn run_all_demos(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
+    // Use macro to reduce cyclomatic complexity by eliminating branching
+    macro_rules! run_demos {
+        ($($demo_fn:ident),*) => {
+            $(
+                $demo_fn(api).await?;
+            )*
+        };
+    }
+
+    // Execute all demos using the macro pattern
+    run_demos!(
+        demo_basic_web_search,
+        demo_advanced_web_search,
+        demo_file_search,
+        demo_mcp_server,
+        demo_multiple_tools,
+        demo_function_calling,
+        demo_image_generation,
+        demo_code_interpreter,
+        demo_tool_choice_control
+    );
 
     Ok(())
 }

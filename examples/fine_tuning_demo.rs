@@ -263,6 +263,28 @@ async fn create_fine_tuning_jobs(
     let mut job_ids = Vec::new();
 
     // Job 1: Basic configuration with auto hyperparameters
+    let basic_job_id = create_basic_fine_tuning_job(api, training_file_id).await?;
+    job_ids.push(basic_job_id);
+
+    // Job 2: Custom hyperparameters with validation file
+    if let Some(val_file_id) = validation_file_id {
+        let custom_job_id =
+            create_custom_fine_tuning_job(api, training_file_id, val_file_id).await?;
+        job_ids.push(custom_job_id);
+    }
+
+    // Job 3: Conservative hyperparameters
+    let conservative_job_id = create_conservative_fine_tuning_job(api, training_file_id).await?;
+    job_ids.push(conservative_job_id);
+
+    Ok(job_ids)
+}
+
+/// Create a basic fine-tuning job with auto hyperparameters
+async fn create_basic_fine_tuning_job(
+    api: &FineTuningApi,
+    training_file_id: &str,
+) -> Result<String> {
     println!("Creating job 1: Basic configuration with auto hyperparameters");
     let basic_request = FineTuningJobRequest::builder()
         .training_file(training_file_id)
@@ -273,40 +295,49 @@ async fn create_fine_tuning_jobs(
         .build()?;
 
     let basic_job = api.create_fine_tuning_job(basic_request).await?;
-    job_ids.push(basic_job.id.clone());
     println!(
         "  ✅ Job created: {} (status: {:?})",
         basic_job.id, basic_job.status
     );
+    Ok(basic_job.id)
+}
 
-    // Job 2: Custom hyperparameters with validation file
-    if let Some(val_file_id) = validation_file_id {
-        println!("Creating job 2: Custom hyperparameters with validation");
-        let custom_request = FineTuningJobRequest::builder()
-            .training_file(training_file_id)
-            .validation_file(val_file_id)
-            .model("gpt-3.5-turbo")
-            .hyperparameters(
-                Hyperparameters::builder()
-                    .n_epochs(3)
-                    .batch_size(16)
-                    .learning_rate_multiplier(0.1)
-                    .build(),
-            )
-            .suffix("custom-demo")
-            .metadata_entry("demo", "custom")
-            .metadata_entry("hyperparameters", "optimized")
-            .build()?;
+/// Create a fine-tuning job with custom hyperparameters and validation file
+async fn create_custom_fine_tuning_job(
+    api: &FineTuningApi,
+    training_file_id: &str,
+    validation_file_id: &str,
+) -> Result<String> {
+    println!("Creating job 2: Custom hyperparameters with validation");
+    let custom_request = FineTuningJobRequest::builder()
+        .training_file(training_file_id)
+        .validation_file(validation_file_id)
+        .model("gpt-3.5-turbo")
+        .hyperparameters(
+            Hyperparameters::builder()
+                .n_epochs(3)
+                .batch_size(16)
+                .learning_rate_multiplier(0.1)
+                .build(),
+        )
+        .suffix("custom-demo")
+        .metadata_entry("demo", "custom")
+        .metadata_entry("hyperparameters", "optimized")
+        .build()?;
 
-        let custom_job = api.create_fine_tuning_job(custom_request).await?;
-        job_ids.push(custom_job.id.clone());
-        println!(
-            "  ✅ Job created: {} (status: {:?})",
-            custom_job.id, custom_job.status
-        );
-    }
+    let custom_job = api.create_fine_tuning_job(custom_request).await?;
+    println!(
+        "  ✅ Job created: {} (status: {:?})",
+        custom_job.id, custom_job.status
+    );
+    Ok(custom_job.id)
+}
 
-    // Job 3: Conservative hyperparameters
+/// Create a fine-tuning job with conservative hyperparameters
+async fn create_conservative_fine_tuning_job(
+    api: &FineTuningApi,
+    training_file_id: &str,
+) -> Result<String> {
     println!("Creating job 3: Conservative hyperparameters");
     let conservative_request = FineTuningJobRequest::builder()
         .training_file(training_file_id)
@@ -324,13 +355,11 @@ async fn create_fine_tuning_jobs(
         .build()?;
 
     let conservative_job = api.create_fine_tuning_job(conservative_request).await?;
-    job_ids.push(conservative_job.id.clone());
     println!(
         "  ✅ Job created: {} (status: {:?})",
         conservative_job.id, conservative_job.status
     );
-
-    Ok(job_ids)
+    Ok(conservative_job.id)
 }
 
 /// List and monitor jobs

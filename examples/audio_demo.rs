@@ -273,57 +273,33 @@ async fn demo_response_formats(audio_api: &AudioApi) -> Result<(), Box<dyn std::
     println!("📄 Demo 6: Different Transcription Response Formats");
     println!("===================================================");
 
-    if Path::new("output_voice_alloy.mp3").exists() {
-        let test_cases = vec![
-            (
-                "JSON",
-                TranscriptionBuilder::whisper("output_voice_alloy.mp3")
-                    .language("en")
-                    .json(),
-            ),
-            (
-                "Plain Text",
-                TranscriptionBuilder::whisper("output_voice_alloy.mp3")
-                    .language("en")
-                    .text(),
-            ),
-            (
-                "SRT Subtitles",
-                TranscriptionBuilder::whisper("output_voice_alloy.mp3")
-                    .language("en")
-                    .srt(),
-            ),
-            (
-                "WebVTT Subtitles",
-                TranscriptionBuilder::whisper("output_voice_alloy.mp3")
-                    .language("en")
-                    .vtt(),
-            ),
-        ];
+    if !Path::new("output_voice_alloy.mp3").exists() {
+        println!();
+        return Ok(());
+    }
 
-        for (name, builder) in test_cases {
-            println!("📝 Testing {name} format...");
+    let file_path = "output_voice_alloy.mp3";
+    let formats: [(&str, fn(TranscriptionBuilder) -> TranscriptionBuilder); 4] = [
+        ("JSON", |b| b.json()),
+        ("Plain Text", |b| b.text()),
+        ("SRT Subtitles", |b| b.srt()),
+        ("WebVTT Subtitles", |b| b.vtt()),
+    ];
 
-            let request = builder.build();
+    for (name, format_fn) in formats {
+        println!("📝 Testing {name} format...");
 
-            match audio_api
-                .transcribe_file("output_voice_alloy.mp3", &request)
-                .await
-            {
-                Ok(response) => {
-                    println!(
-                        "✅ {} result: \"{}\"",
-                        name,
-                        response.text.chars().take(100).collect::<String>()
-                    );
-                    if response.text.len() > 100 {
-                        println!("   ... (truncated)");
-                    }
-                }
-                Err(e) => {
-                    println!("❌ {name} format failed: {e}");
+        let request = format_fn(TranscriptionBuilder::whisper(file_path).language("en")).build();
+
+        match audio_api.transcribe_file(file_path, &request).await {
+            Ok(response) => {
+                let display_text = response.text.chars().take(100).collect::<String>();
+                println!("✅ {name} result: \"{display_text}\"");
+                if response.text.len() > 100 {
+                    println!("   ... (truncated)");
                 }
             }
+            Err(e) => println!("❌ {name} format failed: {e}"),
         }
     }
 

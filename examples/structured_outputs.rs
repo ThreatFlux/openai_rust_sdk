@@ -15,6 +15,8 @@ async fn main() {
 }
 
 #[cfg(feature = "yara")]
+use openai_rust_sdk::testing::yara_validator::ValidationResult;
+#[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]
 use serde::{Deserialize, Serialize};
@@ -150,77 +152,90 @@ async fn example_batch_structured_validation() -> Result<(), Box<dyn std::error:
 
 #[cfg(feature = "yara")]
 async fn example_json_export() -> Result<(), Box<dyn std::error::Error>> {
-    println!();
-    println!("3. JSON Export of Validation Results ");
-    println!("------------------------------------");
+    println!("\n3. JSON Export of Validation Results\n------------------------------------");
 
     let validator = YaraValidator::new();
-    let rule = r#"
-        rule complex_example {
-            meta:
-                author = "example"
-                description = "Complex rule for demonstration"
-            strings:
-                $text = "example"
-                $hex = { 4D 5A }
-                $regex = /test[0-9]+/
-            condition:
-                any of them
-        }
-    "#;
-
+    let rule = create_complex_yara_rule();
     let result = validator.validate_rule(rule)?;
 
-    // Create comprehensive structured output
-    let structured_result = json!({
-        "validation": {
-            "is_valid": result.is_valid,
-            "rule_name": result.rule_name,
-            "errors": result.errors.iter().map(|e| e.to_string()).collect::<Vec<_>>(),
-            "warnings": result.warnings
-        },
-        "features": {
-            "has_strings": result.features.has_strings,
-            "has_hex_patterns": result.features.has_hex_patterns,
-            "has_regex_patterns": result.features.has_regex_patterns,
-            "has_metadata": result.features.has_metadata,
-            "string_count": result.features.string_count,
-            "complexity_score": result.features.complexity_score
-        },
-        "metrics": {
-            "compilation_time_ms": result.metrics.compilation_time_ms,
-            "rule_size_bytes": result.metrics.rule_size_bytes
-        },
-        "pattern_tests": result.pattern_tests.iter().map(|test| {
-            json!({
-                "pattern_id": test.pattern_id,
-                "test_data": test.test_data,
-                "matched": test.matched,
-                "match_details": test.match_details
-            })
-        }).collect::<Vec<_>>()
-    });
+    print_json_output(
+        "Comprehensive validation result as JSON:",
+        &create_comprehensive_output(&result),
+    )?;
+    print_json_output(
+        "Filtered feature summary:",
+        &create_feature_summary(&result),
+    )
+}
 
-    println!("Comprehensive validation result as JSON:");
-    println!("{}", serde_json::to_string_pretty(&structured_result)?);
+#[cfg(feature = "yara")]
+fn create_complex_yara_rule() -> &'static str {
+    r#"rule complex_example { meta: author = "example" description = "Complex rule for demonstration" strings: $text = "example" $hex = { 4D 5A } $regex = /test[0-9]+/ condition: any of them }"#
+}
 
-    // Demonstrate filtering specific data
-    let feature_summary = json!({
+#[cfg(feature = "yara")]
+fn create_comprehensive_output(result: &ValidationResult) -> serde_json::Value {
+    json!({
+        "validation": create_validation_section(result),
+        "features": create_features_section(result),
+        "metrics": create_metrics_section(result),
+        "pattern_tests": create_pattern_tests_section(result)
+    })
+}
+
+#[cfg(feature = "yara")]
+fn create_validation_section(result: &ValidationResult) -> serde_json::Value {
+    json!({
+        "is_valid": result.is_valid,
+        "rule_name": result.rule_name,
+        "errors": result.errors.iter().map(|e| e.to_string()).collect::<Vec<_>>(),
+        "warnings": result.warnings
+    })
+}
+
+#[cfg(feature = "yara")]
+fn create_features_section(result: &ValidationResult) -> serde_json::Value {
+    json!({
+        "has_strings": result.features.has_strings,
+        "has_hex_patterns": result.features.has_hex_patterns,
+        "has_regex_patterns": result.features.has_regex_patterns,
+        "has_metadata": result.features.has_metadata,
+        "string_count": result.features.string_count,
+        "complexity_score": result.features.complexity_score
+    })
+}
+
+#[cfg(feature = "yara")]
+fn create_metrics_section(result: &ValidationResult) -> serde_json::Value {
+    json!({ "compilation_time_ms": result.metrics.compilation_time_ms, "rule_size_bytes": result.metrics.rule_size_bytes })
+}
+
+#[cfg(feature = "yara")]
+fn create_pattern_tests_section(result: &ValidationResult) -> serde_json::Value {
+    json!(result
+        .pattern_tests
+        .iter()
+        .map(|test| json!({
+            "pattern_id": test.pattern_id, "test_data": test.test_data,
+            "matched": test.matched, "match_details": test.match_details
+        }))
+        .collect::<Vec<_>>())
+}
+
+#[cfg(feature = "yara")]
+fn create_feature_summary(result: &ValidationResult) -> serde_json::Value {
+    json!({
         "rule_complexity": result.features.complexity_score,
-        "detected_features": {
-            "strings": result.features.has_strings,
-            "hex": result.features.has_hex_patterns,
-            "regex": result.features.has_regex_patterns,
-            "metadata": result.features.has_metadata
-        },
-        "performance": {
-            "compilation_time_ms": result.metrics.compilation_time_ms
-        }
-    });
-    println!();
-    println!("Filtered feature summary:");
-    let summary_json = serde_json::to_string_pretty(&feature_summary)?;
-    println!("{}", summary_json);
+        "detected_features": { "strings": result.features.has_strings, "hex": result.features.has_hex_patterns, "regex": result.features.has_regex_patterns, "metadata": result.features.has_metadata },
+        "performance": { "compilation_time_ms": result.metrics.compilation_time_ms }
+    })
+}
 
+#[cfg(feature = "yara")]
+fn print_json_output(
+    title: &str,
+    data: &serde_json::Value,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}:\n{}", title, serde_json::to_string_pretty(data)?);
     Ok(())
 }

@@ -64,6 +64,59 @@ pub enum FunctionCallEvent {
     },
 }
 
+/// Helper struct for extracting tool call data with reduced complexity
+#[derive(Debug)]
+struct ToolCallExtractor<'a> {
+    call: &'a Value,
+}
+
+impl<'a> ToolCallExtractor<'a> {
+    /// Create a new extractor for a tool call
+    fn new(call: &'a Value) -> Self {
+        Self { call }
+    }
+
+    /// Extract all required fields in a single operation
+    fn extract_all(&self) -> Result<(&'a str, &'a str, &'a str)> {
+        let id = self.extract_id()?;
+        let function = self.extract_function()?;
+        let name = self.extract_name(function)?;
+        let arguments = self.extract_arguments(function)?;
+        Ok((id, name, arguments))
+    }
+
+    /// Extract tool call ID
+    fn extract_id(&self) -> Result<&'a str> {
+        self.call
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| OpenAIError::parsing("Tool call missing id"))
+    }
+
+    /// Extract function object
+    fn extract_function(&self) -> Result<&'a Value> {
+        self.call
+            .get("function")
+            .ok_or_else(|| OpenAIError::parsing("Tool call missing function"))
+    }
+
+    /// Extract function name
+    fn extract_name(&self, function: &'a Value) -> Result<&'a str> {
+        function
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| OpenAIError::parsing("Function missing name"))
+    }
+
+    /// Extract function arguments
+    fn extract_arguments(&self, function: &'a Value) -> Result<&'a str> {
+        function
+            .get("arguments")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| OpenAIError::parsing("Function missing arguments"))
+    }
+}
+
 /// Configuration for function calling
 #[derive(Debug, Clone, Default)]
 pub struct FunctionConfig {
@@ -429,35 +482,49 @@ impl FunctionsApi {
         })
     }
 
-    /// Parse tool calls from the API response
+    /// Parse tool calls from the API response using functional approach
     #[allow(clippy::unused_self)]
     fn parse_tool_calls(&self, tool_calls: &[Value]) -> Result<Vec<FunctionCall>> {
-        let mut calls = Vec::new();
+        tool_calls
+            .iter()
+            .map(|call| self.parse_single_tool_call(call))
+            .collect()
+    }
 
-        for call in tool_calls {
-            let id = call
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| OpenAIError::parsing("Tool call missing id"))?;
+    /// Parse a single tool call from the API response using structured extraction
+    fn parse_single_tool_call(&self, call: &Value) -> Result<FunctionCall> {
+        let extractor = ToolCallExtractor::new(call);
+        let (id, name, arguments) = extractor.extract_all()?;
+        Ok(FunctionCall::new(id, name, arguments))
+    }
 
-            let function = call
-                .get("function")
-                .ok_or_else(|| OpenAIError::parsing("Tool call missing function"))?;
+    /// Extract tool call ID with validation
+    fn extract_tool_call_id<'a>(&self, call: &'a Value) -> Result<&'a str> {
+        call.get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| OpenAIError::parsing("Tool call missing id"))
+    }
 
-            let name = function
-                .get("name")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| OpenAIError::parsing("Function missing name"))?;
+    /// Extract function object with validation
+    fn extract_function_object<'a>(&self, call: &'a Value) -> Result<&'a Value> {
+        call.get("function")
+            .ok_or_else(|| OpenAIError::parsing("Tool call missing function"))
+    }
 
-            let arguments = function
-                .get("arguments")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| OpenAIError::parsing("Function missing arguments"))?;
+    /// Extract function name with validation
+    fn extract_function_name<'a>(&self, function: &'a Value) -> Result<&'a str> {
+        function
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| OpenAIError::parsing("Function missing name"))
+    }
 
-            calls.push(FunctionCall::new(id, name, arguments));
-        }
-
-        Ok(calls)
+    /// Extract function arguments with validation
+    fn extract_function_arguments<'a>(&self, function: &'a Value) -> Result<&'a str> {
+        function
+            .get("arguments")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| OpenAIError::parsing("Function missing arguments"))
     }
 
     /// Update conversation state with function calls
@@ -651,5 +718,60 @@ mod tests {
         assert_eq!(serialized.len(), 1);
         assert_eq!(serialized[0]["type"], "function");
         assert_eq!(serialized[0]["function"]["name"], "get_weather");
+    }
+
+    #[test]
+    fn test_parse_tool_calls() {
+        let api = FunctionsApi::new("test-key").unwrap();
+
+        // Test data simulating OpenAI API response
+        let tool_calls = vec![
+            json!({
+                "id": "call_1",
+                "type": "function",
+                "function": {
+                    "name": "get_weather",
+                    "arguments": r#"{"location": "New York"}"#
+                }
+            }),
+            json!({
+                "id": "call_2",
+                "type": "function",
+                "function": {
+                    "name": "get_time",
+                    "arguments": r#"{"timezone": "UTC"}"#
+                }
+            }),
+        ];
+
+        let result = api.parse_tool_calls(&tool_calls).unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].call_id, "call_1");
+        assert_eq!(result[0].name, "get_weather");
+        assert_eq!(result[0].arguments, r#"{"location": "New York"}"#);
+
+        assert_eq!(result[1].call_id, "call_2");
+        assert_eq!(result[1].name, "get_time");
+        assert_eq!(result[1].arguments, r#"{"timezone": "UTC"}"#);
+    }
+
+    #[test]
+    fn test_tool_call_extractor() {
+        let call_data = json!({
+            "id": "call_test",
+            "type": "function",
+            "function": {
+                "name": "test_function",
+                "arguments": r#"{"param": "value"}"#
+            }
+        });
+
+        let extractor = ToolCallExtractor::new(&call_data);
+        let (id, name, arguments) = extractor.extract_all().unwrap();
+
+        assert_eq!(id, "call_test");
+        assert_eq!(name, "test_function");
+        assert_eq!(arguments, r#"{"param": "value"}"#);
     }
 }

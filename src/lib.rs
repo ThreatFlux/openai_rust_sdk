@@ -150,9 +150,11 @@ pub mod schema;
 pub mod testing;
 
 // Re-export main OpenAI API types for convenience
+pub use api::batch::BatchApi;
+pub use api::streaming::StreamingApi;
 pub use api::{
-    AssistantsApi, BatchApi, CustomToolsApi, FineTuningApi, FunctionsApi, RealtimeAudioApi,
-    ResponsesApi, RunsApi, StreamingApi, ThreadsApi, VectorStoresApi,
+    AssistantsApi, CustomToolsApi, FineTuningApi, FunctionsApi, RealtimeAudioApi, ResponsesApi,
+    RunsApi, ThreadsApi, VectorStoresApi,
 };
 pub use builders::{FunctionBuilder, ObjectSchemaBuilder};
 pub use client::{from_env, from_env_with_base_url, ChatBuilder, OpenAIClient};

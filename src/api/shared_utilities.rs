@@ -327,29 +327,44 @@ impl AudioResponseHandler {
 /// Common request validation utilities
 pub struct RequestValidator;
 
-/// Utilities for converting enum values to strings
+/// Utilities for converting enum values to strings using efficient lookup tables
 pub struct EnumConverter;
 
 impl EnumConverter {
-    /// Convert message role to string representation
+    /// Lookup table for message role conversions
+    const MESSAGE_ROLE_MAP: &'static [(crate::models::responses::MessageRole, &'static str)] = &[
+        (crate::models::responses::MessageRole::Developer, "system"),
+        (crate::models::responses::MessageRole::User, "user"),
+        (
+            crate::models::responses::MessageRole::Assistant,
+            "assistant",
+        ),
+        (crate::models::responses::MessageRole::System, "system"),
+    ];
+
+    /// Lookup table for image detail conversions
+    const IMAGE_DETAIL_MAP: &'static [(crate::models::responses::ImageDetail, &'static str)] = &[
+        (crate::models::responses::ImageDetail::Auto, "auto"),
+        (crate::models::responses::ImageDetail::Low, "low"),
+        (crate::models::responses::ImageDetail::High, "high"),
+    ];
+
+    /// Convert message role to string representation using lookup table
     pub fn message_role_to_string(role: &crate::models::responses::MessageRole) -> &'static str {
-        use crate::models::responses::MessageRole;
-        match role {
-            MessageRole::Developer => "system",
-            MessageRole::User => "user",
-            MessageRole::Assistant => "assistant",
-            MessageRole::System => "system",
-        }
+        Self::MESSAGE_ROLE_MAP
+            .iter()
+            .find(|(r, _)| std::mem::discriminant(r) == std::mem::discriminant(role))
+            .map(|(_, s)| *s)
+            .unwrap_or("user") // Default fallback
     }
 
-    /// Convert image detail to string representation
+    /// Convert image detail to string representation using lookup table
     pub fn image_detail_to_string(detail: &crate::models::responses::ImageDetail) -> &'static str {
-        use crate::models::responses::ImageDetail;
-        match detail {
-            ImageDetail::Auto => "auto",
-            ImageDetail::Low => "low",
-            ImageDetail::High => "high",
-        }
+        Self::IMAGE_DETAIL_MAP
+            .iter()
+            .find(|(d, _)| std::mem::discriminant(d) == std::mem::discriminant(detail))
+            .map(|(_, s)| *s)
+            .unwrap_or("auto") // Default fallback
     }
 }
 

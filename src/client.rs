@@ -1,6 +1,7 @@
 use crate::api::functions::{FunctionConfig, FunctionResponseResult, FunctionsApi};
 use crate::api::streaming::ResponseStream;
-use crate::api::{common::ApiClientConstructors, ResponsesApi, StreamingApi};
+use crate::api::streaming::StreamingApi;
+use crate::api::{common::ApiClientConstructors, ResponsesApi};
 use crate::error::Result;
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice};
 use crate::models::responses::{
@@ -16,6 +17,37 @@ pub struct OpenAIClient {
     streaming_api: StreamingApi,
     /// API client for function calling
     functions_api: FunctionsApi,
+}
+
+/// State management for function calling conversations
+struct ConversationState {
+    current_messages: Vec<Message>,
+    results: Vec<FunctionResponseResult>,
+    iteration_count: u32,
+    max_iterations: u32,
+}
+
+impl ConversationState {
+    fn new(messages: Vec<Message>, max_iterations: Option<u32>) -> Self {
+        Self {
+            current_messages: messages,
+            results: Vec::new(),
+            iteration_count: 0,
+            max_iterations: max_iterations.unwrap_or(10),
+        }
+    }
+
+    fn should_continue(&self) -> bool {
+        self.iteration_count < self.max_iterations
+    }
+
+    fn increment_iteration(&mut self) {
+        self.iteration_count += 1;
+    }
+
+    fn add_result(&mut self, result: FunctionResponseResult) {
+        self.results.push(result);
+    }
 }
 
 impl OpenAIClient {
@@ -205,6 +237,35 @@ impl OpenAIClient {
             .await
     }
 
+    /// Process a single iteration of the conversation
+    async fn process_conversation_iteration(
+        &self,
+        model: &str,
+        tools: &[Tool],
+        state: &mut ConversationState,
+    ) -> Result<bool> {
+        let request =
+            ResponseRequest::new_messages(model.to_string(), state.current_messages.clone());
+        let config = FunctionConfig::new().with_tools(tools.to_vec());
+
+        let result = self.create_function_response(&request, &config).await?;
+        state.add_result(result.clone());
+        state.increment_iteration();
+
+        let has_function_calls = !result.function_calls.is_empty();
+        if !has_function_calls {
+            return Ok(false);
+        }
+
+        let continuation = self
+            .execute_and_continue_conversation(&result, &request, &config)
+            .await?;
+        state.add_result(continuation.clone());
+
+        self.update_conversation_messages(&mut state.current_messages, &continuation);
+        Ok(!continuation.function_calls.is_empty())
+    }
+
     /// Execute a complete function calling conversation
     pub async fn function_conversation(
         &self,
@@ -213,49 +274,61 @@ impl OpenAIClient {
         tools: Vec<Tool>,
         max_iterations: Option<u32>,
     ) -> Result<Vec<FunctionResponseResult>> {
-        let mut conversation_results = Vec::new();
-        let mut current_messages = messages;
-        let max_iter = max_iterations.unwrap_or(10);
+        let mut conversation_state = ConversationState::new(messages, max_iterations);
+        let model_str = model.into();
 
-        for _iteration in 0..max_iter {
-            let request =
-                ResponseRequest::new_messages(model.clone().into(), current_messages.clone());
-            let config = FunctionConfig::new().with_tools(tools.clone());
-
-            let result = self.create_function_response(&request, &config).await?;
-            conversation_results.push(result.clone());
-
-            // If no function calls, we're done
-            if result.function_calls.is_empty() {
-                break;
-            }
-
-            // Execute function calls (this is application-specific)
-            let mut function_results = Vec::new();
-            for call in &result.function_calls {
-                // In practice, applications would implement their own function execution
-                let output = self.functions_api.execute_function_call(call).await?;
-                function_results.push(output);
-            }
-
-            // Submit results and continue
-            let continuation = self
-                .submit_function_results(function_results, &request, &config)
+        while conversation_state.should_continue() {
+            let iteration_result = self
+                .process_conversation_iteration(&model_str, &tools, &mut conversation_state)
                 .await?;
-            conversation_results.push(continuation.clone());
 
-            // Add the response to the conversation
-            if let Some(content) = continuation.content {
-                current_messages.push(Message::assistant(content));
-            }
-
-            // If no more function calls, we're done
-            if continuation.function_calls.is_empty() {
+            if !iteration_result {
                 break;
             }
         }
 
-        Ok(conversation_results)
+        Ok(conversation_state.results)
+    }
+
+    /// Execute function calls and continue the conversation
+    async fn execute_and_continue_conversation(
+        &self,
+        result: &FunctionResponseResult,
+        request: &ResponseRequest,
+        config: &FunctionConfig,
+    ) -> Result<FunctionResponseResult> {
+        // Execute function calls (this is application-specific)
+        let function_results = self.execute_function_calls(&result.function_calls).await?;
+
+        // Submit results and continue
+        self.submit_function_results(function_results, request, config)
+            .await
+    }
+
+    /// Execute multiple function calls
+    async fn execute_function_calls(
+        &self,
+        function_calls: &[FunctionCall],
+    ) -> Result<Vec<FunctionCallOutput>> {
+        let mut function_results = Vec::new();
+        for call in function_calls {
+            // In practice, applications would implement their own function execution
+            let output = self.functions_api.execute_function_call(call).await?;
+            function_results.push(output);
+        }
+        Ok(function_results)
+    }
+
+    /// Update conversation messages with assistant response
+    fn update_conversation_messages(
+        &self,
+        current_messages: &mut Vec<Message>,
+        continuation: &FunctionResponseResult,
+    ) {
+        // Add the response to the conversation
+        if let Some(content) = &continuation.content {
+            current_messages.push(Message::assistant(content.clone()));
+        }
     }
 
     /// Create a simple function call

@@ -6,13 +6,21 @@ use crate::models::responses::{
 };
 use serde_json::{json, Value};
 
-/// Convert message role to OpenAI format
+/// Lookup table for role conversions - optimized for performance
+const ROLE_LOOKUP: &[(MessageRole, &str)] = &[
+    (MessageRole::Developer, "system"),
+    (MessageRole::System, "system"),
+    (MessageRole::User, "user"),
+    (MessageRole::Assistant, "assistant"),
+];
+
+/// Convert message role to OpenAI format using efficient lookup table
 pub fn role_to_string(role: &MessageRole) -> &'static str {
-    match role {
-        MessageRole::Developer | MessageRole::System => "system",
-        MessageRole::User => "user",
-        MessageRole::Assistant => "assistant",
-    }
+    ROLE_LOOKUP
+        .iter()
+        .find(|(r, _)| std::mem::discriminant(r) == std::mem::discriminant(role))
+        .map(|(_, s)| *s)
+        .unwrap_or("user") // Safe fallback
 }
 
 /// Convert message content to OpenAI format

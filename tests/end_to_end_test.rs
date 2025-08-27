@@ -155,14 +155,9 @@ fn test_error_handling() {
     assert!(result.is_err());
 }
 
-/// Integration test - validates basic API initialization and error handling
-#[test]
-fn test_sdk_integration_basics() {
-    println!("=== OpenAI SDK End-to-End Test Suite ===\n");
-
-    // Test 1: All APIs can be instantiated
-    let api_key = "test-key-123";
-    let apis_ok = [
+// Helper function to test API instantiation with valid key
+fn test_all_api_instantiation_helper(api_key: &str) -> bool {
+    [
         AssistantsApi::new(api_key).is_ok(),
         AudioApi::new(api_key).is_ok(),
         BatchApi::new(api_key).is_ok(),
@@ -176,83 +171,108 @@ fn test_sdk_integration_basics() {
         RunsApi::new(api_key).is_ok(),
         ThreadsApi::new(api_key).is_ok(),
         VectorStoresApi::new(api_key).is_ok(),
-    ];
+    ]
+    .iter()
+    .all(|&ok| ok)
+}
 
+// Helper function to test custom base URL support
+fn test_all_api_custom_url_helper(api_key: &str, base_url: &str) -> bool {
+    [
+        AssistantsApi::new_with_base_url(api_key, base_url).is_ok(),
+        AudioApi::new_with_base_url(api_key, base_url).is_ok(),
+        BatchApi::new_with_base_url(api_key, base_url).is_ok(),
+        EmbeddingsApi::new_with_base_url(api_key, base_url).is_ok(),
+        FilesApi::new_with_base_url(api_key, base_url).is_ok(),
+        FineTuningApi::with_base_url(api_key, base_url).is_ok(),
+        ImagesApi::new_with_base_url(api_key, base_url).is_ok(),
+        ModelsApi::with_base_url(api_key, base_url).is_ok(),
+        ModerationsApi::new_with_base_url(api_key, base_url).is_ok(),
+        ResponsesApi::with_base_url(api_key, base_url).is_ok(),
+        RunsApi::with_base_url(api_key, base_url).is_ok(),
+        ThreadsApi::with_base_url(api_key, base_url).is_ok(),
+        VectorStoresApi::new_with_base_url(api_key, base_url).is_ok(),
+    ]
+    .iter()
+    .all(|&ok| ok)
+}
+
+// Helper function to test invalid API key rejection
+fn test_all_api_invalid_key_helper(invalid_key: &str) -> bool {
+    [
+        AssistantsApi::new(invalid_key).is_err(),
+        AudioApi::new(invalid_key).is_err(),
+        BatchApi::new(invalid_key).is_err(),
+        EmbeddingsApi::new(invalid_key).is_err(),
+        FilesApi::new(invalid_key).is_err(),
+        FineTuningApi::new(invalid_key).is_err(),
+        ImagesApi::new(invalid_key).is_err(),
+        ModelsApi::new(invalid_key).is_err(),
+        ModerationsApi::new(invalid_key).is_err(),
+        ResponsesApi::new(invalid_key).is_err(),
+        RunsApi::new(invalid_key).is_err(),
+        ThreadsApi::new(invalid_key).is_err(),
+        VectorStoresApi::new(invalid_key).is_err(),
+    ]
+    .iter()
+    .all(|&err| err)
+}
+
+/// Test that all APIs can be instantiated with valid key
+#[test]
+fn test_sdk_integration_api_instantiation() {
+    let api_key = "test-key-123";
     assert!(
-        apis_ok.iter().all(|&ok| ok),
+        test_all_api_instantiation_helper(api_key),
         "Not all APIs instantiated correctly"
     );
     println!("✅ API Instantiation: All 13 APIs can be created");
+}
 
-    // Test 2: Custom base URLs work
+/// Test that all APIs support custom base URLs
+#[test]
+fn test_sdk_integration_custom_urls() {
+    let api_key = "test-key-123";
     let custom_url = "https://custom.openai.com";
-    let custom_apis_ok = [
-        AssistantsApi::new_with_base_url(api_key, custom_url).is_ok(),
-        AudioApi::new_with_base_url(api_key, custom_url).is_ok(),
-        BatchApi::new_with_base_url(api_key, custom_url).is_ok(),
-        EmbeddingsApi::new_with_base_url(api_key, custom_url).is_ok(),
-        FilesApi::new_with_base_url(api_key, custom_url).is_ok(),
-        FineTuningApi::with_base_url(api_key, custom_url).is_ok(),
-        ImagesApi::new_with_base_url(api_key, custom_url).is_ok(),
-        ModelsApi::with_base_url(api_key, custom_url).is_ok(),
-        ModerationsApi::new_with_base_url(api_key, custom_url).is_ok(),
-        ResponsesApi::with_base_url(api_key, custom_url).is_ok(),
-        RunsApi::with_base_url(api_key, custom_url).is_ok(),
-        ThreadsApi::with_base_url(api_key, custom_url).is_ok(),
-        VectorStoresApi::new_with_base_url(api_key, custom_url).is_ok(),
-    ];
-
     assert!(
-        custom_apis_ok.iter().all(|&ok| ok),
+        test_all_api_custom_url_helper(api_key, custom_url),
         "Not all APIs support custom URLs"
     );
     println!("✅ Custom Base URLs: All APIs support custom endpoints");
+}
 
-    // Test 3: Error handling for invalid API keys
-    let empty_key_errors = [
-        AssistantsApi::new("").is_err(),
-        AudioApi::new("").is_err(),
-        BatchApi::new("").is_err(),
-        EmbeddingsApi::new("").is_err(),
-        FilesApi::new("").is_err(),
-        FineTuningApi::new("").is_err(),
-        ImagesApi::new("").is_err(),
-        ModelsApi::new("").is_err(),
-        ModerationsApi::new("").is_err(),
-        ResponsesApi::new("").is_err(),
-        RunsApi::new("").is_err(),
-        ThreadsApi::new("").is_err(),
-        VectorStoresApi::new("").is_err(),
-    ];
-
+/// Test error handling for empty API keys
+#[test]
+fn test_sdk_integration_empty_key_validation() {
     assert!(
-        empty_key_errors.iter().all(|&err| err),
+        test_all_api_invalid_key_helper(""),
         "Not all APIs reject empty keys"
     );
     println!("✅ Error Handling: Proper error handling for invalid API keys");
+}
 
-    // Test 4: Whitespace API key handling
-    let whitespace_key_errors = [
-        AssistantsApi::new("   ").is_err(),
-        AudioApi::new("   ").is_err(),
-        BatchApi::new("   ").is_err(),
-        EmbeddingsApi::new("   ").is_err(),
-        FilesApi::new("   ").is_err(),
-        FineTuningApi::new("   ").is_err(),
-        ImagesApi::new("   ").is_err(),
-        ModelsApi::new("   ").is_err(),
-        ModerationsApi::new("   ").is_err(),
-        ResponsesApi::new("   ").is_err(),
-        RunsApi::new("   ").is_err(),
-        ThreadsApi::new("   ").is_err(),
-        VectorStoresApi::new("   ").is_err(),
-    ];
-
+/// Test error handling for whitespace-only API keys
+#[test]
+fn test_sdk_integration_whitespace_key_validation() {
     assert!(
-        whitespace_key_errors.iter().all(|&err| err),
+        test_all_api_invalid_key_helper("   "),
         "Not all APIs reject whitespace keys"
     );
     println!("✅ Validation: Proper validation of API key input");
+}
+
+/// Integration test - validates basic API functionality (refactored version)
+#[test]
+fn test_sdk_integration_basics() {
+    println!("=== OpenAI SDK End-to-End Test Suite ===\n");
+
+    // Run all integration sub-tests
+    test_sdk_integration_api_instantiation();
+    test_sdk_integration_custom_urls();
+    test_sdk_integration_empty_key_validation();
+    test_sdk_integration_whitespace_key_validation();
+
+    println!("\n✅ All basic SDK integration tests passed!");
 }
 
 /// Test model builders and request structures

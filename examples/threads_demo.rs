@@ -352,44 +352,70 @@ fn create_updated_message_request(role: &MessageRole) -> Result<MessageRequest> 
         .map_err(OpenAIError::InvalidRequest)
 }
 
+/// Demo message configuration for data-driven approach
+struct DemoMessageConfig {
+    role: MessageRole,
+    content: &'static str,
+    file_ids: &'static [&'static str],
+    metadata: &'static [(&'static str, &'static str)],
+    description: &'static str,
+    emoji: &'static str,
+}
+
 /// Demo 5: Demonstrate different content types
 async fn demo_content_types(api: &ThreadsApi) -> Result<()> {
-    // Create a thread for content type demonstrations
+    let thread = create_content_demo_thread(api).await?;
+    create_demo_messages_data_driven(api, &thread.id).await?;
+    cleanup_demo_thread(api, &thread.id).await?;
+    Ok(())
+}
+
+/// Create a thread for content type demonstrations
+async fn create_content_demo_thread(
+    api: &ThreadsApi,
+) -> Result<openai_rust_sdk::models::threads::Thread> {
     let thread_request = ThreadRequest::builder()
         .metadata_pair("purpose", "content_type_demo")
         .build();
 
     let thread = api.create_thread(thread_request).await?;
     println!("   🎨 Created content types demo thread: {}", thread.id);
+    Ok(thread)
+}
 
-    // Text content with annotations
-    let text_with_citations = MessageRequest::builder()
-        .role(MessageRole::User)
-        .content("Based on the research in document A and the data from spreadsheet B, we can conclude that the market trends are positive.")
-        .file_id("file-research_doc_a")
-        .file_id("file-spreadsheet_b")
-        .metadata_pair("content_type", "text_with_citations")
-        .build()?;
+/// Create all demonstration messages using data-driven approach
+async fn create_demo_messages_data_driven(api: &ThreadsApi, thread_id: &str) -> Result<()> {
+    let message_configs = get_demo_message_configs();
 
-    let message1 = api.create_message(&thread.id, text_with_citations).await?;
-    println!("   📝 Text message with file references: {}", message1.id);
+    for config in message_configs {
+        create_demo_message_from_config(api, thread_id, &config).await?;
+    }
 
-    // Image analysis request
-    let image_analysis = MessageRequest::builder()
-        .role(MessageRole::User)
-        .content("Please analyze this chart and provide insights on the trends shown.")
-        .file_id("file-chart_image_123")
-        .metadata_pair("content_type", "image_analysis")
-        .metadata_pair("image_type", "chart")
-        .build()?;
+    Ok(())
+}
 
-    let message2 = api.create_message(&thread.id, image_analysis).await?;
-    println!("   🖼️  Image analysis request: {}", message2.id);
-
-    // Assistant response with structured content
-    let structured_response = MessageRequest::builder()
-        .role(MessageRole::Assistant)
-        .content(r"## Analysis Results
+/// Get configuration for all demo messages
+fn get_demo_message_configs() -> Vec<DemoMessageConfig> {
+    vec![
+        DemoMessageConfig {
+            role: MessageRole::User,
+            content: "Based on the research in document A and the data from spreadsheet B, we can conclude that the market trends are positive.",
+            file_ids: &["file-research_doc_a", "file-spreadsheet_b"],
+            metadata: &[("content_type", "text_with_citations")],
+            description: "Text message with file references",
+            emoji: "📝",
+        },
+        DemoMessageConfig {
+            role: MessageRole::User,
+            content: "Please analyze this chart and provide insights on the trends shown.",
+            file_ids: &["file-chart_image_123"],
+            metadata: &[("content_type", "image_analysis"), ("image_type", "chart")],
+            description: "Image analysis request",
+            emoji: "🖼️",
+        },
+        DemoMessageConfig {
+            role: MessageRole::Assistant,
+            content: r"## Analysis Results
 
 ### Key Findings:
 1. **Revenue Growth**: 15% increase over last quarter
@@ -402,18 +428,43 @@ async fn demo_content_types(api: &ThreadsApi) -> Result<()> {
 - Increase customer support staff
 
 ### Supporting Data:
-The analysis is based on data from files referenced in your request. See citations [1] and [2] for detailed metrics.")
-        .metadata_pair("response_type", "structured_analysis")
-        .metadata_pair("format", "markdown")
-        .build()?;
+The analysis is based on data from files referenced in your request. See citations [1] and [2] for detailed metrics.",
+            file_ids: &[],
+            metadata: &[("response_type", "structured_analysis"), ("format", "markdown")],
+            description: "Structured analysis response",
+            emoji: "📊",
+        },
+    ]
+}
 
-    let message3 = api.create_message(&thread.id, structured_response).await?;
-    println!("   📊 Structured analysis response: {}", message3.id);
+/// Create a demo message from configuration
+async fn create_demo_message_from_config(
+    api: &ThreadsApi,
+    thread_id: &str,
+    config: &DemoMessageConfig,
+) -> Result<()> {
+    let mut builder = MessageRequest::builder()
+        .role(config.role.clone())
+        .content(config.content);
 
-    // Clean up the demo thread
-    let _ = api.delete_thread(&thread.id).await?;
+    for file_id in config.file_ids {
+        builder = builder.file_id(*file_id);
+    }
+
+    for (key, value) in config.metadata {
+        builder = builder.metadata_pair(*key, *value);
+    }
+
+    let message_request = builder.build()?;
+    let message = api.create_message(thread_id, message_request).await?;
+    println!("   {} {}: {}", config.emoji, config.description, message.id);
+    Ok(())
+}
+
+/// Clean up the demo thread
+async fn cleanup_demo_thread(api: &ThreadsApi, thread_id: &str) -> Result<()> {
+    let _ = api.delete_thread(thread_id).await?;
     println!("   🧹 Cleaned up content types demo thread");
-
     Ok(())
 }
 

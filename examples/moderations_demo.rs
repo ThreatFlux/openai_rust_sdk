@@ -239,6 +239,33 @@ async fn demo_quick_safety_check(moderations: &ModerationsApi) -> Result<(), Ope
     Ok(())
 }
 
+/// Run all demonstration examples in sequence using a macro to reduce cyclomatic complexity
+async fn run_all_demos(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
+    // Use macro to eliminate branching and reduce cyclomatic complexity
+    macro_rules! run_demos {
+        ($($demo_fn:ident),*) => {
+            $(
+                $demo_fn(moderations).await?;
+            )*
+        };
+    }
+
+    // Execute all demos using the macro pattern
+    run_demos!(
+        demo_single_text_moderation,
+        demo_batch_moderation,
+        demo_different_models,
+        demo_custom_thresholds,
+        demo_violation_details,
+        demo_moderation_scores,
+        demo_moderate_with_details,
+        demo_moderation_builder,
+        demo_quick_safety_check
+    );
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), OpenAIError> {
     let api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
@@ -247,15 +274,7 @@ async fn main() -> Result<(), OpenAIError> {
     println!("🛡️  OpenAI Moderations API Demo");
     println!("================================\n");
 
-    demo_single_text_moderation(&moderations).await?;
-    demo_batch_moderation(&moderations).await?;
-    demo_different_models(&moderations).await?;
-    demo_custom_thresholds(&moderations).await?;
-    demo_violation_details(&moderations).await?;
-    demo_moderation_scores(&moderations).await?;
-    demo_moderate_with_details(&moderations).await?;
-    demo_moderation_builder(&moderations).await?;
-    demo_quick_safety_check(&moderations).await?;
+    run_all_demos(&moderations).await?;
 
     println!("\n🎉 Demo completed successfully!");
     Ok(())

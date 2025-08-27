@@ -1,5 +1,32 @@
 //! Data structure macros for generating common patterns in request/response types
 
+/// Macro to implement ListQueryParams trait for pagination structures
+#[macro_export]
+macro_rules! impl_list_query_params {
+    ($struct_name:ident, $order_type:ty) => {
+        impl crate::api::common::ListQueryParams for $struct_name {
+            fn limit(&self) -> Option<u32> {
+                self.limit
+            }
+
+            fn order_str(&self) -> Option<&str> {
+                self.order.as_ref().map(|o| match o {
+                    $crate::models::threads::types::SortOrder::Asc => "asc",
+                    $crate::models::threads::types::SortOrder::Desc => "desc",
+                })
+            }
+
+            fn after(&self) -> Option<&String> {
+                self.after.as_ref()
+            }
+
+            fn before(&self) -> Option<&String> {
+                self.before.as_ref()
+            }
+        }
+    };
+}
+
 /// Macro to generate list parameter structures with pagination support
 #[macro_export]
 macro_rules! impl_list_params {

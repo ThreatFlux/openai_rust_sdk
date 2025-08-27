@@ -52,7 +52,7 @@ pub mod vector_stores;
 
 pub use assistants::*;
 pub use audio::*;
-pub use batch::*;
+pub use batch::{BatchApi, BatchReport, BatchStatus, YaraProcessor};
 pub use containers::*;
 pub use custom_tools::*;
 pub use embeddings::*;
@@ -66,6 +66,6 @@ pub use moderations::*;
 pub use realtime_audio::*;
 pub use responses::*;
 pub use runs::*;
-pub use streaming::*;
+pub use streaming::{FunctionStream, ResponseStream, ResponseStreamExt, StreamingApi};
 pub use threads::*;
 pub use vector_stores::*;

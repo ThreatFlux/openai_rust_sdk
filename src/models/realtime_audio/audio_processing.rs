@@ -6,7 +6,7 @@
 use chrono::{DateTime, Utc};
 
 /// WebRTC connection state
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WebRtcConnectionState {
     /// Connection is new
     New,

@@ -258,13 +258,24 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
     println!("🛠️ Demo 6: Utility Functions");
     println!("----------------------------");
 
-    // Show supported formats
+    show_supported_formats();
+    test_format_validation();
+    show_use_case_recommendations();
+    demonstrate_file_size_estimation();
+    demonstrate_prompt_enhancement();
+
+    println!();
+    Ok(())
+}
+
+fn show_supported_formats() {
     println!("Supported image formats:");
     for format in ImageSupportUtils::supported_input_formats() {
         println!("   • {}", format);
     }
+}
 
-    // Test format validation
+fn test_format_validation() {
     println!("\nFormat validation tests:");
     let test_files = vec!["image.png", "photo.jpg", "graphic.webp", "animation.gif"];
     for file in test_files {
@@ -279,8 +290,9 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
             }
         );
     }
+}
 
-    // Show recommendations for different use cases
+fn show_use_case_recommendations() {
     println!("\nRecommended settings for different use cases:");
     let use_cases = vec!["avatar", "wallpaper", "poster", "thumbnail", "concept"];
     for use_case in use_cases {
@@ -290,8 +302,9 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
             use_case, model, size, quality, style
         );
     }
+}
 
-    // File size estimation
+fn demonstrate_file_size_estimation() {
     println!("\nEstimated file sizes:");
     let sizes = vec![
         ImageSize::Size256x256,
@@ -308,17 +321,15 @@ async fn demo_utilities(_api: &ImagesApi) -> Result<()> {
             jpg_size / 1024
         );
     }
+}
 
-    // Prompt enhancement
+fn demonstrate_prompt_enhancement() {
     println!("\nPrompt enhancement:");
     let basic_prompt = "A cat sitting";
     let enhanced =
         ImageUtils::enhance_prompt(basic_prompt, Some("photorealistic, studio lighting"));
     println!("   Original: {}", basic_prompt);
     println!("   Enhanced: {}", enhanced);
-
-    println!();
-    Ok(())
 }
 
 /// Demo 7: Error Handling and Validation
@@ -530,12 +541,18 @@ async fn demo_file_operations(_api: &ImagesApi) -> Result<()> {
     println!("📁 Demo 10: File Operations");
     println!("---------------------------");
 
-    // Create output directory
+    demonstrate_file_generation_mock();
+    test_image_data_methods();
+    test_url_download_mock();
+
+    println!();
+    Ok(())
+}
+
+/// Demonstrate file generation operations (mock)
+fn demonstrate_file_generation_mock() {
     let output_dir = PathBuf::from("./demo_images");
-
     println!("Testing file operations (mock):");
-
-    // Generate and save images (mock demonstration)
     println!(
         "   Would generate and save images to: {}",
         output_dir.display()
@@ -560,14 +577,12 @@ async fn demo_file_operations(_api: &ImagesApi) -> Result<()> {
     //         println!("   ❌ Error saving files: {}", e);
     //     }
     // }
+}
 
-    // Test image data methods
+/// Test ImageData methods and functionality
+fn test_image_data_methods() {
     println!("\nTesting ImageData methods:");
-    let mock_image_data = ImageData {
-        url: Some("https://example.com/image.png".to_string()),
-        b64_json: Some("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==".to_string()),
-        revised_prompt: Some("A single pixel image for testing".to_string()),
-    };
+    let mock_image_data = create_mock_image_data();
 
     println!("   Has URL: {}", mock_image_data.has_url());
     println!("   Has base64: {}", mock_image_data.has_b64_json());
@@ -585,17 +600,24 @@ async fn demo_file_operations(_api: &ImagesApi) -> Result<()> {
         ),
         Err(e) => println!("   ❌ Failed to decode base64: {}", e),
     }
+}
 
-    // Test downloading from URL (mock)
-    println!("\nTesting URL download (mock):");
-    if let Some(url) = mock_image_data.get_url() {
-        println!("   Would download from: {}", url);
-        // In real usage: api.download_image(url, "downloaded_image.png").await?;
-        println!("   ✅ Download simulation successful");
+/// Create mock ImageData for testing
+fn create_mock_image_data() -> ImageData {
+    ImageData {
+        url: Some("https://example.com/image.png".to_string()),
+        b64_json: Some("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==".to_string()),
+        revised_prompt: Some("A single pixel image for testing".to_string()),
     }
+}
 
-    println!();
-    Ok(())
+/// Test URL download functionality (mock)
+fn test_url_download_mock() {
+    println!("\nTesting URL download (mock):");
+    let mock_url = "https://example.com/image.png";
+    println!("   Would download from: {}", mock_url);
+    // In real usage: api.download_image(url, "downloaded_image.png").await?;
+    println!("   ✅ Download simulation successful");
 }
 
 /// Initialize the API client

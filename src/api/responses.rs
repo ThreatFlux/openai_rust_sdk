@@ -111,7 +111,7 @@ impl ResponsesApi {
             .collect()
     }
 
-    /// Convert message role to string
+    /// Convert message role to string using efficient lookup
     fn convert_message_role(&self, role: &MessageRole) -> &'static str {
         EnumConverter::message_role_to_string(role)
     }
@@ -337,74 +337,97 @@ impl ResponsesApi {
         self.http_client.client()
     }
 
-    /// Process structured response based on response format
+    /// Process structured response based on response format using data-driven approach
     fn process_structured_response(
         &self,
         result: &mut ResponseResult,
         response_format: &crate::models::responses::ResponseFormat,
     ) -> Result<()> {
-        use crate::models::responses::{ResponseFormat, SchemaValidationResult};
+        use crate::models::responses::ResponseFormat;
 
+        match response_format {
+            ResponseFormat::JsonObject => {
+                self.apply_json_processor(result, Self::create_json_validation)
+            }
+            ResponseFormat::JsonSchema { json_schema, .. } => {
+                self.process_with_schema(result, json_schema)
+            }
+            ResponseFormat::Text => Ok(()),
+        }
+    }
+
+    /// Apply JSON processor to all choices in result
+    fn apply_json_processor<F>(&self, result: &mut ResponseResult, validator: F) -> Result<()>
+    where
+        F: Fn(&str) -> crate::models::responses::SchemaValidationResult,
+    {
         for choice in &mut result.choices {
             if let Some(content) = &choice.message.content {
-                match response_format {
-                    ResponseFormat::JsonObject => {
-                        // Parse JSON and validate it's an object
-                        match serde_json::from_str::<serde_json::Value>(content) {
-                            Ok(json_value) => {
-                                if json_value.is_object() {
-                                    choice.message.structured_data = Some(json_value);
-                                    choice.message.schema_validation =
-                                        Some(SchemaValidationResult {
-                                            is_valid: true,
-                                            errors: vec![],
-                                            data: choice.message.structured_data.clone(),
-                                        });
-                                } else {
-                                    choice.message.schema_validation =
-                                        Some(SchemaValidationResult {
-                                            is_valid: false,
-                                            errors: vec![
-                                                "Response is not a JSON object".to_string()
-                                            ],
-                                            data: Some(json_value),
-                                        });
-                                }
-                            }
-                            Err(e) => {
-                                choice.message.schema_validation = Some(SchemaValidationResult {
-                                    is_valid: false,
-                                    errors: vec![format!("Invalid JSON: {}", e)],
-                                    data: None,
-                                });
-                            }
-                        }
-                    }
-                    ResponseFormat::JsonSchema { json_schema, .. } => {
-                        // Parse JSON and validate against schema
-                        match serde_json::from_str::<serde_json::Value>(content) {
-                            Ok(json_value) => {
-                                let validation_result = json_schema.validate(&json_value);
-                                choice.message.structured_data = Some(json_value);
-                                choice.message.schema_validation = Some(validation_result);
-                            }
-                            Err(e) => {
-                                choice.message.schema_validation = Some(SchemaValidationResult {
-                                    is_valid: false,
-                                    errors: vec![format!("Invalid JSON: {}", e)],
-                                    data: None,
-                                });
-                            }
-                        }
-                    }
-                    ResponseFormat::Text => {
-                        // No processing needed for text format
-                    }
+                let validation = validator(content);
+                if let Some(data) = &validation.data {
+                    choice.message.structured_data = Some(data.clone());
                 }
+                choice.message.schema_validation = Some(validation);
             }
         }
-
         Ok(())
+    }
+
+    /// Create JSON object validation result
+    fn create_json_validation(content: &str) -> crate::models::responses::SchemaValidationResult {
+        use crate::models::responses::SchemaValidationResult;
+
+        match serde_json::from_str::<serde_json::Value>(content) {
+            Ok(json_value) => {
+                let is_object = json_value.is_object();
+                SchemaValidationResult {
+                    is_valid: is_object,
+                    errors: if is_object {
+                        vec![]
+                    } else {
+                        vec!["Response is not a JSON object".to_string()]
+                    },
+                    data: Some(json_value),
+                }
+            }
+            Err(e) => SchemaValidationResult {
+                is_valid: false,
+                errors: vec![format!("Invalid JSON: {}", e)],
+                data: None,
+            },
+        }
+    }
+
+    /// Process with schema validation
+    fn process_with_schema(
+        &self,
+        result: &mut ResponseResult,
+        json_schema: &crate::models::responses::JsonSchemaSpec,
+    ) -> Result<()> {
+        self.apply_json_processor(result, |content| {
+            Self::create_schema_validation(content, json_schema)
+        })
+    }
+
+    /// Create schema validation result
+    fn create_schema_validation(
+        content: &str,
+        json_schema: &crate::models::responses::JsonSchemaSpec,
+    ) -> crate::models::responses::SchemaValidationResult {
+        use crate::models::responses::SchemaValidationResult;
+
+        match serde_json::from_str::<serde_json::Value>(content) {
+            Ok(json_value) => {
+                let mut validation_result = json_schema.validate(&json_value);
+                validation_result.data = Some(json_value);
+                validation_result
+            }
+            Err(e) => SchemaValidationResult {
+                is_valid: false,
+                errors: vec![format!("Invalid JSON: {}", e)],
+                data: None,
+            },
+        }
     }
 
     /// Create a structured response with schema validation

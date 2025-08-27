@@ -142,6 +142,13 @@ impl BatchJobGenerator {
     /// ```
     #[allow(dead_code)]
     pub fn generate_test_suite(&self, output_path: &Path, suite_name: &str) -> Result<()> {
+        let prompts = self.get_test_suite_prompts(suite_name)?;
+        let requests = self.create_batch_requests(suite_name, &prompts);
+        self.write_requests_to_file(output_path, requests)
+    }
+
+    /// Gets the prompts for a specific test suite
+    fn get_test_suite_prompts(&self, suite_name: &str) -> Result<Vec<&'static str>> {
         let prompts = match suite_name {
             "basic" => vec![
                 "Create a YARA rule that detects files containing 'Hello World'.",
@@ -167,32 +174,53 @@ impl BatchJobGenerator {
             ],
             _ => return Err(anyhow::anyhow!("Unknown test suite: {}", suite_name)),
         };
+        Ok(prompts)
+    }
 
-        let mut requests = Vec::new();
-        for (i, prompt) in prompts.iter().enumerate() {
-            let request = BatchJobRequest {
-                custom_id: format!("{}_{:03}", suite_name, i + 1),
-                method: "POST".to_string(),
-                url: "/v1/chat/completions".to_string(),
-                body: BatchJobBody {
-                    model: self.model.clone(),
-                    messages: vec![
-                        ChatMessage {
-                            role: "system".to_string(),
-                            content: self.system_prompt.clone(),
-                        },
-                        ChatMessage {
-                            role: "user".to_string(),
-                            content: (*prompt).to_string(),
-                        },
-                    ],
-                    max_tokens: Some(1000),
-                    temperature: Some(0.3),
-                },
-            };
-            requests.push(request);
+    /// Creates batch job requests from prompts
+    fn create_batch_requests(&self, suite_name: &str, prompts: &[&str]) -> Vec<BatchJobRequest> {
+        prompts
+            .iter()
+            .enumerate()
+            .map(|(i, prompt)| self.create_single_request(suite_name, i + 1, prompt))
+            .collect()
+    }
+
+    /// Creates a single batch job request
+    fn create_single_request(
+        &self,
+        suite_name: &str,
+        index: usize,
+        prompt: &str,
+    ) -> BatchJobRequest {
+        BatchJobRequest {
+            custom_id: format!("{}_{:03}", suite_name, index),
+            method: "POST".to_string(),
+            url: "/v1/chat/completions".to_string(),
+            body: BatchJobBody {
+                model: self.model.clone(),
+                messages: vec![
+                    ChatMessage {
+                        role: "system".to_string(),
+                        content: self.system_prompt.clone(),
+                    },
+                    ChatMessage {
+                        role: "user".to_string(),
+                        content: prompt.to_string(),
+                    },
+                ],
+                max_tokens: Some(1000),
+                temperature: Some(0.3),
+            },
         }
+    }
 
+    /// Writes batch job requests to a JSONL file
+    fn write_requests_to_file(
+        &self,
+        output_path: &Path,
+        requests: Vec<BatchJobRequest>,
+    ) -> Result<()> {
         let file = File::create(output_path)?;
         let mut writer = BufWriter::new(file);
 

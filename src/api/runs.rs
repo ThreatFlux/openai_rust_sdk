@@ -79,7 +79,7 @@
 
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
-use crate::api::streaming::to_streaming_json;
+use crate::api::streaming::helpers::to_streaming_json;
 use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::runs::{

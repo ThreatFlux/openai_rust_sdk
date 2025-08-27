@@ -3,6 +3,11 @@ use crate::models::functions::{CustomTool, Grammar};
 use serde_json::Value;
 use std::collections::HashMap;
 
+// Lookup table for grammar type constants to reduce duplication
+const GRAMMAR_TYPE_LARK: &str = "lark";
+const GRAMMAR_TYPE_REGEX: &str = "regex";
+const GRAMMAR_TYPE_CFG: &str = "cfg";
+
 /// Custom tools API for advanced tool definitions
 #[derive(Debug)]
 pub struct CustomToolsApi {
@@ -180,13 +185,13 @@ impl GrammarValidator for LarkValidator {
         // For now, return the input as a structured object
         Ok(serde_json::json!({
             "input": input,
-            "grammar_type": "lark",
+            "grammar_type": GRAMMAR_TYPE_LARK,
             "parsed": true
         }))
     }
 
     fn grammar_type(&self) -> &'static str {
-        "lark"
+        GRAMMAR_TYPE_LARK
     }
 }
 
@@ -239,13 +244,13 @@ impl GrammarValidator for RegexValidator {
         Ok(serde_json::json!({
             "input": input,
             "pattern": self.pattern,
-            "grammar_type": "regex",
+            "grammar_type": GRAMMAR_TYPE_REGEX,
             "flags": self.flags
         }))
     }
 
     fn grammar_type(&self) -> &'static str {
-        "regex"
+        GRAMMAR_TYPE_REGEX
     }
 }
 
@@ -291,13 +296,13 @@ impl GrammarValidator for CfgValidator {
         Ok(serde_json::json!({
             "input": input,
             "start_symbol": self.start_symbol,
-            "grammar_type": "cfg",
+            "grammar_type": GRAMMAR_TYPE_CFG,
             "rules_count": self.rules.len()
         }))
     }
 
     fn grammar_type(&self) -> &'static str {
-        "cfg"
+        GRAMMAR_TYPE_CFG
     }
 }
 
