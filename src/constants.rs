@@ -498,64 +498,77 @@ mod tests {
 
     #[test]
     fn test_new_endpoint_constructions() {
-        // Containers endpoints
+        test_containers_endpoints();
+        test_fine_tuning_endpoints();
+        test_batches_endpoints();
+        test_runs_endpoints();
+    }
+
+    fn test_containers_endpoints() {
+        let container_id = "container-123";
+        let file_id = "file-456";
+
         assert_eq!(endpoints::containers::BASE, "/v1/containers");
         assert_eq!(
-            endpoints::containers::by_id("container-123"),
+            endpoints::containers::by_id(container_id),
             "/v1/containers/container-123"
         );
         assert_eq!(
-            endpoints::containers::files("container-123"),
+            endpoints::containers::files(container_id),
             "/v1/containers/container-123/files"
         );
         assert_eq!(
-            endpoints::containers::file_by_id("container-123", "file-456"),
+            endpoints::containers::file_by_id(container_id, file_id),
             "/v1/containers/container-123/files/file-456"
         );
         assert_eq!(
-            endpoints::containers::file_content("container-123", "file-456"),
+            endpoints::containers::file_content(container_id, file_id),
             "/v1/containers/container-123/files/file-456/content"
         );
         assert_eq!(
-            endpoints::containers::execute("container-123"),
+            endpoints::containers::execute(container_id),
             "/v1/containers/container-123/execute"
         );
         assert_eq!(
-            endpoints::containers::keep_alive("container-123"),
+            endpoints::containers::keep_alive(container_id),
             "/v1/containers/container-123/keep-alive"
         );
+    }
 
-        // Fine-tuning endpoints
+    fn test_fine_tuning_endpoints() {
+        let job_id = "ft-123";
+
         assert_eq!(endpoints::fine_tuning::BASE, "/v1/fine_tuning/jobs");
         assert_eq!(
-            endpoints::fine_tuning::by_id("ft-123"),
+            endpoints::fine_tuning::by_id(job_id),
             "/v1/fine_tuning/jobs/ft-123"
         );
         assert_eq!(
-            endpoints::fine_tuning::cancel("ft-123"),
+            endpoints::fine_tuning::cancel(job_id),
             "/v1/fine_tuning/jobs/ft-123/cancel"
         );
         assert_eq!(
-            endpoints::fine_tuning::events("ft-123"),
+            endpoints::fine_tuning::events(job_id),
             "/v1/fine_tuning/jobs/ft-123/events"
         );
         assert_eq!(
-            endpoints::fine_tuning::checkpoints("ft-123"),
+            endpoints::fine_tuning::checkpoints(job_id),
             "/v1/fine_tuning/jobs/ft-123/checkpoints"
         );
+    }
 
-        // Batches endpoints
+    fn test_batches_endpoints() {
+        let batch_id = "batch-123";
+
         assert_eq!(endpoints::batches::BASE, "/v1/batches");
+        assert_eq!(endpoints::batches::by_id(batch_id), "/v1/batches/batch-123");
         assert_eq!(
-            endpoints::batches::by_id("batch-123"),
-            "/v1/batches/batch-123"
-        );
-        assert_eq!(
-            endpoints::batches::cancel("batch-123"),
+            endpoints::batches::cancel(batch_id),
             "/v1/batches/batch-123/cancel"
         );
+    }
 
-        // Runs endpoints
+    fn test_runs_endpoints() {
         assert_eq!(endpoints::runs::BASE, "/v1/threads/runs");
     }
 

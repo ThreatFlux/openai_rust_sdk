@@ -151,6 +151,17 @@ mod tests {
 
     #[test]
     fn test_list_models_response_methods() {
+        let response = create_test_models_response();
+
+        test_family_filtering(&response);
+        test_completion_type_filtering(&response);
+        test_available_models(&response);
+        test_grouping_by_family(&response);
+        test_latest_models(&response);
+        test_finding_suitable_models(&response);
+    }
+
+    fn create_test_models_response() -> ListModelsResponse {
         let models = vec![
             Model {
                 id: "gpt-4".to_string(),
@@ -181,36 +192,42 @@ mod tests {
             },
         ];
 
-        let response = ListModelsResponse {
+        ListModelsResponse {
             object: "list".to_string(),
             data: models,
-        };
+        }
+    }
 
-        // Test family filtering
+    fn test_family_filtering(response: &ListModelsResponse) {
         let gpt4_models = response.filter_by_family(&ModelFamily::GPT4);
         assert_eq!(gpt4_models.len(), 1);
         assert_eq!(gpt4_models[0].id, "gpt-4");
+    }
 
-        // Test completion type filtering
+    fn test_completion_type_filtering(response: &ListModelsResponse) {
         let chat_models = response.filter_by_completion_type(&CompletionType::Chat);
         assert_eq!(chat_models.len(), 1);
         assert_eq!(chat_models[0].id, "gpt-4");
+    }
 
-        // Test available models
+    fn test_available_models(response: &ListModelsResponse) {
         let available = response.available_models();
         assert_eq!(available.len(), 2); // gpt-4 and dall-e-3
+    }
 
-        // Test grouping by family
+    fn test_grouping_by_family(response: &ListModelsResponse) {
         let grouped = response.group_by_family();
         assert!(grouped.contains_key(&ModelFamily::GPT4));
         assert!(grouped.contains_key(&ModelFamily::DALLE));
+    }
 
-        // Test latest models
+    fn test_latest_models(response: &ListModelsResponse) {
         let latest = response.latest_models();
         assert!(latest.contains_key(&ModelFamily::GPT4));
         assert_eq!(latest.get(&ModelFamily::GPT4).unwrap().id, "gpt-4");
+    }
 
-        // Test finding suitable models
+    fn test_finding_suitable_models(response: &ListModelsResponse) {
         let requirements = ModelRequirements::chat();
         let suitable = response.find_suitable_models(&requirements);
         assert_eq!(suitable.len(), 1);

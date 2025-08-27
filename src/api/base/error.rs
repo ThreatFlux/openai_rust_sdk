@@ -69,7 +69,7 @@ mod tests {
         let error_msg = "network error";
         let context = "test context";
         let expected = format!("{}: {}", context, error_msg);
-        
+
         // Verify the format matches what the function produces
         assert!(expected.contains(context));
         assert!(expected.contains(":"));

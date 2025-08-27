@@ -30,6 +30,8 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
+use crate::testing::prompts::PromptsRegistry;
+
 /// A single batch job request for the `OpenAI` Batch API
 #[derive(Debug, Clone, Ser, De)]
 pub struct BatchJobRequest {
@@ -147,34 +149,11 @@ impl BatchJobGenerator {
         self.write_requests_to_file(output_path, requests)
     }
 
-    /// Gets the prompts for a specific test suite
+    /// Gets the prompts for a specific test suite using the prompts registry
     fn get_test_suite_prompts(&self, suite_name: &str) -> Result<Vec<&'static str>> {
-        let prompts = match suite_name {
-            "basic" => vec![
-                "Create a YARA rule that detects files containing 'Hello World'.",
-                "Generate a YARA rule to detect PE headers (MZ signature).",
-                "Write a YARA rule for detecting error/warning/debug strings.",
-            ],
-            "malware" => vec![
-                "Generate a YARA rule to detect UPX packed executables.",
-                "Create a YARA rule for ransomware detection based on encryption strings.",
-                "Write a YARA rule to detect keylogger APIs.",
-            ],
-            "comprehensive" => vec![
-                "Create a YARA rule that detects files containing 'Hello World'.",
-                "Generate a YARA rule to detect PE headers (MZ signature).",
-                "Generate a YARA rule to detect UPX packed executables.",
-                "Create a YARA rule for ransomware detection.",
-                "Write a YARA rule using regex to detect email addresses.",
-                "Create a YARA rule to detect cryptocurrency addresses.",
-                "Generate a YARA rule with external variables for file size detection.",
-                "Write a YARA rule using for loops to detect repeating patterns.",
-                "Create a YARA rule that combines multiple modules for comprehensive analysis.",
-                "Generate a YARA rule for detecting obfuscated JavaScript code.",
-            ],
-            _ => return Err(anyhow::anyhow!("Unknown test suite: {}", suite_name)),
-        };
-        Ok(prompts)
+        PromptsRegistry::get_prompts(suite_name)
+            .map(|prompts| prompts.to_vec())
+            .ok_or_else(|| anyhow::anyhow!("Unknown test suite: {}", suite_name))
     }
 
     /// Creates batch job requests from prompts

@@ -14,6 +14,7 @@
 //! - [`batch_generator`](crate::testing::batch_generator): `OpenAI` Batch API job generation
 
 pub mod batch_generator;
+pub mod prompts;
 
 #[cfg(feature = "yara")]
 pub mod test_cases;
