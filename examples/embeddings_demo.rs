@@ -22,19 +22,8 @@ use openai_rust_sdk::{
 };
 use std::env;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
-
-    println!("🔢 OpenAI Embeddings Demo");
-    println!("=========================");
-
-    let api = EmbeddingsApi::new(api_key)?;
-
-    // Example 1: Basic Embedding Creation
+/// Demonstrates basic embedding creation
+async fn demo_basic_embeddings(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📊 Example 1: Basic Embedding Creation");
     println!("──────────────────────────────────────");
 
@@ -45,7 +34,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Created embedding with {} dimensions", embedding.len());
     println!("First 10 values: {:?}", &embedding[..10]);
 
-    // Example 2: Batch Embeddings
+    Ok(())
+}
+
+/// Demonstrates batch embeddings processing
+async fn demo_batch_embeddings(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📚 Example 2: Batch Embeddings");
     println!("───────────────────────────────");
 
@@ -70,7 +63,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Example 3: Text Similarity
+    Ok(())
+}
+
+/// Demonstrates text similarity comparison
+async fn demo_similarity_comparison(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔍 Example 3: Text Similarity Comparison");
     println!("────────────────────────────────────────");
 
@@ -97,7 +94,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n  Different text: \"{different_text}\"");
     println!("  → Similarity: {similarity_2:.4} (lower = less similar)");
 
-    // Example 4: Semantic Search
+    Ok(())
+}
+
+/// Demonstrates semantic search functionality
+async fn demo_semantic_search(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔎 Example 4: Semantic Search");
     println!("─────────────────────────────");
 
@@ -125,10 +126,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  [{}] \"{}\"", best_index + 1, documents[best_index]);
     println!("  Similarity score: {best_score:.4}");
 
-    // Get all similarities for ranking
+    // Show top 3 results
+    display_top_results(api, query, &documents).await?;
+
+    Ok(())
+}
+
+/// Helper function to display top search results
+async fn display_top_results(
+    api: &EmbeddingsApi,
+    query: &str,
+    documents: &[String],
+) -> Result<(), Box<dyn std::error::Error>> {
     let query_embedding = api.embed_text(EmbeddingModels::ADA_002, query).await?;
     let doc_embeddings = api
-        .embed_texts(EmbeddingModels::ADA_002, documents.clone())
+        .embed_texts(EmbeddingModels::ADA_002, documents.to_vec())
         .await?;
 
     let mut similarities: Vec<(usize, f32)> = doc_embeddings
@@ -149,7 +161,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Example 5: Using text-embedding-3 with custom dimensions
+    Ok(())
+}
+
+/// Demonstrates custom dimensions with text-embedding-3
+async fn demo_custom_dimensions(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n⚙️ Example 5: Custom Dimensions (text-embedding-3)");
     println!("───────────────────────────────────────────────────");
 
@@ -180,7 +196,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         (1.0 - reduced_embedding.len() as f32 / standard_embedding.len() as f32) * 100.0
     );
 
-    // Example 6: Embedding Utilities
+    Ok(())
+}
+
+/// Demonstrates embedding utilities (mean and weighted mean)
+async fn demo_embedding_utilities(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🛠️ Example 6: Embedding Utilities");
     println!("──────────────────────────────────");
 
@@ -212,7 +232,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Weights: {weights:?}");
     println!("✅ Created weighted mean embedding");
 
-    // Example 7: Using Base64 Encoding
+    Ok(())
+}
+
+/// Demonstrates base64 encoding format
+async fn demo_base64_encoding(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔐 Example 7: Base64 Encoding Format");
     println!("─────────────────────────────────────");
 
@@ -228,7 +252,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Full length: {} characters", base64_embeddings.len());
     }
 
-    // Example 8: Distance Metrics
+    Ok(())
+}
+
+/// Demonstrates different distance metrics
+fn demo_distance_metrics() {
     println!("\n📏 Example 8: Different Distance Metrics");
     println!("────────────────────────────────────────");
 
@@ -243,8 +271,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nDistance Metrics:");
     println!("  Cosine similarity: {cosine_sim:.4} (1.0 = identical direction)");
     println!("  Euclidean distance: {euclidean_dist:.4} (0.0 = identical position)");
+}
 
-    // Example 9: Clustering Similar Texts
+/// Demonstrates text clustering functionality
+async fn demo_text_clustering(api: &EmbeddingsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎯 Example 9: Clustering Similar Texts");
     println!("──────────────────────────────────────");
 
@@ -268,12 +298,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .embed_texts(EmbeddingModels::ADA_002, items.clone())
         .await?;
 
-    // Simple clustering: group items with similarity > 0.8
-    let threshold = 0.8;
-    let mut clusters: Vec<Vec<usize>> = Vec::new();
-    let mut clustered = vec![false; items.len()];
+    let clusters = perform_clustering(&item_embeddings, 0.8);
 
-    for i in 0..items.len() {
+    println!("\n📊 Clusters (similarity threshold: 0.8):");
+    for (i, cluster) in clusters.iter().enumerate() {
+        println!("\nCluster {}:", i + 1);
+        for idx in cluster {
+            println!("  - {}", items[*idx]);
+        }
+    }
+
+    Ok(())
+}
+
+/// Helper function to perform simple clustering
+fn perform_clustering(embeddings: &[Vec<f32>], threshold: f32) -> Vec<Vec<usize>> {
+    let mut clusters: Vec<Vec<usize>> = Vec::new();
+    let mut clustered = vec![false; embeddings.len()];
+
+    for i in 0..embeddings.len() {
         if clustered[i] {
             continue;
         }
@@ -281,10 +324,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut cluster = vec![i];
         clustered[i] = true;
 
-        for j in (i + 1)..items.len() {
+        for j in (i + 1)..embeddings.len() {
             if !clustered[j] {
-                let similarity =
-                    EmbeddingsApi::cosine_similarity(&item_embeddings[i], &item_embeddings[j]);
+                let similarity = EmbeddingsApi::cosine_similarity(&embeddings[i], &embeddings[j]);
 
                 if similarity > threshold {
                     cluster.push(j);
@@ -296,15 +338,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clusters.push(cluster);
     }
 
-    println!("\n📊 Clusters (similarity threshold: {threshold}):");
-    for (i, cluster) in clusters.iter().enumerate() {
-        println!("\nCluster {}:", i + 1);
-        for idx in cluster {
-            println!("  - {}", items[*idx]);
-        }
-    }
+    clusters
+}
 
-    // Summary
+/// Displays the summary and use cases
+fn display_summary() {
     println!("\n✨ Embeddings API Summary");
     println!("─────────────────────────");
     println!("• Create vector representations of text");
@@ -322,6 +360,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("• Duplicate detection");
     println!("• Content moderation");
     println!("• Question answering systems");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Get API key from environment
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
+    })?;
+
+    println!("🔢 OpenAI Embeddings Demo");
+    println!("=========================");
+
+    let api = EmbeddingsApi::new(api_key)?;
+
+    // Run all demonstrations
+    demo_basic_embeddings(&api).await?;
+    demo_batch_embeddings(&api).await?;
+    demo_similarity_comparison(&api).await?;
+    demo_semantic_search(&api).await?;
+    demo_custom_dimensions(&api).await?;
+    demo_embedding_utilities(&api).await?;
+    demo_base64_encoding(&api).await?;
+    demo_distance_metrics();
+    demo_text_clustering(&api).await?;
+    display_summary();
 
     Ok(())
 }

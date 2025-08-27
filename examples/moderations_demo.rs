@@ -11,18 +11,17 @@ use openai_rust_sdk::{
 };
 use std::env;
 
-#[tokio::main]
-async fn main() -> Result<(), OpenAIError> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
+/// Helper function to display safety status
+fn display_safety_status(is_safe: bool) -> &'static str {
+    if is_safe {
+        "Safe"
+    } else {
+        "Flagged"
+    }
+}
 
-    // Create the moderations API client
-    let moderations = ModerationsApi::new(api_key)?;
-
-    println!("🛡️  OpenAI Moderations API Demo");
-    println!("================================\n");
-
-    // Example 1: Single text moderation
+/// Example 1: Single text moderation
+async fn demo_single_text_moderation(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("📝 Example 1: Single Text Moderation");
     println!("------------------------------------");
 
@@ -42,8 +41,11 @@ async fn main() -> Result<(), OpenAIError> {
         println!("✅ Content is safe");
     }
     println!();
+    Ok(())
+}
 
-    // Example 2: Batch text moderation
+/// Example 2: Batch text moderation
+async fn demo_batch_moderation(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("📚 Example 2: Batch Text Moderation");
     println!("-----------------------------------");
 
@@ -66,73 +68,68 @@ async fn main() -> Result<(), OpenAIError> {
         }
     }
     println!();
+    Ok(())
+}
 
-    // Example 3: Using different models
+/// Example 3: Using different models
+async fn demo_different_models(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("🔧 Example 3: Different Moderation Models");
     println!("----------------------------------------");
 
     let test_text = "This is a test of the moderation system.";
 
-    // Using default model
     let default_result = moderations.moderate_text(test_text).await?;
     println!("Default model - Flagged: {}", default_result.flagged);
 
-    // Using stable model
     let stable_result = moderations
         .moderate_text_with_model(test_text, "text-moderation-stable")
         .await?;
     println!("Stable model - Flagged: {}", stable_result.flagged);
 
-    // Using latest model
     let latest_result = moderations
         .moderate_text_with_model(test_text, "text-moderation-latest")
         .await?;
     println!("Latest model - Flagged: {}", latest_result.flagged);
     println!();
+    Ok(())
+}
 
-    // Example 4: Custom thresholds
+/// Example 4: Custom thresholds
+async fn demo_custom_thresholds(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("⚖️  Example 4: Custom Safety Thresholds");
     println!("-------------------------------------");
 
     let content = "Let's have a friendly conversation about technology.";
 
-    // Check with conservative threshold
     let is_safe_conservative = moderations
         .is_safe_with_threshold(content, SafetyThresholds::CONSERVATIVE)
         .await?;
     println!(
         "Conservative (0.1): {}",
-        if is_safe_conservative {
-            "Safe"
-        } else {
-            "Flagged"
-        }
+        display_safety_status(is_safe_conservative)
     );
 
-    // Check with moderate threshold
     let is_safe_moderate = moderations
         .is_safe_with_threshold(content, SafetyThresholds::MODERATE)
         .await?;
     println!(
         "Moderate (0.3): {}",
-        if is_safe_moderate { "Safe" } else { "Flagged" }
+        display_safety_status(is_safe_moderate)
     );
 
-    // Check with permissive threshold
     let is_safe_permissive = moderations
         .is_safe_with_threshold(content, SafetyThresholds::PERMISSIVE)
         .await?;
     println!(
         "Permissive (0.7): {}",
-        if is_safe_permissive {
-            "Safe"
-        } else {
-            "Flagged"
-        }
+        display_safety_status(is_safe_permissive)
     );
     println!();
+    Ok(())
+}
 
-    // Example 5: Get violation details
+/// Example 5: Get violation details
+async fn demo_violation_details(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("📋 Example 5: Check Violations");
     println!("------------------------------------");
 
@@ -149,8 +146,11 @@ async fn main() -> Result<(), OpenAIError> {
         }
     }
     println!();
+    Ok(())
+}
 
-    // Example 6: Get moderation scores
+/// Example 6: Get moderation scores
+async fn demo_moderation_scores(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("📊 Example 6: Get Moderation Scores");
     println!("---------------------------------");
 
@@ -165,8 +165,11 @@ async fn main() -> Result<(), OpenAIError> {
     println!("Violence: {:.4}", scores.violence);
     println!("Max score: {:.4}", scores.max_score());
     println!();
+    Ok(())
+}
 
-    // Example 7: Moderate with details
+/// Example 7: Moderate with details
+async fn demo_moderate_with_details(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("🔍 Example 7: Moderate with Details");
     println!("-----------------------------------");
 
@@ -186,8 +189,11 @@ async fn main() -> Result<(), OpenAIError> {
         }
     }
     println!();
+    Ok(())
+}
 
-    // Example 8: Using ModerationBuilder for complex requests
+/// Example 8: Using ModerationBuilder for complex requests
+async fn demo_moderation_builder(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("🏗️  Example 8: Using ModerationBuilder");
     println!("------------------------------------");
 
@@ -207,8 +213,11 @@ async fn main() -> Result<(), OpenAIError> {
         }
     }
     println!();
+    Ok(())
+}
 
-    // Example 9: Quick safety check
+/// Example 9: Quick safety check
+async fn demo_quick_safety_check(moderations: &ModerationsApi) -> Result<(), OpenAIError> {
     println!("✅ Example 9: Quick Safety Check");
     println!("-------------------------------");
 
@@ -220,18 +229,34 @@ async fn main() -> Result<(), OpenAIError> {
 
     for text in texts_to_check {
         let is_safe = moderations.is_safe(text).await?;
-        println!(
-            "\"{}\" - {}",
-            text,
-            if is_safe {
-                "✅ Safe"
-            } else {
-                "⚠️ Flagged"
-            }
-        );
+        let status = if is_safe {
+            "✅ Safe"
+        } else {
+            "⚠️ Flagged"
+        };
+        println!("\"{text}\" - {status}");
     }
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), OpenAIError> {
+    let api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
+    let moderations = ModerationsApi::new(api_key)?;
+
+    println!("🛡️  OpenAI Moderations API Demo");
+    println!("================================\n");
+
+    demo_single_text_moderation(&moderations).await?;
+    demo_batch_moderation(&moderations).await?;
+    demo_different_models(&moderations).await?;
+    demo_custom_thresholds(&moderations).await?;
+    demo_violation_details(&moderations).await?;
+    demo_moderation_scores(&moderations).await?;
+    demo_moderate_with_details(&moderations).await?;
+    demo_moderation_builder(&moderations).await?;
+    demo_quick_safety_check(&moderations).await?;
 
     println!("\n🎉 Demo completed successfully!");
-
     Ok(())
 }

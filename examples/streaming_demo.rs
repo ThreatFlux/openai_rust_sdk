@@ -138,62 +138,113 @@ async fn await_batch_job_streaming() -> Result<()> {
     println!("3. Batch Job Streaming Simulation");
     println!("---------------------------------");
 
+    let lines = prepare_batch_jobs().await?;
+    println!("Streaming {} batch job requests...", lines.len());
+
+    let batch_stream = create_batch_stream(lines);
+    process_batch_stream(batch_stream).await
+}
+
+#[cfg(feature = "yara")]
+async fn prepare_batch_jobs() -> Result<Vec<String>> {
     let generator = BatchJobGenerator::new(Some("gpt-4".to_string()));
     let temp_file = tempfile::NamedTempFile::new()?;
 
-    // Generate batch jobs
     generator.generate_test_suite(temp_file.path(), "comprehensive")?;
-
     let content = std::fs::read_to_string(temp_file.path())?;
-    let lines: Vec<&str> = content.lines().collect();
 
-    println!("Streaming {} batch job requests...", lines.len());
+    Ok(content.lines().map(String::from).collect())
+}
 
-    // Process batch jobs as a stream
-    let batch_stream = stream::iter(lines.into_iter().enumerate())
-        .map(|(_i, line)| async move {
-            // Parse the batch job request
-            let request: openai_rust_sdk::testing::batch_generator::BatchJobRequest =
-                serde_json::from_str(line)?;
+#[cfg(feature = "yara")]
+fn create_batch_stream(
+    lines: Vec<String>,
+) -> impl futures::Stream<
+    Item = impl std::future::Future<
+        Output = Result<(
+            String,
+            openai_rust_sdk::testing::yara_validator::ValidationResult,
+        )>,
+    >,
+> {
+    stream::iter(lines.into_iter().enumerate()).map(|(_i, line)| process_single_batch_job(line))
+}
 
-            println!("  Processing batch job: {}", request.custom_id);
+#[cfg(feature = "yara")]
+async fn process_single_batch_job(
+    line: String,
+) -> Result<(
+    String,
+    openai_rust_sdk::testing::yara_validator::ValidationResult,
+)> {
+    let request: openai_rust_sdk::testing::batch_generator::BatchJobRequest =
+        serde_json::from_str(&line)?;
 
-            // Simulate API call delay
-            sleep(Duration::from_millis(200)).await;
+    println!("  Processing batch job: {}", request.custom_id);
 
-            // Simulate response processing
-            let simulated_response = format!(
-                "rule Generated_{} {{ condition: true }}",
-                request.custom_id.replace("comprehensive_", "")
-            );
+    // Simulate API call delay
+    sleep(Duration::from_millis(200)).await;
 
-            // Validate the simulated response
-            let validator = YaraValidator::new();
-            let validation_result = validator.validate_rule(&simulated_response)?;
+    let simulated_response = generate_simulated_response(&request.custom_id);
+    let validation_result = validate_response(&simulated_response)?;
 
-            Ok::<_, anyhow::Error>((request.custom_id, validation_result))
-        })
-        .buffer_unordered(3); // Limit concurrent API calls
+    Ok((request.custom_id, validation_result))
+}
 
+#[cfg(feature = "yara")]
+fn generate_simulated_response(custom_id: &str) -> String {
+    format!(
+        "rule Generated_{} {{ condition: true }}",
+        custom_id.replace("comprehensive_", "")
+    )
+}
+
+#[cfg(feature = "yara")]
+fn validate_response(
+    response: &str,
+) -> Result<openai_rust_sdk::testing::yara_validator::ValidationResult> {
+    let validator = YaraValidator::new();
+    validator.validate_rule(response)
+}
+
+#[cfg(feature = "yara")]
+async fn process_batch_stream<S, F>(stream: S) -> Result<()>
+where
+    S: futures::Stream<Item = F>,
+    F: std::future::Future<
+        Output = Result<(
+            String,
+            openai_rust_sdk::testing::yara_validator::ValidationResult,
+        )>,
+    >,
+{
     let mut processed = 0;
     let mut valid_responses = 0;
-    let mut stream = Box::pin(batch_stream);
+    let mut stream = Box::pin(stream.buffer_unordered(3));
 
     while let Some(result) = stream.next().await {
         let (custom_id, validation_result) = result?;
         processed += 1;
 
-        if validation_result.is_valid {
-            valid_responses += 1;
-            println!("    ✓ {custom_id}: Generated valid rule");
-        } else {
-            println!("    ✗ {custom_id}: Generated invalid rule");
-        }
+        print_batch_result(&custom_id, &validation_result, &mut valid_responses);
     }
 
     println!("Batch job streaming completed: {valid_responses}/{processed} valid responses\n");
-
     Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn print_batch_result(
+    custom_id: &str,
+    validation_result: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    valid_responses: &mut i32,
+) {
+    if validation_result.is_valid {
+        *valid_responses += 1;
+        println!("    ✓ {custom_id}: Generated valid rule");
+    } else {
+        println!("    ✗ {custom_id}: Generated invalid rule");
+    }
 }
 
 #[cfg(feature = "yara")]

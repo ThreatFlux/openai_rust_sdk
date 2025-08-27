@@ -32,134 +32,194 @@ use tokio_stream::StreamExt;
 #[cfg(feature = "yara")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
+    let api_key = get_api_key()?;
 
+    print_header();
+
+    test_basic_completion(&api_key).await?;
+    test_batch_api(&api_key).await?;
+    test_responses_api(&api_key).await?;
+    test_gpt5_api(&api_key).await?;
+    test_function_calling(&api_key).await?;
+    test_streaming_api(&api_key).await?;
+    test_yara_validation().await?;
+    test_error_handling(&api_key).await?;
+
+    print_summary();
+
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
+    env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here".into()
+    })
+}
+
+#[cfg(feature = "yara")]
+fn print_header() {
     println!("🚀 Starting OpenAI API Integration Tests");
     println!("═══════════════════════════════════════");
+}
 
-    // Test 1: Basic client creation and simple completion
-    println!("\n1️⃣ Testing Basic Client Creation and Simple Completion");
-    println!("──────────────────────────────────────────────────────");
+#[cfg(feature = "yara")]
+fn print_summary() {
+    println!("\n🎉 All API Integration Tests Completed Successfully!");
+    println!("═══════════════════════════════════════════════════");
+    println!("✅ Client Creation: Working");
+    println!("✅ Simple Completions: Working");
+    println!("✅ Batch API: Working");
+    println!("✅ Conversation API: Working");
+    println!("✅ GPT-5 Style API: Working");
+    println!("✅ Function Calling: Working");
+    println!("✅ Streaming: Working");
+    println!("✅ YARA Integration: Working");
+    println!("✅ Error Handling: Working");
+}
 
-    let client = OpenAIClient::new(&api_key)?;
+#[cfg(feature = "yara")]
+fn print_success(message: &str) {
+    println!("✅ {message}");
+}
 
-    let simple_response = client
+#[cfg(feature = "yara")]
+fn print_error(message: &str) {
+    println!("❌ {message}");
+}
+
+#[cfg(feature = "yara")]
+fn print_warning(message: &str) {
+    println!("⚠️ {message}");
+}
+
+#[cfg(feature = "yara")]
+fn print_test_header(test_number: u8, description: &str) {
+    println!("\n{}️⃣ Testing {}", test_number, description);
+    println!("{}", "─".repeat(description.len() + 12));
+}
+
+#[cfg(feature = "yara")]
+async fn test_basic_completion(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(1, "Basic Client Creation and Simple Completion");
+
+    let client = OpenAIClient::new(api_key)?;
+    let response = client
         .generate_text("gpt-4o-mini", "Say hello in a creative way!")
         .await?;
 
-    println!("✅ Simple completion successful:");
-    println!("   Response: {simple_response}");
+    print_success("Simple completion successful:");
+    println!("   Response: {response}");
 
-    // Test 2: OpenAI Batch API with YARA validation requests
-    println!("\n2️⃣ Testing OpenAI Batch API with YARA Validation");
-    println!("─────────────────────────────────────────────────");
+    Ok(())
+}
 
-    let batch_api = BatchApi::new(api_key.clone())?;
+#[cfg(feature = "yara")]
+async fn test_batch_api(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(2, "OpenAI Batch API with YARA Validation");
+
+    let batch_api = BatchApi::new(api_key.to_string())?;
     let batch_generator = BatchJobGenerator::new(Some("gpt-4o-mini".to_string()));
 
-    // Generate a small batch file for testing - using tempfile for secure creation
     let temp_dir = tempfile::tempdir().expect("Failed to create temp directory");
     let temp_file = temp_dir.path().join("batch_api_test.jsonl");
 
     println!("   Generating batch job file...");
-    match batch_generator.generate_test_suite(&temp_file, "basic") {
-        Ok(()) => {
-            // Upload the batch file
-            println!("   Uploading batch file to OpenAI...");
-            match batch_api.upload_batch_file(&temp_file).await {
-                Ok(file_upload) => {
-                    println!("✅ File upload successful:");
-                    println!("   File ID: {}", file_upload.id);
-                    println!("   File size: {} bytes", file_upload.bytes);
 
-                    // Create a batch job
-                    println!("\n   Creating batch job...");
-                    match batch_api
-                        .create_batch(&file_upload.id, "/v1/chat/completions")
-                        .await
-                    {
-                        Ok(batch) => {
-                            println!("✅ Batch creation successful:");
-                            println!("   Batch ID: {}", batch.id);
-                            println!("   Status: {}", batch.status);
-                            println!("   Total requests: {}", batch.request_counts.total);
-                            println!("   Expires at: {}", batch.expires_at);
-
-                            // Check status one more time
-                            println!("\n   Checking batch status...");
-                            match batch_api.get_batch_status(&batch.id).await {
-                                Ok(status) => {
-                                    println!("   ✅ Status check successful:");
-                                    println!("      Current status: {}", status.status);
-                                    println!(
-                                        "      Completed: {}",
-                                        status.request_counts.completed
-                                    );
-                                    println!("      Failed: {}", status.request_counts.failed);
-
-                                    println!("   💡 Batch is now processing. In production:");
-                                    println!(
-                                        "      - Poll status every 30-60 seconds using get_batch_status()"
-                                    );
-                                    println!(
-                                        "      - Or use wait_for_completion() to automatically wait"
-                                    );
-                                    println!(
-                                        "      - Retrieve results with get_batch_results() when completed"
-                                    );
-                                }
-                                Err(e) => println!("   ⚠️ Status check error: {e}"),
-                            }
-
-                            // Test batch listing
-                            println!("\n   Testing batch listing...");
-                            match batch_api.list_batches(Some(5), None).await {
-                                Ok(batch_list) => {
-                                    println!("   ✅ Found {} batches", batch_list.data.len());
-                                    for (i, batch_item) in
-                                        batch_list.data.iter().take(3).enumerate()
-                                    {
-                                        println!(
-                                            "      {}. {} ({})",
-                                            i + 1,
-                                            batch_item.id,
-                                            batch_item.status
-                                        );
-                                    }
-                                }
-                                Err(e) => println!("   ⚠️ Batch listing error: {e}"),
-                            }
-                        }
-                        Err(e) => {
-                            println!("❌ Batch creation failed: {e}");
-                            println!(
-                                "   This might be due to API limits or batch API availability"
-                            );
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("❌ File upload failed: {e}");
-                    println!("   This might be due to API limits or file format issues");
-                }
-            }
-
-            // Clean up temp file
-            let _ = std::fs::remove_file(&temp_file);
-        }
-        Err(e) => {
-            println!("❌ Batch file generation failed: {e}");
-        }
+    if let Err(e) = batch_generator.generate_test_suite(&temp_file, "basic") {
+        print_error(&format!("Batch file generation failed: {e}"));
+        return Ok(());
     }
 
-    // Test 3: Responses API with messages
-    println!("\n3️⃣ Testing Responses API with Conversation");
-    println!("─────────────────────────────────────────────");
+    upload_and_process_batch(&batch_api, &temp_file).await;
+    let _ = std::fs::remove_file(&temp_file);
 
-    let responses_api = ResponsesApi::new(api_key.clone())?;
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+async fn upload_and_process_batch(batch_api: &BatchApi, temp_file: &std::path::Path) {
+    println!("   Uploading batch file to OpenAI...");
+
+    let file_upload = match batch_api.upload_batch_file(temp_file).await {
+        Ok(upload) => {
+            print_success("File upload successful:");
+            println!("   File ID: {}", upload.id);
+            println!("   File size: {} bytes", upload.bytes);
+            upload
+        }
+        Err(e) => {
+            print_error(&format!("File upload failed: {e}"));
+            println!("   This might be due to API limits or file format issues");
+            return;
+        }
+    };
+
+    println!("\n   Creating batch job...");
+
+    let batch = match batch_api
+        .create_batch(&file_upload.id, "/v1/chat/completions")
+        .await
+    {
+        Ok(batch) => {
+            print_success("Batch creation successful:");
+            println!("   Batch ID: {}", batch.id);
+            println!("   Status: {}", batch.status);
+            println!("   Total requests: {}", batch.request_counts.total);
+            println!("   Expires at: {}", batch.expires_at);
+            batch
+        }
+        Err(e) => {
+            print_error(&format!("Batch creation failed: {e}"));
+            println!("   This might be due to API limits or batch API availability");
+            return;
+        }
+    };
+
+    check_batch_status(batch_api, &batch.id).await;
+    list_batches(batch_api).await;
+}
+
+#[cfg(feature = "yara")]
+async fn check_batch_status(batch_api: &BatchApi, batch_id: &str) {
+    println!("\n   Checking batch status...");
+
+    match batch_api.get_batch_status(batch_id).await {
+        Ok(status) => {
+            println!("   ✅ Status check successful:");
+            println!("      Current status: {}", status.status);
+            println!("      Completed: {}", status.request_counts.completed);
+            println!("      Failed: {}", status.request_counts.failed);
+
+            println!("   💡 Batch is now processing. In production:");
+            println!("      - Poll status every 30-60 seconds using get_batch_status()");
+            println!("      - Or use wait_for_completion() to automatically wait");
+            println!("      - Retrieve results with get_batch_results() when completed");
+        }
+        Err(e) => print_warning(&format!("Status check error: {e}")),
+    }
+}
+
+#[cfg(feature = "yara")]
+async fn list_batches(batch_api: &BatchApi) {
+    println!("\n   Testing batch listing...");
+
+    match batch_api.list_batches(Some(5), None).await {
+        Ok(batch_list) => {
+            println!("   ✅ Found {} batches", batch_list.data.len());
+            for (i, batch_item) in batch_list.data.iter().take(3).enumerate() {
+                println!("      {}. {} ({})", i + 1, batch_item.id, batch_item.status);
+            }
+        }
+        Err(e) => print_warning(&format!("Batch listing error: {e}")),
+    }
+}
+
+#[cfg(feature = "yara")]
+async fn test_responses_api(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(3, "Responses API with Conversation");
+
+    let responses_api = ResponsesApi::new(api_key.to_string())?;
 
     let messages = vec![
         Message::user("You are a helpful coding assistant."),
@@ -171,29 +231,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_temperature(0.7);
 
     let response = responses_api.create_response(&request).await?;
-    println!("✅ Conversation response successful:");
+    print_success("Conversation response successful:");
     println!("   Response: {}", response.output_text());
 
-    // Test 4: GPT-5 API features (using GPT-4 as fallback since GPT-5 may not be available)
-    println!("\n4️⃣ Testing GPT-5 API Features");
-    println!("────────────────────────────────────────");
+    Ok(())
+}
 
-    let gpt5_api = GPT5Api::new(api_key.clone())?;
+#[cfg(feature = "yara")]
+async fn test_gpt5_api(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(4, "GPT-5 API Features");
 
-    // Test with a model that exists (gpt-4o-mini instead of gpt-5)
-    let gpt5_response = gpt5_api
-        .create_minimal_response(
-            "gpt-4o-mini", // Using available model
-            "Explain quantum computing in one sentence.",
-        )
+    let gpt5_api = GPT5Api::new(api_key.to_string())?;
+
+    let response = gpt5_api
+        .create_minimal_response("gpt-4o-mini", "Explain quantum computing in one sentence.")
         .await?;
 
-    println!("✅ GPT-5 style response successful:");
-    println!("   Response: {}", gpt5_response.output_text());
+    print_success("GPT-5 style response successful:");
+    println!("   Response: {}", response.output_text());
 
-    // Test 5: Function Calling
-    println!("\n5️⃣ Testing Function Calling");
-    println!("──────────────────────────────");
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+async fn test_function_calling(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(5, "Function Calling");
 
     let weather_function = FunctionBuilder::new()
         .name("get_weather")
@@ -201,39 +263,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .required_parameter("location", SchemaBuilder::string())
         .build_tool()?;
 
-    let mut functions_api = FunctionsApi::new(&api_key)?;
+    let mut functions_api = FunctionsApi::new(api_key)?;
 
     let function_config = FunctionConfig::new()
         .with_tools(vec![weather_function])
         .with_tool_choice(ToolChoice::Auto);
 
-    let function_response = functions_api
+    let response = functions_api
         .create_function_response(
             &ResponseRequest::new_text("gpt-4o-mini", "What's the weather like in San Francisco?"),
             &function_config,
         )
         .await?;
 
-    println!("✅ Function calling successful:");
+    print_success("Function calling successful:");
     println!(
         "   Content: {}",
-        function_response.content.as_deref().unwrap_or("No content")
+        response.content.as_deref().unwrap_or("No content")
     );
-    if !function_response.function_calls.is_empty() {
-        println!(
-            "   Functions called: {}",
-            function_response.function_calls.len()
-        );
-        for call in &function_response.function_calls {
+
+    if !response.function_calls.is_empty() {
+        println!("   Functions called: {}", response.function_calls.len());
+        for call in &response.function_calls {
             println!("     - {}: {}", call.name, call.arguments);
         }
     }
 
-    // Test 6: Streaming API
-    println!("\n6️⃣ Testing Streaming API");
-    println!("───────────────────────────");
+    Ok(())
+}
 
-    let streaming_api = StreamingApi::new(api_key.clone())?;
+#[cfg(feature = "yara")]
+async fn test_streaming_api(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(6, "Streaming API");
+
+    let streaming_api = StreamingApi::new(api_key.to_string())?;
 
     let mut stream = streaming_api
         .create_chat_stream(
@@ -242,7 +305,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await?;
 
-    println!("✅ Streaming response:");
+    print_success("Streaming response:");
     print!("   ");
 
     let mut chunk_count = 0;
@@ -267,9 +330,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n   Received {chunk_count} chunks");
 
-    // Test 7: YARA Validation Integration
-    println!("\n7️⃣ Testing YARA Validation Integration");
-    println!("────────────────────────────────────────");
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+async fn test_yara_validation() -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(7, "YARA Validation Integration");
 
     let validator = YaraValidator::new();
 
@@ -288,7 +354,7 @@ rule test_api_integration {
 
     let validation_result = validator.validate_rule(test_rule)?;
 
-    println!("✅ YARA validation successful:");
+    print_success("YARA validation successful:");
     println!("   Valid: {}", validation_result.is_valid);
     println!(
         "   Rule name: {}",
@@ -303,42 +369,36 @@ rule test_api_integration {
         validation_result.features.has_strings, validation_result.features.has_hex_patterns
     );
 
-    // Test 8: Error Handling
-    println!("\n8️⃣ Testing Error Handling");
-    println!("────────────────────────────");
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+async fn test_error_handling(api_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    print_test_header(8, "Error Handling");
+
+    let responses_api = ResponsesApi::new(api_key.to_string())?;
+    let validator = YaraValidator::new();
 
     // Test with invalid model
     match responses_api
         .create_response(&ResponseRequest::new_text("invalid-model", "test"))
         .await
     {
-        Err(e) => println!("✅ Error handling working: {e}"),
-        Ok(_) => println!("❌ Expected error but got success"),
+        Err(e) => print_success(&format!("Error handling working: {e}")),
+        Ok(_) => print_error("Expected error but got success"),
     }
 
     // Test YARA with invalid rule
     match validator.validate_rule("invalid yara rule syntax") {
-        Err(e) => println!("✅ YARA error handling working: {e}"),
+        Err(e) => print_success(&format!("YARA error handling working: {e}")),
         Ok(result) => {
             if result.is_valid {
-                println!("❌ Expected invalid rule but got valid");
+                print_error("Expected invalid rule but got valid");
             } else {
-                println!("✅ YARA validation correctly detected invalid rule");
+                print_success("YARA validation correctly detected invalid rule");
             }
         }
     }
-
-    println!("\n🎉 All API Integration Tests Completed Successfully!");
-    println!("═══════════════════════════════════════════════════");
-    println!("✅ Client Creation: Working");
-    println!("✅ Simple Completions: Working");
-    println!("✅ Batch API: Working");
-    println!("✅ Conversation API: Working");
-    println!("✅ GPT-5 Style API: Working");
-    println!("✅ Function Calling: Working");
-    println!("✅ Streaming: Working");
-    println!("✅ YARA Integration: Working");
-    println!("✅ Error Handling: Working");
 
     Ok(())
 }

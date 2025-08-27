@@ -1,5 +1,4 @@
 #![allow(
-    clippy::too_many_lines,
     clippy::uninlined_format_args,
     clippy::cast_precision_loss,
     clippy::ignored_unit_patterns,
@@ -111,20 +110,30 @@ User: "Explain quantum entanglement"
 Assistant: "Quantum entanglement is a phenomenon where quantum particles become correlated in such a way that the quantum state of each particle cannot be described independently. Let me explain the key concepts, mathematical formulation, and practical applications."
 "#;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
+/// Helper function to calculate cache statistics
+fn calculate_cache_stats(timings: &[Duration], total_cached_tokens: u32, total_prompt_tokens: u32) {
+    let avg_first_latency = timings[0].as_millis() as f64;
+    let avg_cached_latency = timings[1..]
+        .iter()
+        .map(|d| d.as_millis() as f64)
+        .sum::<f64>()
+        / (timings.len() - 1) as f64;
+    let latency_reduction = ((avg_first_latency - avg_cached_latency) / avg_first_latency) * 100.0;
 
-    println!("🚀 Prompt Caching Demo");
-    println!("======================");
-    println!("This demo shows how to optimize prompts for caching to reduce latency and costs.\n");
+    println!("\n📈 Caching Statistics:");
+    println!("  • Average first request latency: {avg_first_latency:.0}ms");
+    println!("  • Average cached request latency: {avg_cached_latency:.0}ms");
+    println!("  • Latency reduction: {latency_reduction:.1}%");
+    println!(
+        "  • Total tokens cached: {}/{} ({:.1}%)",
+        total_cached_tokens,
+        total_prompt_tokens,
+        (total_cached_tokens as f64 / total_prompt_tokens as f64) * 100.0
+    );
+}
 
-    let api = ResponsesApi::new(api_key)?;
-
-    // Example 1: Basic caching with repeated requests
+/// Demonstrates basic prompt caching with repeated requests
+async fn demo_basic_caching(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("📊 Example 1: Basic Prompt Caching");
     println!("──────────────────────────────────");
     println!("Making 5 identical requests to demonstrate caching...\n");
@@ -175,27 +184,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Calculate improvements
-    let avg_first_latency = timings[0].as_millis() as f64;
-    let avg_cached_latency = timings[1..]
-        .iter()
-        .map(|d| d.as_millis() as f64)
-        .sum::<f64>()
-        / (timings.len() - 1) as f64;
-    let latency_reduction = ((avg_first_latency - avg_cached_latency) / avg_first_latency) * 100.0;
+    calculate_cache_stats(&timings, total_cached_tokens, total_prompt_tokens);
+    Ok(())
+}
 
-    println!("\n📈 Caching Statistics:");
-    println!("  • Average first request latency: {avg_first_latency:.0}ms");
-    println!("  • Average cached request latency: {avg_cached_latency:.0}ms");
-    println!("  • Latency reduction: {latency_reduction:.1}%");
-    println!(
-        "  • Total tokens cached: {}/{} ({:.1}%)",
-        total_cached_tokens,
-        total_prompt_tokens,
-        (total_cached_tokens as f64 / total_prompt_tokens as f64) * 100.0
-    );
-
-    // Example 2: Using prompt_cache_key for better routing
+/// Demonstrates using `prompt_cache_key` for better routing
+async fn demo_cache_key_routing(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔑 Example 2: Using prompt_cache_key for Routing");
     println!("─────────────────────────────────────────────────");
     println!("Using cache keys to optimize routing for different use cases...\n");
@@ -248,7 +242,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         sleep(Duration::from_millis(200)).await;
     }
 
-    // Example 3: Optimizing prompt structure for caching
+    Ok(())
+}
+
+/// Helper function to test a structured prompt request
+async fn test_structured_request(
+    api: &ResponsesApi,
+    request: &ResponseRequest,
+    label: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let start = Instant::now();
+    let response = api.create_response(request).await?;
+    println!(
+        "  {label}: {:.2}ms, {} cached tokens ({:.1}% hit rate)",
+        start.elapsed().as_millis(),
+        response.cached_tokens(),
+        response.cache_hit_rate()
+    );
+    Ok(())
+}
+
+/// Demonstrates prompt structure optimization for caching
+async fn demo_prompt_structure(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🏗️ Example 3: Optimizing Prompt Structure");
     println!("──────────────────────────────────────────");
     println!("Comparing well-structured vs poorly-structured prompts...\n");
@@ -268,14 +283,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .with_max_tokens(150)
     .with_prompt_cache_key("structured-v1");
 
-    let start = Instant::now();
-    let response1 = api.create_response(&well_structured).await?;
-    println!(
-        "  First request: {:.2}ms, {} cached tokens",
-        start.elapsed().as_millis(),
-        response1.cached_tokens()
-    );
-
+    test_structured_request(api, &well_structured, "First request").await?;
     sleep(Duration::from_millis(500)).await;
 
     // Second request with different dynamic content but same prefix
@@ -292,14 +300,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .with_max_tokens(150)
     .with_prompt_cache_key("structured-v1");
 
-    let start = Instant::now();
-    let response2 = api.create_response(&well_structured2).await?;
-    println!(
-        "  Second request: {:.2}ms, {} cached tokens ({:.1}% hit rate)",
-        start.elapsed().as_millis(),
-        response2.cached_tokens(),
-        response2.cache_hit_rate()
-    );
+    test_structured_request(api, &well_structured2, "Second request").await?;
 
     // Poorly-structured prompt (dynamic content interrupts static)
     println!("\n❌ Poorly-structured prompt (dynamic interrupts static):");
@@ -314,14 +315,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .with_max_tokens(150);
 
-    let start = Instant::now();
-    let response3 = api.create_response(&poor_structured).await?;
-    println!(
-        "  First request: {:.2}ms, {} cached tokens",
-        start.elapsed().as_millis(),
-        response3.cached_tokens()
-    );
-
+    test_structured_request(api, &poor_structured, "First request").await?;
     sleep(Duration::from_millis(500)).await;
 
     // Second poorly structured request
@@ -336,17 +330,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .with_max_tokens(150);
 
-    let start = Instant::now();
-    let response4 = api.create_response(&poor_structured2).await?;
-    println!(
-        "  Second request: {:.2}ms, {} cached tokens ({:.1}% hit rate)",
-        start.elapsed().as_millis(),
-        response4.cached_tokens(),
-        response4.cache_hit_rate()
-    );
+    test_structured_request(api, &poor_structured2, "Second request").await?;
     println!("  ⚠️  Note: Poor structure prevents effective caching!");
 
-    // Example 4: Cache persistence timing
+    Ok(())
+}
+
+/// Demonstrates cache persistence timing
+async fn demo_cache_persistence(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n⏰ Example 4: Cache Persistence Timing");
     println!("──────────────────────────────────────");
     println!("Testing cache persistence over time...\n");
@@ -395,7 +386,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Example 5: Multi-turn conversation caching
+    Ok(())
+}
+
+/// Demonstrates multi-turn conversation caching
+async fn demo_conversation_caching(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n💬 Example 5: Multi-turn Conversation Caching");
     println!("──────────────────────────────────────────────");
     println!("Demonstrating cache benefits in conversations...\n");
@@ -456,7 +451,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         response.cache_hit_rate()
     );
 
-    // Summary
+    Ok(())
+}
+
+/// Prints the best practices summary
+fn print_summary() {
     println!("\n✨ Prompt Caching Best Practices Summary");
     println!("────────────────────────────────────────");
     println!("1. ✅ Place static content (system prompts, examples) at the beginning");
@@ -472,6 +471,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   • Cost reduction: Up to 75%");
     println!("   • No additional fees or code changes required");
     println!("   • Works with gpt-4o and newer models");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Get API key from environment
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
+    })?;
+
+    println!("🚀 Prompt Caching Demo");
+    println!("======================");
+    println!("This demo shows how to optimize prompts for caching to reduce latency and costs.\n");
+
+    let api = ResponsesApi::new(api_key)?;
+
+    // Run all demo examples
+    demo_basic_caching(&api).await?;
+    demo_cache_key_routing(&api).await?;
+    demo_prompt_structure(&api).await?;
+    demo_cache_persistence(&api).await?;
+    demo_conversation_caching(&api).await?;
+
+    // Print summary
+    print_summary();
 
     Ok(())
 }

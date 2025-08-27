@@ -284,61 +284,32 @@ fn test_error_structure() {
 }
 
 #[cfg(feature = "yara")]
+fn get_test_rules() -> Vec<&'static str> {
+    vec![
+        r"rule simple { condition: true }",
+        r#"rule with_strings { strings: $s = "test" condition: $s }"#,
+        r"rule with_hex { strings: $h = { FF FE } condition: $h }",
+        r"rule with_regex { strings: $r = /test[0-9]+/ condition: $r }",
+    ]
+}
+
+#[cfg(feature = "yara")]
+fn validate_rule_successfully(validator: &YaraValidator, rule: &str) {
+    let result = validator.validate_rule(rule).unwrap();
+    assert!(result.is_valid);
+    // Note: Feature detection may vary based on YARA implementation
+    // Just verify the rule validates successfully
+}
+
+#[cfg(feature = "yara")]
 #[test]
 fn test_feature_flags_structure() {
     let validator = YaraValidator::new();
+    let test_rules = get_test_rules();
 
-    // Type alias to simplify complex type
-    type TestCase = (
-        &'static str,
-        Box<dyn Fn(&openai_rust_sdk::testing::yara_validator::RuleFeatures) -> bool>,
-    );
-
-    // Test different feature combinations
-    let test_cases: Vec<TestCase> = vec![
-        (
-            r"rule simple { condition: true }",
-            Box::new(
-                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                    !f.has_strings
-                        && !f.has_hex_patterns
-                        && !f.has_regex_patterns
-                        && !f.has_metadata
-                },
-            ),
-        ),
-        (
-            r#"rule with_strings { strings: $s = "test" condition: $s }"#,
-            Box::new(
-                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                    f.has_strings && !f.has_hex_patterns && !f.has_regex_patterns
-                },
-            ),
-        ),
-        (
-            r"rule with_hex { strings: $h = { FF FE } condition: $h }",
-            Box::new(
-                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                    f.has_strings && f.has_hex_patterns && !f.has_regex_patterns
-                },
-            ),
-        ),
-        (
-            r"rule with_regex { strings: $r = /test[0-9]+/ condition: $r }",
-            Box::new(
-                |f: &openai_rust_sdk::testing::yara_validator::RuleFeatures| {
-                    f.has_strings && !f.has_hex_patterns && f.has_regex_patterns
-                },
-            ),
-        ),
-    ];
-
-    for (rule, _check_features) in test_cases {
-        let result = validator.validate_rule(rule).unwrap();
-        assert!(result.is_valid);
-        // Note: Feature detection may vary based on YARA implementation
-        // Just verify the rule validates successfully
-        // assert!(check_features(&result.features));
+    // Test each rule validates successfully
+    for rule in test_rules {
+        validate_rule_successfully(&validator, rule);
     }
 }
 

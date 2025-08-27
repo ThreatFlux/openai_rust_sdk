@@ -300,34 +300,65 @@ impl ImageGenerationRequest {
 
     /// Validate the request parameters
     pub fn validate(&self) -> Result<(), String> {
-        // DALL-E 3 specific validations
         if self.model == "dall-e-3" {
-            if let Some(n) = self.n {
-                if n != 1 {
-                    return Err("DALL-E 3 only supports generating 1 image at a time".to_string());
-                }
-            }
-
-            if let Some(ImageSize::Size256x256 | ImageSize::Size512x512) = &self.size {
-                return Err("DALL-E 3 does not support 256x256 or 512x512 sizes".to_string());
-            }
+            self.validate_dall_e_3()?;
+        } else if self.model == "dall-e-2" {
+            self.validate_dall_e_2()?;
         }
 
-        // DALL-E 2 specific validations
-        if self.model == "dall-e-2" {
-            if self.quality.is_some() {
-                return Err("Quality parameter is only available for DALL-E 3".to_string());
-            }
+        Ok(())
+    }
 
-            if self.style.is_some() {
-                return Err("Style parameter is only available for DALL-E 3".to_string());
-            }
+    /// Validate DALL-E 3 specific parameters
+    fn validate_dall_e_3(&self) -> Result<(), String> {
+        self.validate_dall_e_3_image_count()?;
+        self.validate_dall_e_3_image_size()?;
+        Ok(())
+    }
 
-            if let Some(ImageSize::Size1792x1024 | ImageSize::Size1024x1792) = &self.size {
-                return Err("DALL-E 2 does not support 1792x1024 or 1024x1792 sizes".to_string());
+    /// Validate DALL-E 2 specific parameters
+    fn validate_dall_e_2(&self) -> Result<(), String> {
+        self.validate_dall_e_2_quality_and_style()?;
+        self.validate_dall_e_2_image_size()?;
+        Ok(())
+    }
+
+    /// Validate DALL-E 3 image count parameter
+    fn validate_dall_e_3_image_count(&self) -> Result<(), String> {
+        if let Some(n) = self.n {
+            if n != 1 {
+                return Err("DALL-E 3 only supports generating 1 image at a time".to_string());
             }
         }
+        Ok(())
+    }
 
+    /// Validate DALL-E 3 image size parameter
+    fn validate_dall_e_3_image_size(&self) -> Result<(), String> {
+        if let Some(ImageSize::Size256x256 | ImageSize::Size512x512) = &self.size {
+            return Err("DALL-E 3 does not support 256x256 or 512x512 sizes".to_string());
+        }
+        Ok(())
+    }
+
+    /// Validate DALL-E 2 quality and style parameters
+    fn validate_dall_e_2_quality_and_style(&self) -> Result<(), String> {
+        if self.quality.is_some() {
+            return Err("Quality parameter is only available for DALL-E 3".to_string());
+        }
+
+        if self.style.is_some() {
+            return Err("Style parameter is only available for DALL-E 3".to_string());
+        }
+
+        Ok(())
+    }
+
+    /// Validate DALL-E 2 image size parameter
+    fn validate_dall_e_2_image_size(&self) -> Result<(), String> {
+        if let Some(ImageSize::Size1792x1024 | ImageSize::Size1024x1792) = &self.size {
+            return Err("DALL-E 2 does not support 1792x1024 or 1024x1792 sizes".to_string());
+        }
         Ok(())
     }
 }

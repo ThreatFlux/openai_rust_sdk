@@ -180,6 +180,31 @@ pub enum ModelTier {
     Experimental,
 }
 
+/// Internal enum to categorize model types for capability determination
+#[derive(Debug, Clone, PartialEq)]
+enum ModelType {
+    /// GPT-4o series models
+    Gpt4o,
+    /// GPT-4 Turbo models
+    Gpt4Turbo,
+    /// GPT-4 models
+    Gpt4,
+    /// GPT-3.5 models
+    Gpt35,
+    /// DALL-E image generation models
+    Dalle,
+    /// Whisper audio models
+    Whisper,
+    /// TTS (Text-to-Speech) models
+    Tts,
+    /// Embedding models
+    Embedding,
+    /// Moderation models
+    Moderation,
+    /// Legacy/unknown models
+    Legacy,
+}
+
 impl Model {
     /// Get the model capabilities based on the model ID
     #[must_use]
@@ -235,23 +260,69 @@ impl ModelCapabilities {
         let family = Self::classify_family(model_id);
         let tier = Self::classify_tier(model_id);
 
-        match model_id {
-            id if id.starts_with("gpt-4o") => Self::gpt4o_capabilities(family, tier),
-            id if id.starts_with("gpt-4-turbo")
-                || id.contains("gpt-4-1106")
-                || id.contains("gpt-4-0125") =>
-            {
-                Self::gpt4_turbo_capabilities(id, family, tier)
-            }
-            id if id.starts_with("gpt-4") => Self::gpt4_capabilities(id, family, tier),
-            id if id.starts_with("gpt-3.5-turbo") => Self::gpt35_capabilities(id, family, tier),
-            id if id.starts_with("dall-e") => Self::dalle_capabilities(family, tier),
-            id if id.starts_with("whisper") => Self::whisper_capabilities(family, tier),
-            id if id.starts_with("tts") => Self::tts_capabilities(family, tier),
-            id if id.contains("embedding") => Self::embedding_capabilities(family, tier),
-            id if id.contains("moderation") => Self::moderation_capabilities(family, tier),
-            _ => Self::legacy_capabilities(family, tier),
+        // Determine model type based on ID patterns
+        let model_type = Self::determine_model_type(model_id);
+
+        match model_type {
+            ModelType::Gpt4o => Self::gpt4o_capabilities(family, tier),
+            ModelType::Gpt4Turbo => Self::gpt4_turbo_capabilities(model_id, family, tier),
+            ModelType::Gpt4 => Self::gpt4_capabilities(model_id, family, tier),
+            ModelType::Gpt35 => Self::gpt35_capabilities(model_id, family, tier),
+            ModelType::Dalle => Self::dalle_capabilities(family, tier),
+            ModelType::Whisper => Self::whisper_capabilities(family, tier),
+            ModelType::Tts => Self::tts_capabilities(family, tier),
+            ModelType::Embedding => Self::embedding_capabilities(family, tier),
+            ModelType::Moderation => Self::moderation_capabilities(family, tier),
+            ModelType::Legacy => Self::legacy_capabilities(family, tier),
         }
+    }
+
+    /// Determine the model type from the model ID
+    fn determine_model_type(model_id: &str) -> ModelType {
+        if model_id.starts_with("gpt-4o") {
+            return ModelType::Gpt4o;
+        }
+
+        if Self::is_gpt4_turbo(model_id) {
+            return ModelType::Gpt4Turbo;
+        }
+
+        if model_id.starts_with("gpt-4") {
+            return ModelType::Gpt4;
+        }
+
+        if model_id.starts_with("gpt-3.5-turbo") {
+            return ModelType::Gpt35;
+        }
+
+        if model_id.starts_with("dall-e") {
+            return ModelType::Dalle;
+        }
+
+        if model_id.starts_with("whisper") {
+            return ModelType::Whisper;
+        }
+
+        if model_id.starts_with("tts") {
+            return ModelType::Tts;
+        }
+
+        if model_id.contains("embedding") {
+            return ModelType::Embedding;
+        }
+
+        if model_id.contains("moderation") {
+            return ModelType::Moderation;
+        }
+
+        ModelType::Legacy
+    }
+
+    /// Check if the model ID represents a GPT-4 Turbo model
+    fn is_gpt4_turbo(model_id: &str) -> bool {
+        model_id.starts_with("gpt-4-turbo")
+            || model_id.contains("gpt-4-1106")
+            || model_id.contains("gpt-4-0125")
     }
 
     /// Create capabilities for GPT-4o models

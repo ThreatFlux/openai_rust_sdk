@@ -9,10 +9,9 @@ use serde_json::{json, Value};
 /// Convert message role to OpenAI format
 pub fn role_to_string(role: &MessageRole) -> &'static str {
     match role {
-        MessageRole::Developer => "system",
+        MessageRole::Developer | MessageRole::System => "system",
         MessageRole::User => "user",
         MessageRole::Assistant => "assistant",
-        MessageRole::System => "system",
     }
 }
 

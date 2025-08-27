@@ -118,6 +118,17 @@ pub struct PatternTestResult {
     pub match_details: Option<String>,
 }
 
+/// Result of analyzing string patterns in a YARA rule
+#[derive(Debug, Default)]
+struct StringAnalysisResult {
+    /// Number of string patterns found
+    count: usize,
+    /// Whether hex patterns were found
+    has_hex: bool,
+    /// Whether regex patterns were found
+    has_regex: bool,
+}
+
 /// YARA rule validator with built-in test samples
 ///
 /// The validator provides comprehensive rule validation including:
@@ -298,46 +309,89 @@ impl YaraValidator {
         let mut features = RuleFeatures::default();
         let source_lower = rule_source.to_lowercase();
 
+        self.analyze_basic_features(&mut features, &source_lower);
+        let string_analysis = self.analyze_string_patterns(rule_source);
+
+        features.string_count = string_analysis.count;
+        features.has_hex_patterns = string_analysis.has_hex;
+        features.has_regex_patterns = string_analysis.has_regex;
+        features.complexity_score = (string_analysis.count + 1).min(10) as u8;
+
+        features
+    }
+
+    /// Analyzes basic features from rule source
+    #[allow(clippy::unused_self)]
+    fn analyze_basic_features(&self, features: &mut RuleFeatures, source_lower: &str) {
         features.has_strings = source_lower.contains("strings:");
         features.has_metadata = source_lower.contains("meta:");
         features.has_imports = source_lower.contains("import ");
         features.uses_external_vars = source_lower.contains("filesize");
-        features.uses_iterators =
-            source_lower.contains("any of") || source_lower.contains("all of");
+        features.uses_iterators = self.has_iterator_usage(source_lower);
+    }
 
-        let mut string_count = 0;
+    /// Checks if rule uses iterators (any of, all of)
+    #[allow(clippy::unused_self)]
+    fn has_iterator_usage(&self, source_lower: &str) -> bool {
+        source_lower.contains("any of") || source_lower.contains("all of")
+    }
+
+    /// Analyzes string patterns in the rule
+    #[allow(clippy::unused_self)]
+    fn analyze_string_patterns(&self, rule_source: &str) -> StringAnalysisResult {
+        let mut result = StringAnalysisResult::default();
         let mut in_strings_section = false;
 
         for line in rule_source.lines() {
             let line = line.trim();
 
-            if line.starts_with("strings:") {
+            if self.is_section_start(line, "strings:") {
                 in_strings_section = true;
                 continue;
             }
 
-            if line.starts_with("condition:") {
+            if self.is_section_start(line, "condition:") {
                 in_strings_section = false;
                 continue;
             }
 
             if in_strings_section && line.starts_with('$') {
-                string_count += 1;
-
-                if line.contains('{') && line.contains('}') {
-                    features.has_hex_patterns = true;
-                }
-
-                if line.contains('/') && line.matches('/').count() >= 2 {
-                    features.has_regex_patterns = true;
-                }
+                result.count += 1;
+                self.analyze_pattern_type(line, &mut result);
             }
         }
 
-        features.string_count = string_count;
-        features.complexity_score = (string_count + 1).min(10) as u8;
+        result
+    }
 
-        features
+    /// Checks if line starts a new section
+    #[allow(clippy::unused_self)]
+    fn is_section_start(&self, line: &str, section: &str) -> bool {
+        line.starts_with(section)
+    }
+
+    /// Analyzes the type of pattern in a string definition line
+    #[allow(clippy::unused_self)]
+    fn analyze_pattern_type(&self, line: &str, result: &mut StringAnalysisResult) {
+        if self.is_hex_pattern(line) {
+            result.has_hex = true;
+        }
+
+        if self.is_regex_pattern(line) {
+            result.has_regex = true;
+        }
+    }
+
+    /// Checks if line contains hex pattern
+    #[allow(clippy::unused_self)]
+    fn is_hex_pattern(&self, line: &str) -> bool {
+        line.contains('{') && line.contains('}')
+    }
+
+    /// Checks if line contains regex pattern
+    #[allow(clippy::unused_self)]
+    fn is_regex_pattern(&self, line: &str) -> bool {
+        line.contains('/') && line.matches('/').count() >= 2
     }
 
     /// Tests compiled patterns against sample data
