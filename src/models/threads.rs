@@ -49,6 +49,104 @@ use crate::{De, Ser};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Macro to generate default object functions
+macro_rules! default_object_fn {
+    ($fn_name:ident, $object_type:literal) => {
+        fn $fn_name() -> String {
+            $object_type.to_string()
+        }
+    };
+}
+
+/// Macro to generate list response structures
+macro_rules! impl_list_response {
+    ($struct_name:ident, $item_type:ty, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, Ser, De)]
+        pub struct $struct_name {
+            /// The object type, which is always "list"
+            #[serde(default = "default_list_object")]
+            pub object: String,
+            /// List of items
+            pub data: Vec<$item_type>,
+            /// ID of the first item in the list
+            pub first_id: Option<String>,
+            /// ID of the last item in the list
+            pub last_id: Option<String>,
+            /// Whether there are more items available
+            pub has_more: bool,
+        }
+    };
+}
+
+/// Macro to generate metadata builder methods
+macro_rules! impl_metadata_methods {
+    () => {
+        /// Add metadata
+        pub fn metadata_pair(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+            self.add_metadata_pair(key, value);
+            self
+        }
+
+        /// Set all metadata
+        #[must_use]
+        pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
+            self.set_metadata(metadata);
+            self
+        }
+    };
+}
+
+/// Macro to generate builder setter methods for optional string fields
+macro_rules! impl_string_option_setters {
+    ($(($method:ident, $field:ident, $doc:literal)),+ $(,)?) => {
+        $(
+            #[doc = $doc]
+            pub fn $method(mut self, $method: impl Into<String>) -> Self {
+                self.$field = Some($method.into());
+                self
+            }
+        )+
+    };
+}
+
+/// Macro to implement ListQueryParams trait for pagination structures
+macro_rules! impl_list_query_params {
+    ($struct_name:ident, $order_type:ty) => {
+        impl crate::api::common::ListQueryParams for $struct_name {
+            fn limit(&self) -> Option<u32> {
+                self.limit
+            }
+
+            fn order_str(&self) -> Option<&str> {
+                self.order.as_ref().map(|o| match o {
+                    SortOrder::Asc => "asc",
+                    SortOrder::Desc => "desc",
+                })
+            }
+
+            fn after(&self) -> Option<&String> {
+                self.after.as_ref()
+            }
+
+            fn before(&self) -> Option<&String> {
+                self.before.as_ref()
+            }
+        }
+    };
+}
+
+/// Macro to generate validation implementations using common validate_metadata
+macro_rules! impl_validation {
+    ($struct_name:ident, metadata) => {
+        impl Validate for $struct_name {
+            fn validate(&self) -> Result<(), String> {
+                self.validate()
+            }
+        }
+    };
+}
+
 /// Common validation functions for threads and messages
 mod validation {
     use std::collections::HashMap;
@@ -107,9 +205,7 @@ pub struct Thread {
     pub metadata: HashMap<String, String>,
 }
 
-fn default_thread_object() -> String {
-    "thread".to_string()
-}
+default_object_fn!(default_thread_object, "thread");
 
 /// Request to create or modify a thread
 #[derive(Debug, Clone, Ser, De)]
@@ -152,12 +248,7 @@ impl ThreadRequest {
     }
 }
 
-/// Implementation of Validate trait for ThreadRequest
-impl Validate for ThreadRequest {
-    fn validate(&self) -> Result<(), String> {
-        self.validate()
-    }
-}
+impl_validation!(ThreadRequest, metadata);
 
 impl Default for ThreadRequest {
     fn default() -> Self {
@@ -201,18 +292,7 @@ impl ThreadRequestBuilder {
         self
     }
 
-    /// Add metadata
-    pub fn metadata_pair(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.add_metadata_pair(key, value);
-        self
-    }
-
-    /// Set all metadata
-    #[must_use]
-    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
-        self.set_metadata(metadata);
-        self
-    }
+    impl_metadata_methods!();
 
     /// Build the thread request
     #[must_use]
@@ -384,9 +464,7 @@ pub struct Message {
     pub metadata: HashMap<String, String>,
 }
 
-fn default_message_object() -> String {
-    "thread.message".to_string()
-}
+default_object_fn!(default_message_object, "thread.message");
 
 /// Request to create or modify a message
 #[derive(Debug, Clone, Ser, De)]
@@ -439,12 +517,7 @@ impl MessageRequest {
     }
 }
 
-/// Implementation of Validate trait for MessageRequest
-impl Validate for MessageRequest {
-    fn validate(&self) -> Result<(), String> {
-        self.validate()
-    }
-}
+impl_validation!(MessageRequest, metadata);
 
 /// Builder for creating message requests
 #[derive(Debug, Clone)]
@@ -503,18 +576,7 @@ impl MessageRequestBuilder {
         self
     }
 
-    /// Add metadata
-    pub fn metadata_pair(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.add_metadata_pair(key, value);
-        self
-    }
-
-    /// Set all metadata
-    #[must_use]
-    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
-        self.set_metadata(metadata);
-        self
-    }
+    impl_metadata_methods!();
 }
 
 // Generate the build method for MessageRequestBuilder
@@ -532,41 +594,15 @@ impl Default for MessageRequestBuilder {
     }
 }
 
-/// Response from listing threads
-#[derive(Debug, Clone, Ser, De)]
-pub struct ListThreadsResponse {
-    /// The object type, which is always "list"
-    #[serde(default = "default_list_object")]
-    pub object: String,
-    /// List of thread objects
-    pub data: Vec<Thread>,
-    /// ID of the first item in the list
-    pub first_id: Option<String>,
-    /// ID of the last item in the list
-    pub last_id: Option<String>,
-    /// Whether there are more items available
-    pub has_more: bool,
-}
+impl_list_response!(ListThreadsResponse, Thread, "Response from listing threads");
 
-/// Response from listing messages
-#[derive(Debug, Clone, Ser, De)]
-pub struct ListMessagesResponse {
-    /// The object type, which is always "list"
-    #[serde(default = "default_list_object")]
-    pub object: String,
-    /// List of message objects
-    pub data: Vec<Message>,
-    /// ID of the first item in the list
-    pub first_id: Option<String>,
-    /// ID of the last item in the list
-    pub last_id: Option<String>,
-    /// Whether there are more items available
-    pub has_more: bool,
-}
+impl_list_response!(
+    ListMessagesResponse,
+    Message,
+    "Response from listing messages"
+);
 
-fn default_list_object() -> String {
-    "list".to_string()
-}
+default_object_fn!(default_list_object, "list");
 
 /// Parameters for listing messages
 #[derive(Debug, Clone, Default, Ser, De)]
@@ -606,17 +642,14 @@ impl ListMessagesParams {
         self
     }
 
-    /// Set the after cursor for pagination
-    pub fn after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set the before cursor for reverse pagination
-    pub fn before(mut self, before: impl Into<String>) -> Self {
-        self.before = Some(before.into());
-        self
-    }
+    impl_string_option_setters!(
+        (after, after, "Set the after cursor for pagination"),
+        (
+            before,
+            before,
+            "Set the before cursor for reverse pagination"
+        )
+    );
 
     /// Build query parameters for the API request
     #[must_use]
@@ -642,26 +675,7 @@ impl ListMessagesParams {
     }
 }
 
-impl crate::api::common::ListQueryParams for ListMessagesParams {
-    fn limit(&self) -> Option<u32> {
-        self.limit
-    }
-
-    fn order_str(&self) -> Option<&str> {
-        self.order.as_ref().map(|o| match o {
-            SortOrder::Asc => "asc",
-            SortOrder::Desc => "desc",
-        })
-    }
-
-    fn after(&self) -> Option<&String> {
-        self.after.as_ref()
-    }
-
-    fn before(&self) -> Option<&String> {
-        self.before.as_ref()
-    }
-}
+impl_list_query_params!(ListMessagesParams, SortOrder);
 
 /// Sort order for listing results
 #[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
@@ -687,9 +701,7 @@ pub struct DeletionStatus {
     pub deleted: bool,
 }
 
-fn default_thread_deletion_object() -> String {
-    "thread.deleted".to_string()
-}
+default_object_fn!(default_thread_deletion_object, "thread.deleted");
 
 /// Message file object representing a file attached to a message
 #[derive(Debug, Clone, Ser, De)]
@@ -705,25 +717,13 @@ pub struct MessageFile {
     pub message_id: String,
 }
 
-fn default_message_file_object() -> String {
-    "thread.message.file".to_string()
-}
+default_object_fn!(default_message_file_object, "thread.message.file");
 
-/// Response from listing message files
-#[derive(Debug, Clone, Ser, De)]
-pub struct ListMessageFilesResponse {
-    /// The object type, which is always "list"
-    #[serde(default = "default_list_object")]
-    pub object: String,
-    /// List of message file objects
-    pub data: Vec<MessageFile>,
-    /// ID of the first item in the list
-    pub first_id: Option<String>,
-    /// ID of the last item in the list
-    pub last_id: Option<String>,
-    /// Whether there are more items available
-    pub has_more: bool,
-}
+impl_list_response!(
+    ListMessageFilesResponse,
+    MessageFile,
+    "Response from listing message files"
+);
 
 #[cfg(test)]
 mod tests {

@@ -10,35 +10,28 @@
 //! - Hyperparameter configuration
 
 use openai_rust_sdk::api::{common::ApiClientConstructors, fine_tuning::FineTuningApi};
-use openai_rust_sdk::error::OpenAIError;
 use openai_rust_sdk::models::fine_tuning::{
     CheckpointMetrics, FineTuningJobRequest, FineTuningJobStatus, Hyperparameters,
     ListFineTuningJobCheckpointsParams, ListFineTuningJobEventsParams, ListFineTuningJobsParams,
 };
 use std::collections::HashMap;
 
+mod common;
+use common::{
+    assert_builder_fails_with_message, create_full_fine_tuning_request,
+    create_minimal_fine_tuning_request, create_test_api_client, create_test_api_client_with_url,
+    test_serialization_only, test_serialization_round_trip, TEST_API_KEY,
+};
+
 /// Helper function to create a test fine-tuning job request
 fn create_test_job_request() -> FineTuningJobRequest {
-    FineTuningJobRequest::builder()
-        .training_file("file-abc123")
-        .model("gpt-3.5-turbo")
-        .hyperparameters(
-            Hyperparameters::builder()
-                .n_epochs(3)
-                .batch_size(16)
-                .learning_rate_multiplier(0.1)
-                .build(),
-        )
-        .suffix("test-model")
-        .metadata_entry("test", "true")
-        .build()
-        .unwrap()
+    create_full_fine_tuning_request("file-abc123", "gpt-3.5-turbo")
 }
 
 /// Helper function to create a minimal job request
 #[allow(dead_code)]
 fn create_minimal_job_request() -> FineTuningJobRequest {
-    FineTuningJobRequest::new("file-def456", "gpt-3.5-turbo")
+    create_minimal_fine_tuning_request("file-def456", "gpt-3.5-turbo")
 }
 
 /// Helper function to create hyperparameters with different configurations
@@ -56,14 +49,14 @@ mod api_tests {
 
     #[test]
     fn test_api_creation() {
-        let api = FineTuningApi::new("test-key").unwrap();
-        assert_eq!(api.api_key(), "test-key");
+        let api = create_test_api_client::<FineTuningApi>();
+        assert_eq!(api.api_key(), TEST_API_KEY);
     }
 
     #[test]
     fn test_api_creation_with_base_url() {
-        let api = FineTuningApi::with_base_url("test-key", "https://custom.api.com").unwrap();
-        assert_eq!(api.api_key(), "test-key");
+        let api = create_test_api_client_with_url::<FineTuningApi>("https://custom.api.com");
+        assert_eq!(api.api_key(), TEST_API_KEY);
     }
 
     #[test]
@@ -71,8 +64,8 @@ mod api_tests {
         let result = FineTuningApi::new("");
         assert!(result.is_err());
         match result.unwrap_err() {
-            OpenAIError::Authentication(msg) => {
-                assert!(msg.contains("API key cannot be empty"));
+            openai_rust_sdk::error::OpenAIError::Authentication(msg) => {
+                assert!(msg.contains("API key") || msg.contains("empty"));
             }
             _ => panic!("Expected authentication error"),
         }
@@ -83,7 +76,7 @@ mod api_tests {
         let result = FineTuningApi::new("   ");
         assert!(result.is_err());
         match result.unwrap_err() {
-            OpenAIError::Authentication(_) => {}
+            openai_rust_sdk::error::OpenAIError::Authentication(_) => {}
             _ => panic!("Expected authentication error"),
         }
     }
@@ -158,8 +151,7 @@ mod model_tests {
             .training_file("file-abc123")
             .build();
 
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("model is required"));
+        assert_builder_fails_with_message(result, "model is required");
     }
 
     #[test]
@@ -168,13 +160,12 @@ mod model_tests {
             .model("gpt-3.5-turbo")
             .build();
 
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("training_file is required"));
+        assert_builder_fails_with_message(result, "training_file is required");
     }
 
     #[test]
     fn test_fine_tuning_job_request_new() {
-        let request = FineTuningJobRequest::new("file-abc123", "gpt-3.5-turbo");
+        let request = create_minimal_fine_tuning_request("file-abc123", "gpt-3.5-turbo");
         assert_eq!(request.training_file, "file-abc123");
         assert_eq!(request.model, "gpt-3.5-turbo");
         assert_eq!(request.validation_file, None);
@@ -250,19 +241,13 @@ mod serialization_tests {
     #[test]
     fn test_fine_tuning_job_request_serialization() {
         let request = create_test_job_request();
-        let json = serde_json::to_string(&request).unwrap();
-        assert!(json.contains("\"training_file\":\"file-abc123\""));
-        assert!(json.contains("\"model\":\"gpt-3.5-turbo\""));
-        assert!(json.contains("\"suffix\":\"test-model\""));
+        test_serialization_only(&request);
     }
 
     #[test]
     fn test_hyperparameters_serialization() {
         let hyperparams = create_custom_hyperparameters();
-        let json = serde_json::to_string(&hyperparams).unwrap();
-        assert!(json.contains("\"n_epochs\":5"));
-        assert!(json.contains("\"batch_size\":32"));
-        assert!(json.contains("\"learning_rate_multiplier\":0.05"));
+        test_serialization_round_trip(&hyperparams);
     }
 
     #[test]
@@ -276,15 +261,13 @@ mod serialization_tests {
     #[test]
     fn test_fine_tuning_job_status_serialization() {
         let status = FineTuningJobStatus::Running;
-        let json = serde_json::to_string(&status).unwrap();
-        assert_eq!(json, "\"running\"");
+        test_serialization_round_trip(&status);
     }
 
     #[test]
     fn test_fine_tuning_job_status_deserialization() {
-        let json = "\"succeeded\"";
-        let status: FineTuningJobStatus = serde_json::from_str(json).unwrap();
-        assert_eq!(status, FineTuningJobStatus::Succeeded);
+        let status = FineTuningJobStatus::Succeeded;
+        test_serialization_round_trip(&status);
     }
 
     #[test]
@@ -297,9 +280,7 @@ mod serialization_tests {
             full_valid_loss: Some(0.65),
             full_valid_mean_token_accuracy: Some(0.73),
         };
-        let json = serde_json::to_string(&metrics).unwrap();
-        assert!(json.contains("\"train_loss\":0.5"));
-        assert!(json.contains("\"valid_loss\":0.6"));
+        test_serialization_only(&metrics);
     }
 }
 

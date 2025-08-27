@@ -42,6 +42,9 @@ use serde::{self, Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
+// Generate the bytes to human readable function
+crate::impl_bytes_to_human_readable!();
+
 /// Purpose for which a file is being uploaded
 #[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "snake_case")]
@@ -64,19 +67,16 @@ pub enum FilePurpose {
     AssistantsOutput,
 }
 
-impl fmt::Display for FilePurpose {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let purpose = match self {
-            FilePurpose::FineTune => "fine-tune",
-            FilePurpose::Assistants => "assistants",
-            FilePurpose::Batch => "batch",
-            FilePurpose::UserData => "user_data",
-            FilePurpose::Responses => "responses",
-            FilePurpose::Vision => "vision",
-            FilePurpose::FineTuneResults => "fine-tune-results",
-            FilePurpose::AssistantsOutput => "assistants_output",
-        };
-        write!(f, "{purpose}")
+crate::impl_enum_display! {
+    FilePurpose {
+        FineTune => "fine-tune",
+        Assistants => "assistants",
+        Batch => "batch",
+        UserData => "user_data",
+        Responses => "responses",
+        Vision => "vision",
+        FineTuneResults => "fine-tune-results",
+        AssistantsOutput => "assistants_output",
     }
 }
 
@@ -148,15 +148,12 @@ pub enum FileStatus {
     Deleted,
 }
 
-impl fmt::Display for FileStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let status = match self {
-            FileStatus::Uploaded => "uploaded",
-            FileStatus::Processed => "processed",
-            FileStatus::Error => "error",
-            FileStatus::Deleted => "deleted",
-        };
-        write!(f, "{status}")
+crate::impl_enum_display! {
+    FileStatus {
+        Uploaded => "uploaded",
+        Processed => "processed",
+        Error => "error",
+        Deleted => "deleted",
     }
 }
 
@@ -183,9 +180,7 @@ pub struct File {
     pub status_details: Option<String>,
 }
 
-fn default_file_status() -> String {
-    "uploaded".to_string()
-}
+crate::impl_default_object_type!(default_file_status, "uploaded");
 
 impl File {
     /// Get the file purpose as a typed enum
@@ -215,16 +210,7 @@ impl File {
     /// Get human-readable file size
     #[must_use]
     pub fn size_human_readable(&self) -> String {
-        let bytes = self.bytes as f64;
-        if bytes < 1024.0 {
-            format!("{bytes} B")
-        } else if bytes < 1024.0 * 1024.0 {
-            format!("{:.1} KB", bytes / 1024.0)
-        } else if bytes < 1024.0 * 1024.0 * 1024.0 {
-            format!("{:.1} MB", bytes / (1024.0 * 1024.0))
-        } else {
-            format!("{:.1} GB", bytes / (1024.0 * 1024.0 * 1024.0))
-        }
+        bytes_to_human_readable(self.bytes)
     }
 
     /// Get the creation date as a formatted string
@@ -408,16 +394,7 @@ impl ListFilesResponse {
     /// Get total size in human-readable format
     #[must_use]
     pub fn total_size_human_readable(&self) -> String {
-        let bytes = self.total_size() as f64;
-        if bytes < 1024.0 {
-            format!("{bytes} B")
-        } else if bytes < 1024.0 * 1024.0 {
-            format!("{:.1} KB", bytes / 1024.0)
-        } else if bytes < 1024.0 * 1024.0 * 1024.0 {
-            format!("{:.1} MB", bytes / (1024.0 * 1024.0))
-        } else {
-            format!("{:.1} GB", bytes / (1024.0 * 1024.0 * 1024.0))
-        }
+        bytes_to_human_readable(self.total_size())
     }
 }
 
@@ -432,27 +409,7 @@ pub struct FileDeleteResponse {
     pub deleted: bool,
 }
 
-impl FileDeleteResponse {
-    /// Create a successful delete response
-    #[must_use]
-    pub fn success(id: String) -> Self {
-        Self {
-            id,
-            object: "file".to_string(),
-            deleted: true,
-        }
-    }
-
-    /// Create a failed delete response
-    #[must_use]
-    pub fn failure(id: String) -> Self {
-        Self {
-            id,
-            object: "file".to_string(),
-            deleted: false,
-        }
-    }
-}
+crate::impl_response_constructors!(FileDeleteResponse, id, "file");
 
 /// Parameters for listing files
 #[derive(Debug, Clone, Default)]
@@ -479,12 +436,10 @@ pub enum SortOrder {
     Desc,
 }
 
-impl fmt::Display for SortOrder {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SortOrder::Asc => write!(f, "asc"),
-            SortOrder::Desc => write!(f, "desc"),
-        }
+crate::impl_enum_display! {
+    SortOrder {
+        Asc => "asc",
+        Desc => "desc",
     }
 }
 

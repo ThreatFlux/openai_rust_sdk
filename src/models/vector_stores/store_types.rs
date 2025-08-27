@@ -121,16 +121,16 @@ impl VectorStoreRequest {
         VectorStoreRequestBuilder::new()
     }
 
+    /// Set the name for the vector store
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
     /// Set the file IDs for the vector store
     #[must_use]
     pub fn with_file_ids(mut self, file_ids: Vec<String>) -> Self {
         self.file_ids = Some(file_ids);
-        self
-    }
-
-    /// Set the name for the vector store
-    pub fn with_name(mut self, name: impl Into<String>) -> Self {
-        self.name = Some(name.into());
         self
     }
 

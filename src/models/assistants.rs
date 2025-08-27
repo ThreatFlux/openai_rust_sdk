@@ -116,9 +116,7 @@ pub struct Assistant {
     pub metadata: HashMap<String, String>,
 }
 
-fn default_object_type() -> String {
-    "assistant".to_string()
-}
+crate::impl_default_object_type!(default_object_type, "assistant");
 
 /// Request to create or modify an assistant
 #[derive(Debug, Clone, Ser, De)]
@@ -340,9 +338,7 @@ pub struct ListAssistantsResponse {
     pub has_more: bool,
 }
 
-fn default_list_object() -> String {
-    "list".to_string()
-}
+crate::impl_default_object_type!(default_list_object, "list");
 
 /// Parameters for listing assistants
 #[derive(Debug, Clone, Default, Ser, De)]
@@ -463,9 +459,7 @@ pub struct DeletionStatus {
     pub deleted: bool,
 }
 
-fn default_deletion_object() -> String {
-    "assistant.deleted".to_string()
-}
+crate::impl_default_object_type!(default_deletion_object, "assistant.deleted");
 
 #[cfg(test)]
 mod tests {

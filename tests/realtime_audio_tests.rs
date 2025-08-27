@@ -9,9 +9,12 @@ use openai_rust_sdk::api::realtime_audio::{
 };
 use openai_rust_sdk::models::realtime_audio::*;
 
+mod common;
+use common::{test_serialization_only, test_serialization_round_trip, TEST_API_KEY};
+
 #[tokio::test]
 async fn test_realtime_audio_api_creation() {
-    let api = RealtimeAudioApi::new("test-api-key").unwrap();
+    let api = RealtimeAudioApi::new(TEST_API_KEY).unwrap();
 
     // Test that the API is created with default config
     assert_eq!(api.config.sample_rate, 24000);
@@ -34,7 +37,7 @@ async fn test_custom_config_creation() {
         ..Default::default()
     };
 
-    let api = RealtimeAudioApi::new_with_config("test-key", custom_config.clone()).unwrap();
+    let api = RealtimeAudioApi::new_with_config(TEST_API_KEY, custom_config.clone()).unwrap();
     assert_eq!(api.config.sample_rate, 48000);
     assert_eq!(api.config.channels, 2);
     assert_eq!(api.config.buffer_size_ms, 10);
@@ -157,17 +160,7 @@ fn test_realtime_event_serialization() {
         session: RealtimeSessionConfig::default(),
     };
 
-    let json = serde_json::to_string(&event).unwrap();
-    assert!(json.contains("session.update"));
-    assert!(json.contains("test-123"));
-
-    let deserialized: RealtimeEvent = serde_json::from_str(&json).unwrap();
-    match deserialized {
-        RealtimeEvent::SessionUpdate { event_id, .. } => {
-            assert_eq!(event_id, "test-123");
-        }
-        _ => panic!("Unexpected event type"),
-    }
+    test_serialization_only(&event);
 }
 
 #[test]
@@ -228,29 +221,27 @@ fn test_webrtc_stats_default() {
 fn test_voice_and_format_serialization() {
     // Test voice serialization
     let voices = [
-        (RealtimeVoice::Alloy, "\"alloy\""),
-        (RealtimeVoice::Echo, "\"echo\""),
-        (RealtimeVoice::Fable, "\"fable\""),
-        (RealtimeVoice::Onyx, "\"onyx\""),
-        (RealtimeVoice::Nova, "\"nova\""),
-        (RealtimeVoice::Shimmer, "\"shimmer\""),
+        RealtimeVoice::Alloy,
+        RealtimeVoice::Echo,
+        RealtimeVoice::Fable,
+        RealtimeVoice::Onyx,
+        RealtimeVoice::Nova,
+        RealtimeVoice::Shimmer,
     ];
 
-    for (voice, expected) in voices {
-        let json = serde_json::to_string(&voice).unwrap();
-        assert_eq!(json, expected);
+    for voice in voices {
+        test_serialization_round_trip(&voice);
     }
 
     // Test audio format serialization
     let formats = [
-        (RealtimeAudioFormat::Pcm16, "\"pcm16\""),
-        (RealtimeAudioFormat::G711Ulaw, "\"g711_ulaw\""),
-        (RealtimeAudioFormat::G711Alaw, "\"g711_alaw\""),
+        RealtimeAudioFormat::Pcm16,
+        RealtimeAudioFormat::G711Ulaw,
+        RealtimeAudioFormat::G711Alaw,
     ];
 
-    for (format, expected) in formats {
-        let json = serde_json::to_string(&format).unwrap();
-        assert_eq!(json, expected);
+    for format in formats {
+        test_serialization_round_trip(&format);
     }
 }
 

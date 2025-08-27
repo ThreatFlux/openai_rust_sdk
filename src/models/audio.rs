@@ -99,16 +99,14 @@ pub enum Voice {
     Shimmer,
 }
 
-impl std::fmt::Display for Voice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Voice::Alloy => write!(f, "alloy"),
-            Voice::Echo => write!(f, "echo"),
-            Voice::Fable => write!(f, "fable"),
-            Voice::Onyx => write!(f, "onyx"),
-            Voice::Nova => write!(f, "nova"),
-            Voice::Shimmer => write!(f, "shimmer"),
-        }
+crate::impl_enum_display! {
+    Voice {
+        Alloy => "alloy",
+        Echo => "echo",
+        Fable => "fable",
+        Onyx => "onyx",
+        Nova => "nova",
+        Shimmer => "shimmer",
     }
 }
 
@@ -130,16 +128,14 @@ pub enum AudioFormat {
     Pcm,
 }
 
-impl std::fmt::Display for AudioFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AudioFormat::Mp3 => write!(f, "mp3"),
-            AudioFormat::Opus => write!(f, "opus"),
-            AudioFormat::Aac => write!(f, "aac"),
-            AudioFormat::Flac => write!(f, "flac"),
-            AudioFormat::Wav => write!(f, "wav"),
-            AudioFormat::Pcm => write!(f, "pcm"),
-        }
+crate::impl_enum_display! {
+    AudioFormat {
+        Mp3 => "mp3",
+        Opus => "opus",
+        Aac => "aac",
+        Flac => "flac",
+        Wav => "wav",
+        Pcm => "pcm",
     }
 }
 

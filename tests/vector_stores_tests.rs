@@ -5,14 +5,23 @@
 //! covering all major functionality including CRUD operations, file management,
 //! batch operations, and error handling.
 
+mod common;
+
 use openai_rust_sdk::api::{common::ApiClientConstructors, vector_stores::VectorStoresApi};
 use openai_rust_sdk::models::vector_stores::{
     ChunkingStrategy, ExpirationPolicy, FileCounts, ListVectorStoreFilesParams,
-    ListVectorStoresParams, VectorStore, VectorStoreDeleteResponse, VectorStoreFile,
-    VectorStoreFileBatchRequest, VectorStoreFileBatchStatus, VectorStoreFileDeleteResponse,
-    VectorStoreFileRequest, VectorStoreFileStatus, VectorStoreRequest, VectorStoreStatus,
+    ListVectorStoresParams, VectorStoreDeleteResponse, VectorStoreFileBatchRequest,
+    VectorStoreFileBatchStatus, VectorStoreFileDeleteResponse, VectorStoreFileStatus,
+    VectorStoreRequest, VectorStoreStatus,
 };
 use std::collections::HashMap;
+
+use common::{
+    assert_chunking_strategy_static, assert_json_contains, create_test_metadata,
+    create_test_vector_store, create_test_vector_store_file_batch_request,
+    create_test_vector_store_file_request, create_vector_store_file_with_status,
+    create_vector_store_with_status, test_serialization_round_trip,
+};
 
 #[test]
 fn test_vector_stores_api_creation() {
@@ -97,16 +106,7 @@ fn test_chunking_strategy_creation() {
     assert_eq!(auto_strategy, ChunkingStrategy::Auto);
 
     let static_strategy = ChunkingStrategy::static_chunking(1024, 100);
-    if let ChunkingStrategy::Static {
-        max_chunk_size_tokens,
-        chunk_overlap_tokens,
-    } = static_strategy
-    {
-        assert_eq!(max_chunk_size_tokens, 1024);
-        assert_eq!(chunk_overlap_tokens, 100);
-    } else {
-        panic!("Expected static chunking strategy");
-    }
+    assert_chunking_strategy_static(&static_strategy, 1024, 100);
 }
 
 #[test]
@@ -162,35 +162,27 @@ fn test_vector_store_request_fluent_interface() {
 
 #[test]
 fn test_vector_store_file_request() {
-    let request = VectorStoreFileRequest::new("file-abc123")
-        .with_chunking_strategy(ChunkingStrategy::static_chunking(256, 25));
+    let request = create_test_vector_store_file_request();
 
-    assert_eq!(request.file_id, "file-abc123");
+    assert_eq!(request.file_id, "file-test123");
     assert!(request.chunking_strategy.is_some());
 
-    if let Some(ChunkingStrategy::Static {
-        max_chunk_size_tokens,
-        chunk_overlap_tokens,
-    }) = request.chunking_strategy
-    {
-        assert_eq!(max_chunk_size_tokens, 256);
-        assert_eq!(chunk_overlap_tokens, 25);
-    } else {
-        panic!("Expected static chunking strategy");
+    if let Some(strategy) = &request.chunking_strategy {
+        assert_chunking_strategy_static(strategy, 256, 25);
     }
 }
 
 #[test]
 fn test_vector_store_file_batch_request() {
-    let file_ids = vec![
+    let request = create_test_vector_store_file_batch_request();
+
+    let expected_file_ids = vec![
         "file-1".to_string(),
         "file-2".to_string(),
         "file-3".to_string(),
     ];
-    let request = VectorStoreFileBatchRequest::new(file_ids.clone())
-        .with_chunking_strategy(ChunkingStrategy::auto());
 
-    assert_eq!(request.file_ids, file_ids);
+    assert_eq!(request.file_ids, expected_file_ids);
     assert_eq!(request.chunking_strategy, Some(ChunkingStrategy::Auto));
 }
 
@@ -228,25 +220,9 @@ fn test_list_vector_store_files_params() {
 
 #[test]
 fn test_vector_store_methods() {
-    let mut vector_store = VectorStore {
-        id: "vs-test123".to_string(),
-        object: "vector_store".to_string(),
-        created_at: 1_640_995_200,
-        name: Some("Test Store".to_string()),
-        usage_bytes: 2048,
-        file_counts: FileCounts {
-            in_progress: 0,
-            completed: 5,
-            failed: 1,
-            cancelled: 0,
-            total: 6,
-        },
-        status: VectorStoreStatus::Completed,
-        expires_after: Some(ExpirationPolicy::new_days(30)),
-        expires_at: Some(2_000_000_000), // Future timestamp (2033)
-        last_active_at: Some(1_640_995_200),
-        metadata: HashMap::new(),
-    };
+    let mut vector_store = create_test_vector_store();
+    // Update for this specific test
+    vector_store.usage_bytes = 2048;
 
     assert!(vector_store.is_ready());
     assert!(!vector_store.is_processing());
@@ -284,19 +260,13 @@ fn test_vector_store_expires_soon() {
         .unwrap()
         .as_secs();
 
-    let mut vector_store = VectorStore {
-        id: "vs-test123".to_string(),
-        object: "vector_store".to_string(),
-        created_at: now - 3600,
-        name: Some("Test Store".to_string()),
-        usage_bytes: 1024,
-        file_counts: FileCounts::new(),
-        status: VectorStoreStatus::Completed,
-        expires_after: None,
-        expires_at: Some(now + 3600), // Expires in 1 hour (should trigger expires_soon)
-        last_active_at: Some(now),
-        metadata: HashMap::new(),
-    };
+    let mut vector_store = create_test_vector_store();
+    vector_store.created_at = now - 3600;
+    vector_store.usage_bytes = 1024;
+    vector_store.file_counts = FileCounts::new();
+    vector_store.expires_after = None;
+    vector_store.expires_at = Some(now + 3600); // Expires in 1 hour (should trigger expires_soon)
+    vector_store.last_active_at = Some(now);
 
     assert!(vector_store.expires_soon());
 
@@ -314,40 +284,14 @@ fn test_list_responses_filtering() {
     };
 
     // Test ListVectorStoresResponse filtering
-    let stores = vec![
-        VectorStore {
-            id: "vs-1".to_string(),
-            object: "vector_store".to_string(),
-            created_at: 1_640_995_200,
-            name: Some("Store 1".to_string()),
-            usage_bytes: 1024,
-            file_counts: FileCounts::new(),
-            status: VectorStoreStatus::Completed,
-            expires_after: None,
-            expires_at: None,
-            last_active_at: None,
-            metadata: HashMap::new(),
-        },
-        VectorStore {
-            id: "vs-2".to_string(),
-            object: "vector_store".to_string(),
-            created_at: 1_640_995_300,
-            name: Some("Store 2".to_string()),
-            usage_bytes: 2048,
-            file_counts: FileCounts::new(),
-            status: VectorStoreStatus::InProgress,
-            expires_after: None,
-            expires_at: None,
-            last_active_at: None,
-            metadata: HashMap::new(),
-        },
-    ];
+    let store1 = create_vector_store_with_status(VectorStoreStatus::Completed, 1024);
+    let store2 = create_vector_store_with_status(VectorStoreStatus::InProgress, 2048);
 
     let stores_response = ListVectorStoresResponse {
         object: "list".to_string(),
-        data: stores,
-        first_id: Some("vs-1".to_string()),
-        last_id: Some("vs-2".to_string()),
+        data: vec![store1, store2],
+        first_id: Some("vs-custom".to_string()),
+        last_id: Some("vs-custom".to_string()),
         has_more: false,
     };
 
@@ -362,34 +306,14 @@ fn test_list_responses_filtering() {
     );
 
     // Test ListVectorStoreFilesResponse filtering
-    let files = vec![
-        VectorStoreFile {
-            id: "file-1".to_string(),
-            object: "vector_store.file".to_string(),
-            usage_bytes: 512,
-            created_at: 1_640_995_200,
-            vector_store_id: "vs-1".to_string(),
-            status: VectorStoreFileStatus::Completed,
-            last_error: None,
-            chunking_strategy: None,
-        },
-        VectorStoreFile {
-            id: "file-2".to_string(),
-            object: "vector_store.file".to_string(),
-            usage_bytes: 256,
-            created_at: 1_640_995_300,
-            vector_store_id: "vs-1".to_string(),
-            status: VectorStoreFileStatus::Failed,
-            last_error: None,
-            chunking_strategy: None,
-        },
-    ];
+    let file1 = create_vector_store_file_with_status(VectorStoreFileStatus::Completed, 512);
+    let file2 = create_vector_store_file_with_status(VectorStoreFileStatus::Failed, 256);
 
     let files_response = ListVectorStoreFilesResponse {
         object: "list".to_string(),
-        data: files,
-        first_id: Some("file-1".to_string()),
-        last_id: Some("file-2".to_string()),
+        data: vec![file1, file2],
+        first_id: Some("file-custom".to_string()),
+        last_id: Some("file-custom".to_string()),
         has_more: false,
     };
 
@@ -437,8 +361,7 @@ fn test_vector_store_request_serialization() {
 
     // Test that the request can be serialized to JSON
     let json = serde_json::to_string(&request).unwrap();
-    assert!(json.contains("Serialization Test"));
-    assert!(json.contains("file-test"));
+    assert_json_contains(&json, &["Serialization Test", "file-test"]);
 
     // Test that it can be deserialized back
     let deserialized: VectorStoreRequest = serde_json::from_str(&json).unwrap();
@@ -448,13 +371,10 @@ fn test_vector_store_request_serialization() {
 
 #[test]
 fn test_file_batch_request_serialization() {
-    let request =
-        VectorStoreFileBatchRequest::new(vec!["file-1".to_string(), "file-2".to_string()])
-            .with_chunking_strategy(ChunkingStrategy::auto());
+    let request = create_test_vector_store_file_batch_request();
 
     let json = serde_json::to_string(&request).unwrap();
-    assert!(json.contains("file-1"));
-    assert!(json.contains("file-2"));
+    assert_json_contains(&json, &["file-1", "file-2", "file-3"]);
 
     let deserialized: VectorStoreFileBatchRequest = serde_json::from_str(&json).unwrap();
     assert_eq!(deserialized.file_ids, request.file_ids);
@@ -498,47 +418,38 @@ fn test_error_handling_patterns() {
 fn test_chunking_strategy_serialization() {
     let auto_strategy = ChunkingStrategy::auto();
     let auto_json = serde_json::to_string(&auto_strategy).unwrap();
-    assert!(auto_json.contains("\"type\":\"auto\""));
+    assert_json_contains(&auto_json, &["\"type\":\"auto\""]);
+    test_serialization_round_trip(&auto_strategy);
 
     let static_strategy = ChunkingStrategy::static_chunking(512, 64);
     let static_json = serde_json::to_string(&static_strategy).unwrap();
-    assert!(static_json.contains("\"type\":\"static\""));
-    assert!(static_json.contains("\"max_chunk_size_tokens\":512"));
-    assert!(static_json.contains("\"chunk_overlap_tokens\":64"));
-
-    // Test deserialization
-    let deserialized_auto: ChunkingStrategy = serde_json::from_str(&auto_json).unwrap();
-    assert_eq!(deserialized_auto, ChunkingStrategy::Auto);
-
-    let deserialized_static: ChunkingStrategy = serde_json::from_str(&static_json).unwrap();
-    if let ChunkingStrategy::Static {
-        max_chunk_size_tokens,
-        chunk_overlap_tokens,
-    } = deserialized_static
-    {
-        assert_eq!(max_chunk_size_tokens, 512);
-        assert_eq!(chunk_overlap_tokens, 64);
-    } else {
-        panic!("Expected static chunking strategy");
-    }
+    assert_json_contains(
+        &static_json,
+        &[
+            "\"type\":\"static\"",
+            "\"max_chunk_size_tokens\":512",
+            "\"chunk_overlap_tokens\":64",
+        ],
+    );
+    test_serialization_round_trip(&static_strategy);
 }
 
 #[test]
 fn test_metadata_handling() {
-    let mut metadata = HashMap::new();
+    let mut metadata = create_test_metadata();
     metadata.insert("key1".to_string(), "value1".to_string());
-    metadata.insert("key2".to_string(), "value2".to_string());
 
     let request = VectorStoreRequest::builder()
         .name("Metadata Test")
-        .metadata(metadata.clone())
+        .metadata(metadata)
         .add_metadata("key3", "value3")
         .build();
 
     let final_metadata = request.metadata.unwrap();
-    assert_eq!(final_metadata.len(), 3);
+    assert_eq!(final_metadata.len(), 4); // environment, version, key1, key3
+    assert_eq!(final_metadata.get("environment"), Some(&"test".to_string()));
+    assert_eq!(final_metadata.get("version"), Some(&"1.0".to_string()));
     assert_eq!(final_metadata.get("key1"), Some(&"value1".to_string()));
-    assert_eq!(final_metadata.get("key2"), Some(&"value2".to_string()));
     assert_eq!(final_metadata.get("key3"), Some(&"value3".to_string()));
 }
 

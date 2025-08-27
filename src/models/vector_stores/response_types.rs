@@ -9,6 +9,9 @@ use crate::models::vector_stores::store_types::VectorStore;
 use crate::{De, Ser};
 use serde::{self, Deserialize, Serialize};
 
+// Generate the bytes to human readable function
+crate::impl_bytes_to_human_readable!();
+
 /// Response from listing vector stores
 #[derive(Debug, Clone, Ser, De)]
 pub struct ListVectorStoresResponse {
@@ -27,46 +30,16 @@ pub struct ListVectorStoresResponse {
     pub has_more: bool,
 }
 
+crate::impl_list_response_methods!(ListVectorStoresResponse, VectorStore, id);
+crate::impl_usage_methods!(ListVectorStoresResponse, usage_bytes);
+crate::impl_status_filters!(
+    ListVectorStoresResponse,
+    VectorStore,
+    VectorStoreStatus,
+    status
+);
+
 impl ListVectorStoresResponse {
-    /// Create a new empty list response
-    #[must_use]
-    pub fn empty() -> Self {
-        Self {
-            object: "list".to_string(),
-            data: Vec::new(),
-            first_id: None,
-            last_id: None,
-            has_more: false,
-        }
-    }
-
-    /// Create a new list response with data
-    #[must_use]
-    pub fn with_data(data: Vec<VectorStore>) -> Self {
-        let first_id = data.first().map(|vs| vs.id.clone());
-        let last_id = data.last().map(|vs| vs.id.clone());
-
-        Self {
-            object: "list".to_string(),
-            data,
-            first_id,
-            last_id,
-            has_more: false,
-        }
-    }
-
-    /// Get total usage bytes of all vector stores
-    #[must_use]
-    pub fn total_usage_bytes(&self) -> u64 {
-        self.data.iter().map(|vs| vs.usage_bytes).sum()
-    }
-
-    /// Get vector stores by status
-    #[must_use]
-    pub fn by_status(&self, status: &VectorStoreStatus) -> Vec<&VectorStore> {
-        self.data.iter().filter(|vs| vs.status == *status).collect()
-    }
-
     /// Get vector stores that are ready for use
     #[must_use]
     pub fn ready_stores(&self) -> Vec<&VectorStore> {
@@ -83,26 +56,6 @@ impl ListVectorStoresResponse {
     #[must_use]
     pub fn failed_stores(&self) -> Vec<&VectorStore> {
         self.data.iter().filter(|vs| vs.has_failed()).collect()
-    }
-
-    /// Get the count of vector stores
-    #[must_use]
-    pub fn count(&self) -> usize {
-        self.data.len()
-    }
-
-    /// Check if the response is empty
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
-    }
-
-    /// Get human-readable total usage
-    #[must_use]
-    pub fn total_usage_human_readable(&self) -> String {
-        crate::models::vector_stores::common_types::utils::bytes_to_human_readable(
-            self.total_usage_bytes(),
-        )
     }
 }
 
@@ -124,46 +77,16 @@ pub struct ListVectorStoreFilesResponse {
     pub has_more: bool,
 }
 
+crate::impl_list_response_methods!(ListVectorStoreFilesResponse, VectorStoreFile, id);
+crate::impl_usage_methods!(ListVectorStoreFilesResponse, usage_bytes);
+crate::impl_status_filters!(
+    ListVectorStoreFilesResponse,
+    VectorStoreFile,
+    VectorStoreFileStatus,
+    status
+);
+
 impl ListVectorStoreFilesResponse {
-    /// Create a new empty list response
-    #[must_use]
-    pub fn empty() -> Self {
-        Self {
-            object: "list".to_string(),
-            data: Vec::new(),
-            first_id: None,
-            last_id: None,
-            has_more: false,
-        }
-    }
-
-    /// Create a new list response with data
-    #[must_use]
-    pub fn with_data(data: Vec<VectorStoreFile>) -> Self {
-        let first_id = data.first().map(|f| f.id.clone());
-        let last_id = data.last().map(|f| f.id.clone());
-
-        Self {
-            object: "list".to_string(),
-            data,
-            first_id,
-            last_id,
-            has_more: false,
-        }
-    }
-
-    /// Get total usage bytes of all files
-    #[must_use]
-    pub fn total_usage_bytes(&self) -> u64 {
-        self.data.iter().map(|f| f.usage_bytes).sum()
-    }
-
-    /// Get files by status
-    #[must_use]
-    pub fn by_status(&self, status: &VectorStoreFileStatus) -> Vec<&VectorStoreFile> {
-        self.data.iter().filter(|f| f.status == *status).collect()
-    }
-
     /// Get completed files
     #[must_use]
     pub fn completed_files(&self) -> Vec<&VectorStoreFile> {
@@ -191,26 +114,6 @@ impl ListVectorStoreFilesResponse {
             .collect()
     }
 
-    /// Get the count of files
-    #[must_use]
-    pub fn count(&self) -> usize {
-        self.data.len()
-    }
-
-    /// Check if the response is empty
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
-    }
-
-    /// Get human-readable total usage
-    #[must_use]
-    pub fn total_usage_human_readable(&self) -> String {
-        crate::models::vector_stores::common_types::utils::bytes_to_human_readable(
-            self.total_usage_bytes(),
-        )
-    }
-
     /// Get files with errors
     #[must_use]
     pub fn files_with_errors(&self) -> Vec<&VectorStoreFile> {
@@ -232,33 +135,7 @@ pub struct VectorStoreDeleteResponse {
     pub deleted: bool,
 }
 
-impl VectorStoreDeleteResponse {
-    /// Create a successful delete response
-    #[must_use]
-    pub fn success(id: String) -> Self {
-        Self {
-            id,
-            object: "vector_store.deleted".to_string(),
-            deleted: true,
-        }
-    }
-
-    /// Create a failed delete response
-    #[must_use]
-    pub fn failure(id: String) -> Self {
-        Self {
-            id,
-            object: "vector_store.deleted".to_string(),
-            deleted: false,
-        }
-    }
-
-    /// Check if the deletion was successful
-    #[must_use]
-    pub fn is_success(&self) -> bool {
-        self.deleted
-    }
-}
+crate::impl_response_constructors!(VectorStoreDeleteResponse, id, "vector_store.deleted");
 
 #[cfg(test)]
 mod tests {

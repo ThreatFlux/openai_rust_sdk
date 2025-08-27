@@ -8,256 +8,110 @@ use crate::error::{OpenAIError, Result};
 use std::path::Path;
 use tokio::fs;
 
-/// Read a file as bytes asynchronously
-///
-/// This helper consolidates the common pattern of reading a file as bytes
-/// and mapping I/O errors to `OpenAIError::FileError` with a descriptive message
-/// that includes the file path.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to read
-///
-/// # Returns
-///
-/// * `Result<Vec<u8>>` - The file contents as bytes, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::read_bytes;
-/// # async fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// let data = read_bytes("image.png").await?;
-/// println!("Read {} bytes", data.len());
-/// # Ok(())
-/// # }
-/// ```
-pub async fn read_bytes<P: AsRef<Path>>(file_path: P) -> Result<Vec<u8>> {
-    let path = file_path.as_ref();
-    fs::read(path).await.map_err(|e| {
-        OpenAIError::FileError(format!("Failed to read file {}: {}", path.display(), e))
-    })
+/// Internal helper to create consistent file error messages
+fn create_file_error<P: AsRef<Path>>(
+    path: P,
+    operation: &str,
+    error: &std::io::Error,
+) -> OpenAIError {
+    OpenAIError::FileError(format!(
+        "Failed to {} file {}: {}",
+        operation,
+        path.as_ref().display(),
+        error
+    ))
 }
 
-/// Read a file as a UTF-8 string asynchronously
-///
-/// This helper consolidates the common pattern of reading a file as a string
-/// and mapping I/O errors to `OpenAIError::FileError` with a descriptive message
-/// that includes the file path.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to read
-///
-/// # Returns
-///
-/// * `Result<String>` - The file contents as a string, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::read_string;
-/// # async fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// let content = read_string("config.json").await?;
-/// println!("Read {} characters", content.len());
-/// # Ok(())
-/// # }
-/// ```
-pub async fn read_string<P: AsRef<Path>>(file_path: P) -> Result<String> {
-    let path = file_path.as_ref();
-    fs::read_to_string(path).await.map_err(|e| {
-        OpenAIError::FileError(format!("Failed to read file {}: {}", path.display(), e))
-    })
+/// Macro to generate async read functions with consistent error handling
+macro_rules! impl_async_read {
+    ($func_name:ident, $fs_op:ident, $operation:literal, $return_type:ty) => {
+        #[doc = concat!("Read a file asynchronously, returning `", stringify!($return_type), "`.")]
+        #[doc = ""]
+        #[doc = "Maps I/O errors to `OpenAIError::FileError` with a descriptive message"]
+        #[doc = "that includes the file path."]
+        pub async fn $func_name<P: AsRef<Path>>(file_path: P) -> Result<$return_type> {
+            let path = file_path.as_ref();
+            fs::$fs_op(path)
+                .await
+                .map_err(|e| create_file_error(path, $operation, &e))
+        }
+    };
 }
 
-/// Write bytes to a file asynchronously
-///
-/// This helper consolidates the common pattern of writing bytes to a file
-/// and mapping I/O errors to `OpenAIError::FileError` with a descriptive message
-/// that includes the file path.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to write
-/// * `data` - The bytes to write to the file
-///
-/// # Returns
-///
-/// * `Result<()>` - Success, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::write_bytes;
-/// # async fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// let data = vec![1, 2, 3, 4];
-/// write_bytes("output.bin", &data).await?;
-/// println!("Written {} bytes", data.len());
-/// # Ok(())
-/// # }
-/// ```
-pub async fn write_bytes<P: AsRef<Path>>(file_path: P, data: &[u8]) -> Result<()> {
-    let path = file_path.as_ref();
-    fs::write(path, data).await.map_err(|e| {
-        OpenAIError::FileError(format!("Failed to write file {}: {}", path.display(), e))
-    })
+/// Macro to generate async write functions with consistent error handling
+macro_rules! impl_async_write {
+    ($func_name:ident, $fs_op:ident, $operation:literal, $param_type:ty) => {
+        #[doc = concat!("Write data of type `", stringify!($param_type), "` to a file asynchronously.")]
+        #[doc = ""]
+        #[doc = "Maps I/O errors to `OpenAIError::FileError` with a descriptive message"]
+        #[doc = "that includes the file path."]
+        pub async fn $func_name<P: AsRef<Path>>(file_path: P, data: $param_type) -> Result<()> {
+            let path = file_path.as_ref();
+            fs::$fs_op(path, data)
+                .await
+                .map_err(|e| create_file_error(path, $operation, &e))
+        }
+    };
 }
+
+/// Macro to generate sync read functions with consistent error handling
+macro_rules! impl_sync_read {
+    ($func_name:ident, $fs_op:ident, $operation:literal, $return_type:ty) => {
+        #[doc = concat!("Read a file synchronously, returning `", stringify!($return_type), "`.")]
+        #[doc = ""]
+        #[doc = "Maps I/O errors to `OpenAIError::FileError` with a descriptive message"]
+        #[doc = "that includes the file path."]
+        pub fn $func_name<P: AsRef<Path>>(file_path: P) -> Result<$return_type> {
+            let path = file_path.as_ref();
+            std::fs::$fs_op(path).map_err(|e| create_file_error(path, $operation, &e))
+        }
+    };
+}
+
+/// Macro to generate sync write functions with consistent error handling
+macro_rules! impl_sync_write {
+    ($func_name:ident, $fs_op:ident, $operation:literal, $param_type:ty) => {
+        #[doc = concat!("Write data of type `", stringify!($param_type), "` to a file synchronously.")]
+        #[doc = ""]
+        #[doc = "Maps I/O errors to `OpenAIError::FileError` with a descriptive message"]
+        #[doc = "that includes the file path."]
+        pub fn $func_name<P: AsRef<Path>>(file_path: P, data: $param_type) -> Result<()> {
+            let path = file_path.as_ref();
+            std::fs::$fs_op(path, data).map_err(|e| create_file_error(path, $operation, &e))
+        }
+    };
+}
+
+// Generate async file operation functions using macros to reduce duplication
+impl_async_read!(read_bytes, read, "read", Vec<u8>);
+impl_async_read!(read_string, read_to_string, "read", String);
+impl_async_write!(write_bytes, write, "write", &[u8]);
+
+// Generate sync file operation functions using macros to reduce duplication
+impl_sync_read!(read_bytes_sync, read, "read", Vec<u8>);
+impl_sync_read!(read_string_sync, read_to_string, "read", String);
+impl_sync_write!(write_bytes_sync, write, "write", &[u8]);
 
 /// Write a string to a file asynchronously
 ///
-/// This helper consolidates the common pattern of writing a string to a file
-/// and mapping I/O errors to `OpenAIError::FileError` with a descriptive message
+/// Maps I/O errors to `OpenAIError::FileError` with a descriptive message
 /// that includes the file path.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to write
-/// * `content` - The string content to write to the file
-///
-/// # Returns
-///
-/// * `Result<()>` - Success, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::write_string;
-/// # async fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// write_string("output.txt", "Hello, world!").await?;
-/// println!("File written successfully");
-/// # Ok(())
-/// # }
-/// ```
 pub async fn write_string<P: AsRef<Path>, S: AsRef<str>>(file_path: P, content: S) -> Result<()> {
     let path = file_path.as_ref();
     let content = content.as_ref();
-    fs::write(path, content).await.map_err(|e| {
-        OpenAIError::FileError(format!("Failed to write file {}: {}", path.display(), e))
-    })
-}
-
-/// Read a file as bytes synchronously (blocking)
-///
-/// This helper provides a synchronous version of file reading for cases where
-/// async is not available or needed. Maps I/O errors to `OpenAIError::FileError`.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to read
-///
-/// # Returns
-///
-/// * `Result<Vec<u8>>` - The file contents as bytes, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::read_bytes_sync;
-/// # fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// let data = read_bytes_sync("image.png")?;
-/// println!("Read {} bytes", data.len());
-/// # Ok(())
-/// # }
-/// ```
-pub fn read_bytes_sync<P: AsRef<Path>>(file_path: P) -> Result<Vec<u8>> {
-    let path = file_path.as_ref();
-    std::fs::read(path).map_err(|e| {
-        OpenAIError::FileError(format!("Failed to read file {}: {}", path.display(), e))
-    })
-}
-
-/// Read a file as a UTF-8 string synchronously (blocking)
-///
-/// This helper provides a synchronous version of string file reading for cases where
-/// async is not available or needed. Maps I/O errors to `OpenAIError::FileError`.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to read
-///
-/// # Returns
-///
-/// * `Result<String>` - The file contents as a string, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::read_string_sync;
-/// # fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// let content = read_string_sync("config.json")?;
-/// println!("Read {} characters", content.len());
-/// # Ok(())
-/// # }
-/// ```
-pub fn read_string_sync<P: AsRef<Path>>(file_path: P) -> Result<String> {
-    let path = file_path.as_ref();
-    std::fs::read_to_string(path).map_err(|e| {
-        OpenAIError::FileError(format!("Failed to read file {}: {}", path.display(), e))
-    })
-}
-
-/// Write bytes to a file synchronously (blocking)
-///
-/// This helper provides a synchronous version of file writing for cases where
-/// async is not available or needed. Maps I/O errors to `OpenAIError::FileError`.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to write
-/// * `data` - The bytes to write to the file
-///
-/// # Returns
-///
-/// * `Result<()>` - Success, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::write_bytes_sync;
-/// # fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// let data = vec![1, 2, 3, 4];
-/// write_bytes_sync("output.bin", &data)?;
-/// println!("Written {} bytes", data.len());
-/// # Ok(())
-/// # }
-/// ```
-pub fn write_bytes_sync<P: AsRef<Path>>(file_path: P, data: &[u8]) -> Result<()> {
-    let path = file_path.as_ref();
-    std::fs::write(path, data).map_err(|e| {
-        OpenAIError::FileError(format!("Failed to write file {}: {}", path.display(), e))
-    })
+    fs::write(path, content)
+        .await
+        .map_err(|e| create_file_error(path, "write", &e))
 }
 
 /// Write a string to a file synchronously (blocking)
 ///
-/// This helper provides a synchronous version of string file writing for cases where
-/// async is not available or needed. Maps I/O errors to `OpenAIError::FileError`.
-///
-/// # Arguments
-///
-/// * `file_path` - Path to the file to write
-/// * `content` - The string content to write to the file
-///
-/// # Returns
-///
-/// * `Result<()>` - Success, or a FileError on failure
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use openai_rust_sdk::helpers::file_operations::write_string_sync;
-/// # fn example() -> Result<(), openai_rust_sdk::error::OpenAIError> {
-/// write_string_sync("output.txt", "Hello, world!")?;
-/// println!("File written successfully");
-/// # Ok(())
-/// # }
-/// ```
+/// Maps I/O errors to `OpenAIError::FileError` with a descriptive message
+/// that includes the file path.
 pub fn write_string_sync<P: AsRef<Path>, S: AsRef<str>>(file_path: P, content: S) -> Result<()> {
     let path = file_path.as_ref();
     let content = content.as_ref();
-    std::fs::write(path, content).map_err(|e| {
-        OpenAIError::FileError(format!("Failed to write file {}: {}", path.display(), e))
-    })
+    std::fs::write(path, content).map_err(|e| create_file_error(path, "write", &e))
 }
 
 #[cfg(test)]

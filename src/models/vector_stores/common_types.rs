@@ -163,20 +163,8 @@ pub struct VectorStoreFileError {
 
 /// Utility functions for formatting and conversion
 pub mod utils {
-    /// Convert bytes to human-readable format
-    #[must_use]
-    pub fn bytes_to_human_readable(bytes: u64) -> String {
-        let bytes = bytes as f64;
-        if bytes < 1024.0 {
-            format!("{bytes} B")
-        } else if bytes < 1024.0 * 1024.0 {
-            format!("{:.1} KB", bytes / 1024.0)
-        } else if bytes < 1024.0 * 1024.0 * 1024.0 {
-            format!("{:.1} MB", bytes / (1024.0 * 1024.0))
-        } else {
-            format!("{:.1} GB", bytes / (1024.0 * 1024.0 * 1024.0))
-        }
-    }
+    // Generate the bytes to human readable function
+    crate::impl_bytes_to_human_readable!();
 
     /// Format Unix timestamp as a human-readable string
     #[must_use]

@@ -5,7 +5,7 @@
 //! These tests cover all aspects of run management, tool calling, step tracking,
 //! status monitoring, and error handling.
 
-use openai_rust_sdk::api::{common::ApiClientConstructors, runs::RunsApi};
+use openai_rust_sdk::api::runs::RunsApi;
 use openai_rust_sdk::models::assistants::AssistantTool;
 use openai_rust_sdk::models::runs::{
     CreateThreadAndRunRequest, ListRunStepsParams, ListRunsParams, ModifyRunRequest, RunRequest,
@@ -13,22 +13,16 @@ use openai_rust_sdk::models::runs::{
 };
 use std::collections::HashMap;
 
-/// Mock API key for testing
-const TEST_API_KEY: &str = "sk-test123456789";
-
-/// Helper function to create a runs API client for testing
-fn create_test_client() -> RunsApi {
-    RunsApi::new(TEST_API_KEY).expect("Failed to create test client")
-}
-
-/// Helper function to create a runs API client with custom base URL
-fn create_test_client_with_url(base_url: &str) -> RunsApi {
-    RunsApi::with_base_url(TEST_API_KEY, base_url).expect("Failed to create test client")
-}
+mod common;
+use common::{
+    assert_builder_fails_with_message, assert_has_metadata_entries, create_full_run_request,
+    create_minimal_run_request, create_test_api_client, create_test_api_client_with_url,
+    create_test_metadata, create_test_thread_message, test_serialization_round_trip,
+};
 
 #[test]
 fn test_runs_api_client_creation() {
-    let _api = create_test_client();
+    let _api = create_test_api_client::<RunsApi>();
     // Test that the client was created successfully
     // Note: fields are private, so we just test successful creation
     // Test passes if no panic occurs during client creation
@@ -37,7 +31,7 @@ fn test_runs_api_client_creation() {
 #[test]
 fn test_runs_api_client_with_custom_url() {
     let custom_url = "https://custom.openai.com";
-    let _api = create_test_client_with_url(custom_url);
+    let _api = create_test_api_client_with_url::<RunsApi>(custom_url);
     // Test that the client was created successfully with custom URL
     // Note: fields are private, so we just test successful creation
     // Test passes if no panic occurs during client creation
@@ -74,16 +68,12 @@ fn test_run_request_builder_missing_assistant_id() {
         .instructions("Analyze the data")
         .build();
 
-    assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), "assistant_id is required");
+    assert_builder_fails_with_message(result, "assistant_id is required");
 }
 
 #[test]
 fn test_run_request_builder_minimal() {
-    let request = RunRequest::builder()
-        .assistant_id("asst_abc123")
-        .build()
-        .expect("Failed to build minimal run request");
+    let request = create_minimal_run_request("asst_abc123");
 
     assert_eq!(request.assistant_id, "asst_abc123");
     assert_eq!(request.model, None);
@@ -132,8 +122,7 @@ fn test_create_thread_and_run_request_builder_missing_assistant_id() {
         .instructions("Be helpful")
         .build();
 
-    assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), "assistant_id is required");
+    assert_builder_fails_with_message(result, "assistant_id is required");
 }
 
 #[test]
@@ -150,10 +139,7 @@ fn test_run_status_serialization() {
     ];
 
     for status in statuses {
-        let json = serde_json::to_string(&status).expect("Failed to serialize status");
-        let deserialized: RunStatus =
-            serde_json::from_str(&json).expect("Failed to deserialize status");
-        assert_eq!(status, deserialized);
+        test_serialization_round_trip(&status);
     }
 }
 
@@ -190,18 +176,15 @@ fn test_submit_tool_outputs_request_creation() {
 
 #[test]
 fn test_modify_run_request_creation() {
-    let mut metadata = HashMap::new();
-    metadata.insert("updated".to_string(), "true".to_string());
-    metadata.insert("priority".to_string(), "high".to_string());
-
+    let metadata = create_test_metadata();
     let request = ModifyRunRequest {
         metadata: Some(metadata),
     };
 
-    assert!(request.metadata.is_some());
-    let metadata = request.metadata.unwrap();
-    assert_eq!(metadata.get("updated"), Some(&"true".to_string()));
-    assert_eq!(metadata.get("priority"), Some(&"high".to_string()));
+    assert_has_metadata_entries(
+        request.metadata.as_ref(),
+        &[("environment", "test"), ("version", "1.0")],
+    );
 }
 
 #[test]
@@ -255,27 +238,11 @@ fn test_list_run_steps_params_custom() {
 #[test]
 fn test_thread_create_request_creation() {
     let messages = vec![
-        ThreadMessage {
-            role: "user".to_string(),
-            content: "Hello, world!".to_string(),
-            file_ids: Some(vec!["file_abc123".to_string()]),
-            metadata: Some({
-                let mut meta = HashMap::new();
-                meta.insert("type".to_string(), "greeting".to_string());
-                meta
-            }),
-        },
-        ThreadMessage {
-            role: "assistant".to_string(),
-            content: "Hello! How can I help you today?".to_string(),
-            file_ids: None,
-            metadata: None,
-        },
+        create_test_thread_message("user", "Hello, world!"),
+        create_test_thread_message("assistant", "Hello! How can I help you today?"),
     ];
 
-    let mut thread_metadata = HashMap::new();
-    thread_metadata.insert("purpose".to_string(), "customer_support".to_string());
-
+    let thread_metadata = create_test_metadata();
     let thread_request = ThreadCreateRequest {
         messages: Some(messages),
         metadata: Some(thread_metadata),
@@ -283,10 +250,9 @@ fn test_thread_create_request_creation() {
 
     assert!(thread_request.messages.is_some());
     assert_eq!(thread_request.messages.as_ref().unwrap().len(), 2);
-    assert!(thread_request.metadata.is_some());
-    assert_eq!(
-        thread_request.metadata.unwrap().get("purpose"),
-        Some(&"customer_support".to_string())
+    assert_has_metadata_entries(
+        thread_request.metadata.as_ref(),
+        &[("environment", "test"), ("version", "1.0")],
     );
 }
 
@@ -314,37 +280,14 @@ fn test_thread_message_creation() {
 
 #[test]
 fn test_run_request_serialization() {
-    let request = RunRequest::builder()
-        .assistant_id("asst_abc123")
-        .model("gpt-4")
-        .instructions("Test instructions")
-        .tool(AssistantTool::CodeInterpreter)
-        .file_id("file_abc123")
-        .metadata_pair("test", "value")
-        .build()
-        .expect("Failed to build request");
-
-    let json = serde_json::to_string(&request).expect("Failed to serialize request");
-    let deserialized: RunRequest =
-        serde_json::from_str(&json).expect("Failed to deserialize request");
-
-    assert_eq!(request.assistant_id, deserialized.assistant_id);
-    assert_eq!(request.model, deserialized.model);
-    assert_eq!(request.instructions, deserialized.instructions);
-    assert_eq!(request.tools, deserialized.tools);
-    assert_eq!(request.file_ids, deserialized.file_ids);
-    assert_eq!(request.metadata, deserialized.metadata);
+    let request = create_full_run_request("asst_abc123", "gpt-4");
+    test_serialization_round_trip(&request);
 }
 
 #[test]
 fn test_create_thread_and_run_request_serialization() {
     let thread = ThreadCreateRequest {
-        messages: Some(vec![ThreadMessage {
-            role: "user".to_string(),
-            content: "Hello!".to_string(),
-            file_ids: None,
-            metadata: None,
-        }]),
+        messages: Some(vec![create_test_thread_message("user", "Hello!")]),
         metadata: None,
     };
 
@@ -356,14 +299,7 @@ fn test_create_thread_and_run_request_serialization() {
         .build()
         .expect("Failed to build request");
 
-    let json = serde_json::to_string(&request).expect("Failed to serialize request");
-    let deserialized: CreateThreadAndRunRequest =
-        serde_json::from_str(&json).expect("Failed to deserialize request");
-
-    assert_eq!(request.assistant_id, deserialized.assistant_id);
-    assert_eq!(request.model, deserialized.model);
-    assert_eq!(request.instructions, deserialized.instructions);
-    assert!(deserialized.thread.is_some());
+    test_serialization_round_trip(&request);
 }
 
 #[test]
@@ -373,12 +309,7 @@ fn test_tool_output_serialization() {
         output: "The calculation result is 42".to_string(),
     };
 
-    let json = serde_json::to_string(&tool_output).expect("Failed to serialize tool output");
-    let deserialized: ToolOutput =
-        serde_json::from_str(&json).expect("Failed to deserialize tool output");
-
-    assert_eq!(tool_output.tool_call_id, deserialized.tool_call_id);
-    assert_eq!(tool_output.output, deserialized.output);
+    test_serialization_round_trip(&tool_output);
 }
 
 #[test]
@@ -396,35 +327,17 @@ fn test_submit_tool_outputs_request_serialization() {
         ],
     };
 
-    let json = serde_json::to_string(&request).expect("Failed to serialize request");
-    let deserialized: SubmitToolOutputsRequest =
-        serde_json::from_str(&json).expect("Failed to deserialize request");
-
-    assert_eq!(request.tool_outputs.len(), deserialized.tool_outputs.len());
-    assert_eq!(
-        request.tool_outputs[0].tool_call_id,
-        deserialized.tool_outputs[0].tool_call_id
-    );
-    assert_eq!(
-        request.tool_outputs[1].output,
-        deserialized.tool_outputs[1].output
-    );
+    test_serialization_round_trip(&request);
 }
 
 #[test]
 fn test_modify_run_request_serialization() {
-    let mut metadata = HashMap::new();
-    metadata.insert("updated".to_string(), "true".to_string());
-
+    let metadata = create_test_metadata();
     let request = ModifyRunRequest {
         metadata: Some(metadata),
     };
 
-    let json = serde_json::to_string(&request).expect("Failed to serialize request");
-    let deserialized: ModifyRunRequest =
-        serde_json::from_str(&json).expect("Failed to deserialize request");
-
-    assert_eq!(request.metadata, deserialized.metadata);
+    test_serialization_round_trip(&request);
 }
 
 // Integration tests (would require actual API key and network access)
