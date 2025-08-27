@@ -5,6 +5,42 @@
 use crate::{De, Ser};
 use serde::{self, Deserialize, Serialize};
 
+/// Type alias for category getter function
+type CategoryGetter = fn(&ModerationCategories) -> bool;
+
+/// Mapping of category names to their getter functions
+const CATEGORY_MAPPINGS: &[(&str, CategoryGetter)] = &[
+    ("hate", |c| c.hate),
+    ("hate/threatening", |c| c.hate_threatening),
+    ("self-harm", |c| c.self_harm),
+    ("self-harm/intent", |c| c.self_harm_intent),
+    ("self-harm/instructions", |c| c.self_harm_instructions),
+    ("sexual", |c| c.sexual),
+    ("sexual/minors", |c| c.sexual_minors),
+    ("violence", |c| c.violence),
+    ("violence/graphic", |c| c.violence_graphic),
+    ("harassment", |c| c.harassment),
+    ("harassment/threatening", |c| c.harassment_threatening),
+];
+
+/// Type alias for score getter function
+type ScoreGetter = fn(&CategoryScores) -> f64;
+
+/// Mapping of category names to their score getter functions
+const SCORE_MAPPINGS: &[(&str, ScoreGetter)] = &[
+    ("hate", |s| s.hate),
+    ("hate/threatening", |s| s.hate_threatening),
+    ("self-harm", |s| s.self_harm),
+    ("self-harm/intent", |s| s.self_harm_intent),
+    ("self-harm/instructions", |s| s.self_harm_instructions),
+    ("sexual", |s| s.sexual),
+    ("sexual/minors", |s| s.sexual_minors),
+    ("violence", |s| s.violence),
+    ("violence/graphic", |s| s.violence_graphic),
+    ("harassment", |s| s.harassment),
+    ("harassment/threatening", |s| s.harassment_threatening),
+];
+
 /// Request for content moderation
 #[derive(Debug, Clone, Ser, De)]
 pub struct ModerationRequest {
@@ -246,25 +282,10 @@ impl ModerationResult {
 
     /// Helper method to get all category names with their violation status
     fn get_category_violations(&self) -> Vec<(&'static str, bool)> {
-        vec![
-            ("hate", self.categories.hate),
-            ("hate/threatening", self.categories.hate_threatening),
-            ("self-harm", self.categories.self_harm),
-            ("self-harm/intent", self.categories.self_harm_intent),
-            (
-                "self-harm/instructions",
-                self.categories.self_harm_instructions,
-            ),
-            ("sexual", self.categories.sexual),
-            ("sexual/minors", self.categories.sexual_minors),
-            ("violence", self.categories.violence),
-            ("violence/graphic", self.categories.violence_graphic),
-            ("harassment", self.categories.harassment),
-            (
-                "harassment/threatening",
-                self.categories.harassment_threatening,
-            ),
-        ]
+        CATEGORY_MAPPINGS
+            .iter()
+            .map(|&(name, getter)| (name, getter(&self.categories)))
+            .collect()
     }
 
     /// Get the highest confidence score for this result
@@ -278,21 +299,10 @@ impl CategoryScores {
     /// Get the maximum score across all categories
     #[must_use]
     pub fn max_score(&self) -> f64 {
-        [
-            self.hate,
-            self.hate_threatening,
-            self.self_harm,
-            self.self_harm_intent,
-            self.self_harm_instructions,
-            self.sexual,
-            self.sexual_minors,
-            self.violence,
-            self.violence_graphic,
-            self.harassment,
-            self.harassment_threatening,
-        ]
-        .iter()
-        .fold(0.0, |a, &b| f64::max(a, b))
+        SCORE_MAPPINGS
+            .iter()
+            .map(|(_, getter)| getter(self))
+            .fold(0.0, f64::max)
     }
 
     /// Get scores above a certain threshold
@@ -307,19 +317,10 @@ impl CategoryScores {
 
     /// Helper method to get all category scores with their names
     fn get_category_scores(&self) -> Vec<(&'static str, f64)> {
-        vec![
-            ("hate", self.hate),
-            ("hate/threatening", self.hate_threatening),
-            ("self-harm", self.self_harm),
-            ("self-harm/intent", self.self_harm_intent),
-            ("self-harm/instructions", self.self_harm_instructions),
-            ("sexual", self.sexual),
-            ("sexual/minors", self.sexual_minors),
-            ("violence", self.violence),
-            ("violence/graphic", self.violence_graphic),
-            ("harassment", self.harassment),
-            ("harassment/threatening", self.harassment_threatening),
-        ]
+        SCORE_MAPPINGS
+            .iter()
+            .map(|&(name, getter)| (name, getter(self)))
+            .collect()
     }
 }
 

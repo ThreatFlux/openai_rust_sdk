@@ -12,24 +12,74 @@ use std::fs;
 
 #[cfg(feature = "yara")]
 fn main() {
+    print_header();
+
+    let batch_file = generate_batch_job();
+
+    if has_api_key() {
+        run_production_flow(&batch_file);
+    } else {
+        run_demo_flow();
+    }
+
+    print_completion_message();
+}
+
+#[cfg(feature = "yara")]
+/// Print the demo header
+fn print_header() {
     println!("OpenAI Batch API + Yara-X Integration Test");
     println!("===========================================\n");
+}
 
-    // Step 1: Generate batch job for yara-x questions
+#[cfg(feature = "yara")]
+/// Generate batch job for yara-x questions
+fn generate_batch_job() -> std::path::PathBuf {
     println!("Step 1: Generating batch job with yara-x questions...");
     let generator = BatchJobGenerator::new(Some("gpt-5-nano".to_string()));
     let batch_file = std::path::Path::new("test_batch.jsonl");
     generator.generate_test_suite(batch_file, "basic").unwrap();
     println!("✓ Generated batch file: {}", batch_file.display());
+    batch_file.to_path_buf()
+}
 
-    // Step 2: Simulate OpenAI response
+#[cfg(feature = "yara")]
+/// Check if API key is available
+fn has_api_key() -> bool {
+    std::env::var("OPENAI_API_KEY").is_ok()
+}
+
+#[cfg(feature = "yara")]
+/// Run production flow with API key
+fn run_production_flow(batch_file: &std::path::Path) {
     println!("\nStep 2: Simulating OpenAI batch response...");
+    println!("✓ OPENAI_API_KEY found. In production, you would:");
+    println!("  1. Upload the batch file using OpenAI Files API");
+    println!("  2. Create batch job with the file ID");
+    println!("  3. Wait for batch completion (up to 24 hours)");
+    println!("  4. Download results and validate with yara-x");
 
-    if std::env::var("OPENAI_API_KEY").is_err() {
-        println!("⚠️  OPENAI_API_KEY not set. Using sample rule for validation...");
+    let batch_content = fs::read_to_string(batch_file).unwrap();
+    println!(
+        "\n✓ Generated {} batch requests for yara-x testing",
+        batch_content.lines().count()
+    );
+}
 
-        // Simulate a response with a sample YARA rule
-        let sample_rule = r#"
+#[cfg(feature = "yara")]
+/// Run demo flow without API key
+fn run_demo_flow() {
+    println!("\nStep 2: Simulating OpenAI batch response...");
+    println!("⚠️  OPENAI_API_KEY not set. Using sample rule for validation...");
+
+    let sample_rule = get_sample_yara_rule();
+    validate_sample_rule(sample_rule);
+}
+
+#[cfg(feature = "yara")]
+/// Get sample YARA rule for demonstration
+fn get_sample_yara_rule() -> &'static str {
+    r#"
 rule DetectPE_UPX {
     meta:
         description = "Detects PE files packed with UPX"
@@ -45,70 +95,80 @@ rule DetectPE_UPX {
         $mz at 0 and 
         (all of ($upx*) or $upx_sig)
 }
-"#;
+"#
+}
 
-        // Step 3: Validate the generated YARA rule
-        println!("\nStep 3: Validating generated YARA rule with yara-x...");
-        let validator = YaraValidator::new();
-        let result = validator.validate_rule(sample_rule).unwrap();
+#[cfg(feature = "yara")]
+/// Validate sample YARA rule
+fn validate_sample_rule(sample_rule: &str) {
+    println!("\nStep 3: Validating generated YARA rule with yara-x...");
+    let validator = YaraValidator::new();
+    let result = validator.validate_rule(sample_rule).unwrap();
 
-        println!("\nValidation Results:");
-        println!("==================");
-        println!(
-            "✓ Validity: {}",
-            if result.is_valid { "VALID" } else { "INVALID" }
-        );
-        if let Some(name) = &result.rule_name {
-            println!("✓ Rule Name: {name}");
-        }
+    print_validation_results(&result);
+    print_feature_analysis(&result);
+    print_performance_metrics(&result);
+}
 
-        if !result.errors.is_empty() {
-            println!("\nErrors:");
-            for error in &result.errors {
-                println!("  ✗ {error}");
-            }
-        }
+#[cfg(feature = "yara")]
+/// Print validation results
+fn print_validation_results(result: &openai_rust_sdk::testing::yara_validator::ValidationResult) {
+    println!("\nValidation Results:");
+    println!("==================");
+    println!(
+        "✓ Validity: {}",
+        if result.is_valid { "VALID" } else { "INVALID" }
+    );
 
-        if !result.warnings.is_empty() {
-            println!("\nWarnings:");
-            for warning in &result.warnings {
-                println!("  ⚠ {warning}");
-            }
-        }
-
-        println!("\nFeatures Detected:");
-        println!("  • Hex Patterns: {}", result.features.has_hex_patterns);
-        println!("  • String Patterns: {}", result.features.has_strings);
-        println!(
-            "  • Regular Expressions: {}",
-            result.features.has_regex_patterns
-        );
-        println!("  • Metadata: {}", result.features.has_metadata);
-        println!("  • Imports: {}", result.features.has_imports);
-
-        println!("\nPerformance Metrics:");
-        println!(
-            "  • Compilation Time: {}ms",
-            result.metrics.compilation_time_ms
-        );
-        println!("  • Rule Size: {} bytes", result.metrics.rule_size_bytes);
-        println!("  • Pattern Count: {}", result.metrics.pattern_count);
-        println!("  • Complexity Score: {}", result.features.complexity_score);
-    } else {
-        println!("✓ OPENAI_API_KEY found. In production, you would:");
-        println!("  1. Upload the batch file using OpenAI Files API");
-        println!("  2. Create batch job with the file ID");
-        println!("  3. Wait for batch completion (up to 24 hours)");
-        println!("  4. Download results and validate with yara-x");
-
-        // Read the generated batch file
-        let batch_content = fs::read_to_string(batch_file).unwrap();
-        println!(
-            "\n✓ Generated {} batch requests for yara-x testing",
-            batch_content.lines().count()
-        );
+    if let Some(name) = &result.rule_name {
+        println!("✓ Rule Name: {name}");
     }
 
+    if !result.errors.is_empty() {
+        println!("\nErrors:");
+        for error in &result.errors {
+            println!("  ✗ {error}");
+        }
+    }
+
+    if !result.warnings.is_empty() {
+        println!("\nWarnings:");
+        for warning in &result.warnings {
+            println!("  ⚠ {warning}");
+        }
+    }
+}
+
+#[cfg(feature = "yara")]
+/// Print feature analysis
+fn print_feature_analysis(result: &openai_rust_sdk::testing::yara_validator::ValidationResult) {
+    println!("\nFeatures Detected:");
+    println!("  • Hex Patterns: {}", result.features.has_hex_patterns);
+    println!("  • String Patterns: {}", result.features.has_strings);
+    println!(
+        "  • Regular Expressions: {}",
+        result.features.has_regex_patterns
+    );
+    println!("  • Metadata: {}", result.features.has_metadata);
+    println!("  • Imports: {}", result.features.has_imports);
+}
+
+#[cfg(feature = "yara")]
+/// Print performance metrics
+fn print_performance_metrics(result: &openai_rust_sdk::testing::yara_validator::ValidationResult) {
+    println!("\nPerformance Metrics:");
+    println!(
+        "  • Compilation Time: {}ms",
+        result.metrics.compilation_time_ms
+    );
+    println!("  • Rule Size: {} bytes", result.metrics.rule_size_bytes);
+    println!("  • Pattern Count: {}", result.metrics.pattern_count);
+    println!("  • Complexity Score: {}", result.features.complexity_score);
+}
+
+#[cfg(feature = "yara")]
+/// Print completion message
+fn print_completion_message() {
     println!("\n===========================================");
     println!("Integration test completed successfully!");
 }

@@ -93,7 +93,18 @@ async fn parallel_function_calling(
     println!("2. Parallel Function Calling");
     println!("============================");
 
-    // Create multiple functions
+    let tools = create_parallel_function_tools()?;
+    let config = create_parallel_function_config(tools);
+    let request = create_parallel_function_request();
+
+    execute_parallel_function_flow(client, &request, &config).await?;
+
+    println!();
+    Ok(())
+}
+
+/// Create tools for parallel function calling
+fn create_parallel_function_tools() -> Result<Vec<Tool>, Box<dyn std::error::Error>> {
     let weather_function =
         FunctionBuilder::weather_function("get_weather", "Get weather information for a location")
             .build()?;
@@ -108,26 +119,35 @@ async fn parallel_function_calling(
         FunctionBuilder::search_function("search_events", "Search for local events in a city")
             .build()?;
 
-    let tools = vec![
+    Ok(vec![
         Tool::function(weather_function),
         Tool::function(time_function),
         Tool::function(search_function),
-    ];
+    ])
+}
 
-    // Make a complex request that might trigger multiple functions
-    let config = FunctionConfig::new()
+/// Create function config for parallel calls
+fn create_parallel_function_config(tools: Vec<Tool>) -> FunctionConfig {
+    FunctionConfig::new()
         .with_tools(tools)
-        .with_parallel_calls(true);
+        .with_parallel_calls(true)
+}
 
+/// Create request for parallel function demo
+fn create_parallel_function_request() -> openai_rust_sdk::models::responses::ResponseRequest {
     let conversation = ChatBuilder::new()
         .user("I'm visiting New York tomorrow. Can you tell me the weather, current time, and any interesting events happening?");
 
-    let request = openai_rust_sdk::models::responses::ResponseRequest::new_messages(
-        "gpt-4",
-        conversation.build(),
-    );
+    openai_rust_sdk::models::responses::ResponseRequest::new_messages("gpt-4", conversation.build())
+}
 
-    let response = client.create_function_response(&request, &config).await?;
+/// Execute the parallel function calling flow
+async fn execute_parallel_function_flow(
+    client: &OpenAIClient,
+    request: &openai_rust_sdk::models::responses::ResponseRequest,
+    config: &FunctionConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let response = client.create_function_response(request, config).await?;
 
     println!("Response: {:?}", response.content);
     println!("Function calls: {}", response.function_calls.len());
@@ -143,12 +163,11 @@ async fn parallel_function_calling(
     // Submit results and get final response
     if !results.is_empty() {
         let final_response = client
-            .submit_function_results(results, &request, &config)
+            .submit_function_results(results, request, config)
             .await?;
         println!("Final response: {:?}", final_response.content);
     }
 
-    println!();
     Ok(())
 }
 

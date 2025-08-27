@@ -268,72 +268,71 @@ async fn demo_prompt_structure(api: &ResponsesApi) -> Result<(), Box<dyn std::er
     println!("──────────────────────────────────────────");
     println!("Comparing well-structured vs poorly-structured prompts...\n");
 
-    // Well-structured prompt (static content first, dynamic last)
-    println!("✅ Well-structured prompt (static → dynamic):");
-    let well_structured = ResponseRequest::new_messages(
-        "gpt-4o-mini",
-        vec![
-            Message::developer(SYSTEM_PROMPT), // Static (cacheable)
-            Message::developer(EXAMPLES),      // Static (cacheable)
-            Message::user(
-                "Current timestamp: 2024-03-20 14:23:45. Analyze recent AI developments.",
-            ), // Dynamic
-        ],
-    )
-    .with_max_tokens(150)
-    .with_prompt_cache_key("structured-v1");
+    test_well_structured_prompts(api).await?;
+    test_poorly_structured_prompts(api).await?;
 
+    Ok(())
+}
+
+async fn test_well_structured_prompts(
+    api: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("✅ Well-structured prompt (static → dynamic):");
+
+    let well_structured = create_well_structured_request("Analyze recent AI developments.");
     test_structured_request(api, &well_structured, "First request").await?;
     sleep(Duration::from_millis(500)).await;
 
-    // Second request with different dynamic content but same prefix
-    let well_structured2 = ResponseRequest::new_messages(
-        "gpt-4o-mini",
-        vec![
-            Message::developer(SYSTEM_PROMPT), // Same static prefix
-            Message::developer(EXAMPLES),      // Same static prefix
-            Message::user(
-                "Current timestamp: 2024-03-20 14:24:10. Explain machine learning basics.",
-            ), // Different dynamic
-        ],
-    )
-    .with_max_tokens(150)
-    .with_prompt_cache_key("structured-v1");
-
+    let well_structured2 = create_well_structured_request("Explain machine learning basics.");
     test_structured_request(api, &well_structured2, "Second request").await?;
 
-    // Poorly-structured prompt (dynamic content interrupts static)
-    println!("\n❌ Poorly-structured prompt (dynamic interrupts static):");
-    let poor_structured = ResponseRequest::new_messages(
-        "gpt-4o-mini",
-        vec![
-            Message::developer(&SYSTEM_PROMPT[..512]), // Partial static
-            Message::user("Current timestamp: 2024-03-20 14:24:30"), // Dynamic in middle!
-            Message::developer(&SYSTEM_PROMPT[512..]), // Rest of static (won't cache!)
-            Message::user("What are best practices for API design?"),
-        ],
-    )
-    .with_max_tokens(150);
+    Ok(())
+}
 
+async fn test_poorly_structured_prompts(
+    api: &ResponsesApi,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("\n❌ Poorly-structured prompt (dynamic interrupts static):");
+
+    let poor_structured =
+        create_poorly_structured_request("14:24:30", "What are best practices for API design?");
     test_structured_request(api, &poor_structured, "First request").await?;
     sleep(Duration::from_millis(500)).await;
 
-    // Second poorly structured request
-    let poor_structured2 = ResponseRequest::new_messages(
-        "gpt-4o-mini",
-        vec![
-            Message::developer(&SYSTEM_PROMPT[..512]),
-            Message::user("Current timestamp: 2024-03-20 14:24:45"), // Different timestamp
-            Message::developer(&SYSTEM_PROMPT[512..]),
-            Message::user("What are best practices for database design?"),
-        ],
-    )
-    .with_max_tokens(150);
-
+    let poor_structured2 = create_poorly_structured_request(
+        "14:24:45",
+        "What are best practices for database design?",
+    );
     test_structured_request(api, &poor_structured2, "Second request").await?;
     println!("  ⚠️  Note: Poor structure prevents effective caching!");
 
     Ok(())
+}
+
+fn create_well_structured_request(query: &str) -> ResponseRequest {
+    ResponseRequest::new_messages(
+        "gpt-4o-mini",
+        vec![
+            Message::developer(SYSTEM_PROMPT),
+            Message::developer(EXAMPLES),
+            Message::user(format!("Current timestamp: 2024-03-20 14:23:45. {}", query)),
+        ],
+    )
+    .with_max_tokens(150)
+    .with_prompt_cache_key("structured-v1")
+}
+
+fn create_poorly_structured_request(timestamp: &str, query: &str) -> ResponseRequest {
+    ResponseRequest::new_messages(
+        "gpt-4o-mini",
+        vec![
+            Message::developer(&SYSTEM_PROMPT[..512]),
+            Message::user(format!("Current timestamp: 2024-03-20 {}", timestamp)),
+            Message::developer(&SYSTEM_PROMPT[512..]),
+            Message::user(query),
+        ],
+    )
+    .with_max_tokens(150)
 }
 
 /// Demonstrates cache persistence timing

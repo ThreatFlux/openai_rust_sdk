@@ -26,17 +26,34 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get API key from environment
-    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
-        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
-    })?;
+    let api = setup_api()?;
 
     println!("🛠️ Enhanced Tools Demo");
     println!("======================");
 
-    let api = ResponsesApi::new(api_key)?;
+    demo_basic_web_search(&api).await?;
+    demo_advanced_web_search(&api).await?;
+    demo_file_search(&api).await?;
+    demo_mcp_server(&api).await?;
+    demo_multiple_tools(&api).await?;
+    demo_function_calling(&api).await?;
+    demo_image_generation(&api).await?;
+    demo_code_interpreter(&api).await?;
+    demo_tool_choice_control(&api).await?;
+    print_summary();
 
-    // Example 1: Web Search
+    Ok(())
+}
+
+fn setup_api() -> Result<ResponsesApi, Box<dyn std::error::Error>> {
+    let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+        "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
+    })?;
+
+    ResponsesApi::new(api_key).map_err(Into::into)
+}
+
+async fn demo_basic_web_search(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📡 Example 1: Web Search Tool");
     println!("─────────────────────────────");
 
@@ -52,7 +69,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Web Search Response:");
     println!("{}", response.output_text());
 
-    // Example 2: Advanced Web Search with filters
+    Ok(())
+}
+
+async fn demo_advanced_web_search(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🌐 Example 2: Advanced Web Search with Filters");
     println!("───────────────────────────────────────────────");
 
@@ -74,14 +94,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Filtered Search Response:");
     println!("{}", response.output_text());
 
-    // Example 3: File Search with Vector Stores
+    Ok(())
+}
+
+async fn demo_file_search(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📂 Example 3: File Search with Vector Stores");
     println!("─────────────────────────────────────────────");
 
-    // Note: You need to have a vector store ID from uploaded files
-    let vector_store_ids = vec!["vs_example123".to_string()]; // Replace with actual ID
-
-    let file_search_tool = ToolBuilder::file_search(vector_store_ids.clone())
+    let vector_store_ids = vec!["vs_example123".to_string()];
+    let file_search_tool = ToolBuilder::file_search(vector_store_ids)
         .max_chunks(10)
         .file_types(vec!["pdf".to_string(), "txt".to_string()])
         .build();
@@ -94,7 +115,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .with_max_tokens(200);
 
     println!("📚 Searching uploaded files for batch processing information...");
-    // Note: This will only work if you have actual vector stores
     match api.create_response(&file_search_request).await {
         Ok(response) => {
             println!("✅ File Search Response:");
@@ -105,7 +125,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 4: Remote MCP Server Integration
+    Ok(())
+}
+
+async fn demo_mcp_server(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔗 Example 4: Remote MCP Server Integration");
     println!("────────────────────────────────────────────");
 
@@ -132,10 +155,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 5: Multiple Tools in One Request
+    Ok(())
+}
+
+async fn demo_multiple_tools(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎯 Example 5: Multiple Tools Combined");
     println!("──────────────────────────────────────");
 
+    let vector_store_ids = vec!["vs_example123".to_string()];
     let multi_tool_request = ResponseRequest::new_text(
         "gpt-4o-mini",
         "Search the web for OpenAI's latest announcements and compare with any documentation we have"
@@ -149,7 +176,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Multi-Tool Response:");
     println!("{}", response.output_text());
 
-    // Example 6: Function Calling with Enhanced Tools
+    Ok(())
+}
+
+async fn demo_function_calling(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n⚡ Example 6: Function Calling with Enhanced Tools");
     println!("───────────────────────────────────────────────────");
 
@@ -180,7 +210,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Function + Web Search Response:");
     println!("{}", response.output_text());
 
-    // Example 7: Image Generation Tool
+    Ok(())
+}
+
+async fn demo_image_generation(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎨 Example 7: Image Generation Tool");
     println!("────────────────────────────────────");
 
@@ -209,7 +242,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 8: Code Interpreter Tool
+    Ok(())
+}
+
+async fn demo_code_interpreter(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n💻 Example 8: Code Interpreter Tool");
     println!("────────────────────────────────────");
 
@@ -237,7 +273,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 9: Tool Choice Control
+    Ok(())
+}
+
+async fn demo_tool_choice_control(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎛️ Example 9: Tool Choice Control");
     println!("──────────────────────────────────");
 
@@ -248,7 +287,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Tell me about Paris (use web search if needed)",
     )
     .with_web_search()
-    .with_enhanced_tool_choice(EnhancedToolChoice::Required) // Force tool use
+    .with_enhanced_tool_choice(EnhancedToolChoice::Required)
     .with_max_tokens(200);
 
     println!("🎯 Forcing tool usage...");
@@ -256,6 +295,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Controlled Tool Response:");
     println!("{}", response.output_text());
 
+    Ok(())
+}
+
+fn print_summary() {
     println!("\n✨ Enhanced Tools Demo Complete!");
     println!("💡 Key Takeaways:");
     println!("   • Web Search enables real-time internet data");
@@ -264,6 +307,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   • Multiple tools can be combined in one request");
     println!("   • Tool choice can be controlled explicitly");
     println!("   • Advanced tools like image generation and code interpreter extend capabilities");
-
-    Ok(())
 }

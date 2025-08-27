@@ -170,7 +170,16 @@ async fn demo_direct_code_execution(
     println!("\n⚡ Example 3: Direct Code Execution in Container");
     println!("────────────────────────────────────────────────");
 
-    let fibonacci_code = r#"
+    let fibonacci_code = create_fibonacci_code();
+    let execution_result =
+        execute_fibonacci_code(containers_api, container_id, fibonacci_code).await?;
+    display_execution_results(&execution_result);
+
+    Ok(())
+}
+
+fn create_fibonacci_code() -> &'static str {
+    r#"
 def fibonacci(n):
     """Generate first n Fibonacci numbers"""
     fib = [0, 1]
@@ -197,31 +206,43 @@ with open('fibonacci_results.txt', 'w') as f:
         f.write(f"F({i+1})/F({i}) = {ratio:.10f}\n")
 
 print("\nResults saved to fibonacci_results.txt")
-"#;
+"#
+}
 
+async fn execute_fibonacci_code(
+    containers_api: &ContainersApi,
+    container_id: &str,
+    code: &str,
+) -> Result<openai_rust_sdk::models::containers::CodeExecutionResult, Box<dyn std::error::Error>> {
     println!("🧮 Executing Fibonacci analysis...");
-    let execution_result = containers_api
-        .execute_code_with_timeout(container_id, fibonacci_code, 5000)
-        .await?;
+    containers_api
+        .execute_code_with_timeout(container_id, code, 5000)
+        .await
+        .map_err(|e| e.into())
+}
 
+fn display_execution_results(
+    execution_result: &openai_rust_sdk::models::containers::CodeExecutionResult,
+) {
     println!("✅ Execution completed!");
     println!("   Status: {:?}", execution_result.status);
+
     if let Some(stdout) = &execution_result.stdout {
         println!("\n📝 Output:\n{stdout}");
     }
+
     if let Some(stderr) = &execution_result.stderr {
         if !stderr.is_empty() {
             println!("\n⚠️ Errors:\n{stderr}");
         }
     }
+
     if !execution_result.created_files.is_empty() {
         println!("\n📁 Files created:");
         for file in &execution_result.created_files {
             println!("  - {} ({} bytes)", file.filename, file.size);
         }
     }
-
-    Ok(())
 }
 
 async fn demo_file_management(

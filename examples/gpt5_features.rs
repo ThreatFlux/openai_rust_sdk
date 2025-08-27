@@ -36,17 +36,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn run_examples(api_key: String) -> Result<(), Box<dyn std::error::Error>> {
     let api = GPT5Api::new(api_key)?;
 
-    demo_minimal_reasoning(&api).await?;
-    demo_fast_response(&api).await?;
-    demo_complex_reasoning(&api).await?;
-    demo_coding_task(&api).await?;
-    demo_cost_optimized(&api).await?;
-    demo_high_throughput(&api).await?;
-    demo_multi_turn_conversation(&api).await?;
+    run_basic_demos(&api).await?;
+    run_advanced_demos(&api).await?;
+    run_builder_and_selection_demos()?;
+
+    Ok(())
+}
+
+/// Run basic API demos
+async fn run_basic_demos(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
+    demo_minimal_reasoning(api).await?;
+    demo_fast_response(api).await?;
+    demo_complex_reasoning(api).await?;
+    Ok(())
+}
+
+/// Run advanced API demos
+async fn run_advanced_demos(api: &GPT5Api) -> Result<(), Box<dyn std::error::Error>> {
+    demo_coding_task(api).await?;
+    demo_cost_optimized(api).await?;
+    demo_high_throughput(api).await?;
+    demo_multi_turn_conversation(api).await?;
+    Ok(())
+}
+
+/// Run builder and selection demos
+fn run_builder_and_selection_demos() -> Result<(), Box<dyn std::error::Error>> {
     demo_request_builder()?;
     demo_model_selection();
     demo_migration_recommendations();
-
     Ok(())
 }
 

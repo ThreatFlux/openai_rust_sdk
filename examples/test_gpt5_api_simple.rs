@@ -15,21 +15,50 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let api_key =
-        env::var("OPENAI_API_KEY").expect("Please set OPENAI_API_KEY environment variable");
+    let api_key = setup_environment()?;
+    let gpt5_api = initialize_api(api_key)?;
 
-    println!("\n🚀 Testing GPT-5 API Methods\n");
-    println!("{}", "=".repeat(60));
+    print_header();
 
-    // Initialize GPT-5 API
+    run_all_tests(&gpt5_api).await;
+    print_summary();
+
+    Ok(())
+}
+
+fn setup_environment() -> Result<String> {
+    env::var("OPENAI_API_KEY").map_err(|_| {
+        openai_rust_sdk::error::OpenAIError::authentication(
+            "Please set OPENAI_API_KEY environment variable",
+        )
+    })
+}
+
+fn initialize_api(api_key: String) -> Result<GPT5Api> {
     let gpt5_api = GPT5Api::new(api_key)?;
     println!("✅ GPT-5 API initialized successfully");
+    Ok(gpt5_api)
+}
 
-    // Test 1: Minimal Response
+fn print_header() {
+    println!("\n🚀 Testing GPT-5 API Methods\n");
+    println!("{}", "=".repeat(60));
+}
+
+async fn run_all_tests(gpt5_api: &GPT5Api) {
+    let input = ResponseInput::Text("What is 2+2?".to_string());
+
+    test_minimal_response(gpt5_api, &input).await;
+    test_fast_response(gpt5_api, &input).await;
+    test_reasoned_response(gpt5_api, &input).await;
+    test_complex_response(gpt5_api).await;
+    test_coding_response(gpt5_api).await;
+    test_multi_turn_conversation(gpt5_api).await;
+}
+
+async fn test_minimal_response(gpt5_api: &GPT5Api, input: &ResponseInput) {
     println!("\n📝 Test 1: Minimal Response");
     println!("{}", "-".repeat(60));
-
-    let input = ResponseInput::Text("What is 2+2?".to_string());
 
     match gpt5_api
         .create_minimal_response("gpt-5", input.clone())
@@ -49,8 +78,9 @@ async fn main() -> Result<()> {
             check_error(&e);
         }
     }
+}
 
-    // Test 2: Fast Response
+async fn test_fast_response(gpt5_api: &GPT5Api, input: &ResponseInput) {
     println!("\n⚡ Test 2: Fast Response");
     println!("{}", "-".repeat(60));
 
@@ -68,8 +98,9 @@ async fn main() -> Result<()> {
             println!("❌ Fast response failed: {e}");
         }
     }
+}
 
-    // Test 3: Reasoned Response
+async fn test_reasoned_response(gpt5_api: &GPT5Api, input: &ResponseInput) {
     println!("\n🧠 Test 3: Reasoned Response");
     println!("{}", "-".repeat(60));
 
@@ -90,8 +121,9 @@ async fn main() -> Result<()> {
             println!("❌ Reasoned response failed: {e}");
         }
     }
+}
 
-    // Test 4: Complex Response
+async fn test_complex_response(gpt5_api: &GPT5Api) {
     println!("\n🔬 Test 4: Complex Response");
     println!("{}", "-".repeat(60));
 
@@ -116,8 +148,9 @@ async fn main() -> Result<()> {
             println!("❌ Complex response failed: {e}");
         }
     }
+}
 
-    // Test 5: Coding Response
+async fn test_coding_response(gpt5_api: &GPT5Api) {
     println!("\n💻 Test 5: Coding Response");
     println!("{}", "-".repeat(60));
 
@@ -142,8 +175,9 @@ async fn main() -> Result<()> {
             println!("❌ Coding response failed: {e}");
         }
     }
+}
 
-    // Test 6: Multi-turn Conversation
+async fn test_multi_turn_conversation(gpt5_api: &GPT5Api) {
     println!("\n💬 Test 6: Multi-turn Conversation");
     println!("{}", "-".repeat(60));
 
@@ -166,8 +200,6 @@ async fn main() -> Result<()> {
     {
         Ok(response) => {
             println!("✅ Multi-turn conversation successful!");
-
-            // Store response ID for context
             if let Some(id) = &response.id {
                 println!("   Response ID: {id}");
                 println!("   Can use for continued conversation");
@@ -177,19 +209,19 @@ async fn main() -> Result<()> {
             println!("❌ Multi-turn conversation failed: {e}");
         }
     }
+}
 
+fn print_summary() {
     println!("\n");
     println!("{}", "=".repeat(60));
     println!("🎉 GPT-5 API Testing Complete!");
     println!("{}", "=".repeat(60));
 
-    println!("\n📊 Summary:");
+    println!("\n📈 Summary:");
     println!("   All GPT-5 API methods are properly structured.");
     println!("   The API will work when GPT-5 models are available.");
     println!("\n   Current status: GPT-5 not yet released");
     println!("   Expected: 404 or model not found errors");
-
-    Ok(())
 }
 
 fn check_error(e: &openai_rust_sdk::error::OpenAIError) {

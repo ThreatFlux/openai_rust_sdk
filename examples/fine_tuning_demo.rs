@@ -59,10 +59,29 @@ const VALIDATION_DATA: &str = r#"{"messages": [{"role": "user", "content": "What
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    print_demo_header();
+
+    let (fine_tuning_api, files_api) = initialize_apis()?;
+    let (training_file_id, validation_file_id) = run_file_upload_demo(&files_api).await?;
+    let job_ids =
+        run_job_creation_demo(&fine_tuning_api, &training_file_id, &validation_file_id).await?;
+
+    run_monitoring_demos(&fine_tuning_api, &job_ids).await?;
+    run_management_demos(&fine_tuning_api, &job_ids).await?;
+    run_final_demos(&fine_tuning_api, &job_ids).await?;
+
+    print_completion_message();
+    Ok(())
+}
+
+/// Print the demo header
+fn print_demo_header() {
     println!("🚀 OpenAI Fine-tuning API Demo");
     println!("==============================\n");
+}
 
-    // Initialize the API client
+/// Initialize API clients
+fn initialize_apis() -> Result<(FineTuningApi, FilesApi)> {
     let api_key = env::var("OPENAI_API_KEY")
         .map_err(|_| OpenAIError::authentication("OPENAI_API_KEY environment variable not set"))?;
 
@@ -70,79 +89,132 @@ async fn main() -> Result<()> {
     let files_api = FilesApi::new(&api_key)?;
 
     println!("✅ Initialized Fine-tuning API client\n");
+    Ok((fine_tuning_api, files_api))
+}
 
-    // Demo 1: Upload training and validation files
+/// Run the file upload demo
+async fn run_file_upload_demo(files_api: &FilesApi) -> Result<(String, String)> {
     println!("📁 Demo 1: Uploading training and validation files");
     println!("================================================");
 
-    let (training_file_id, validation_file_id) = upload_training_files(&files_api).await?;
+    let (training_file_id, validation_file_id) = upload_training_files(files_api).await?;
     println!("✅ Training file uploaded: {training_file_id}");
     println!("✅ Validation file uploaded: {validation_file_id}");
     println!();
 
-    // Demo 2: Create fine-tuning jobs with different configurations
+    Ok((training_file_id, validation_file_id))
+}
+
+/// Run the job creation demo
+async fn run_job_creation_demo(
+    fine_tuning_api: &FineTuningApi,
+    training_file_id: &str,
+    validation_file_id: &str,
+) -> Result<Vec<String>> {
     println!("🎯 Demo 2: Creating fine-tuning jobs");
     println!("===================================");
 
-    let job_ids = create_fine_tuning_jobs(
-        &fine_tuning_api,
-        &training_file_id,
-        Some(&validation_file_id),
-    )
-    .await?;
+    let job_ids =
+        create_fine_tuning_jobs(fine_tuning_api, training_file_id, Some(validation_file_id))
+            .await?;
     println!("✅ Created {} fine-tuning jobs\n", job_ids.len());
 
-    // Demo 3: List and monitor jobs
+    Ok(job_ids)
+}
+
+/// Run monitoring-related demos
+async fn run_monitoring_demos(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
+    run_list_monitor_demo(fine_tuning_api, job_ids).await?;
+    run_event_streaming_demo(fine_tuning_api, job_ids).await?;
+    Ok(())
+}
+
+/// Run the list and monitor demo
+async fn run_list_monitor_demo(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
     println!("📊 Demo 3: Listing and monitoring jobs");
     println!("=====================================");
 
-    list_and_monitor_jobs(&fine_tuning_api, &job_ids).await?;
+    list_and_monitor_jobs(fine_tuning_api, job_ids).await?;
     println!();
+    Ok(())
+}
 
-    // Demo 4: Monitor a specific job with event streaming
+/// Run the event streaming demo
+async fn run_event_streaming_demo(
+    fine_tuning_api: &FineTuningApi,
+    job_ids: &[String],
+) -> Result<()> {
     println!("🔄 Demo 4: Monitoring job with event streaming");
     println!("============================================");
 
     if let Some(first_job_id) = job_ids.first() {
-        monitor_job_with_events(&fine_tuning_api, first_job_id).await?;
+        monitor_job_with_events(fine_tuning_api, first_job_id).await?;
     }
     println!();
+    Ok(())
+}
 
-    // Demo 5: Handle job cancellation
+/// Run management-related demos
+async fn run_management_demos(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
+    run_cancellation_demo(fine_tuning_api, job_ids).await?;
+    run_checkpoints_demo(fine_tuning_api, job_ids).await?;
+    Ok(())
+}
+
+/// Run the job cancellation demo
+async fn run_cancellation_demo(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
     println!("❌ Demo 5: Demonstrating job cancellation");
     println!("========================================");
 
     if job_ids.len() > 1 {
-        demonstrate_job_cancellation(&fine_tuning_api, &job_ids[1]).await?;
+        demonstrate_job_cancellation(fine_tuning_api, &job_ids[1]).await?;
     }
     println!();
+    Ok(())
+}
 
-    // Demo 6: List checkpoints for completed jobs
+/// Run the checkpoints demo
+async fn run_checkpoints_demo(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
     println!("📈 Demo 6: Listing training checkpoints");
     println!("=====================================");
 
-    for job_id in &job_ids {
-        list_job_checkpoints(&fine_tuning_api, job_id).await?;
+    for job_id in job_ids {
+        list_job_checkpoints(fine_tuning_api, job_id).await?;
     }
     println!();
+    Ok(())
+}
 
-    // Demo 7: Error handling examples
+/// Run final demos (error handling and model usage)
+async fn run_final_demos(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
+    run_error_handling_demo(fine_tuning_api).await?;
+    run_model_usage_demo(fine_tuning_api, job_ids).await?;
+    Ok(())
+}
+
+/// Run the error handling demo
+async fn run_error_handling_demo(fine_tuning_api: &FineTuningApi) -> Result<()> {
     println!("⚠️ Demo 7: Error handling examples");
     println!("=================================");
 
-    demonstrate_error_handling(&fine_tuning_api).await?;
+    demonstrate_error_handling(fine_tuning_api).await?;
     println!();
+    Ok(())
+}
 
-    // Demo 8: Using fine-tuned models (simulated)
+/// Run the model usage demo
+async fn run_model_usage_demo(fine_tuning_api: &FineTuningApi, job_ids: &[String]) -> Result<()> {
     println!("🎉 Demo 8: Using fine-tuned models");
     println!("=================================");
 
-    demonstrate_model_usage(&fine_tuning_api, &job_ids[0]).await?;
+    demonstrate_model_usage(fine_tuning_api, &job_ids[0]).await?;
+    Ok(())
+}
 
+/// Print the completion message
+fn print_completion_message() {
     println!("\n🎊 Fine-tuning demo completed successfully!");
     println!("Check the OpenAI dashboard for detailed job progress and metrics.");
-
-    Ok(())
 }
 
 /// Upload training and validation files

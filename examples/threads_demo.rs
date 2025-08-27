@@ -258,55 +258,98 @@ async fn demo_message_pagination(api: &ThreadsApi, thread_id: &str) -> Result<()
 
 /// Demo 4: Demonstrate metadata management
 async fn demo_metadata_management(api: &ThreadsApi, thread_id: &str) -> Result<()> {
-    // Retrieve the thread and show its metadata
+    execute_metadata_demos(api, thread_id).await
+}
+
+/// Execute all metadata demonstration steps
+async fn execute_metadata_demos(api: &ThreadsApi, thread_id: &str) -> Result<()> {
+    display_thread_metadata(api, thread_id).await?;
+    update_thread_metadata(api, thread_id).await?;
+    manage_message_metadata(api, thread_id).await?;
+    Ok(())
+}
+
+/// Display current thread metadata
+async fn display_thread_metadata(api: &ThreadsApi, thread_id: &str) -> Result<()> {
     let thread = api.retrieve_thread(thread_id).await?;
     println!("   🏷️  Current thread metadata:");
     for (key, value) in &thread.metadata {
         println!("      {key} = {value}");
     }
+    Ok(())
+}
 
-    // Modify thread metadata
-    let updated_metadata = ThreadRequest::builder()
-        .metadata_pair("status", "in_progress")
-        .metadata_pair("last_updated", "2024-03-15T10:30:00Z")
-        .metadata_pair("assigned_to", "analyst_jane")
-        .build();
-
+/// Update thread metadata with new values
+async fn update_thread_metadata(api: &ThreadsApi, thread_id: &str) -> Result<()> {
+    let updated_metadata = create_updated_thread_metadata();
     let updated_thread = api.modify_thread(thread_id, updated_metadata).await?;
     println!(
         "   ✅ Updated thread metadata (now has {} pairs)",
         updated_thread.metadata.len()
     );
+    Ok(())
+}
 
-    // Get a message and show its metadata
+/// Create updated thread metadata request
+fn create_updated_thread_metadata() -> ThreadRequest {
+    ThreadRequest::builder()
+        .metadata_pair("status", "in_progress")
+        .metadata_pair("last_updated", "2024-03-15T10:30:00Z")
+        .metadata_pair("assigned_to", "analyst_jane")
+        .build()
+}
+
+/// Manage message metadata operations
+async fn manage_message_metadata(api: &ThreadsApi, thread_id: &str) -> Result<()> {
     let messages = api
         .list_messages(thread_id, Some(ListMessagesParams::new().limit(1)))
         .await?;
+
     if let Some(message) = messages.data.first() {
-        println!("   💬 Message metadata for {}:", message.id);
-        for (key, value) in &message.metadata {
-            println!("      {key} = {value}");
-        }
-
-        // Modify message metadata (create a new message request with updated metadata)
-        let updated_message_request = MessageRequest::builder()
-            .role(message.role.clone())
-            .content("Updated message content with new metadata")
-            .metadata_pair("reviewed", "true")
-            .metadata_pair("reviewer", "supervisor_bob")
-            .metadata_pair("review_date", "2024-03-15")
-            .build()?;
-
-        let updated_message = api
-            .modify_message(thread_id, &message.id, updated_message_request)
-            .await?;
-        println!(
-            "   ✅ Updated message metadata (now has {} pairs)",
-            updated_message.metadata.len()
-        );
+        display_message_metadata(&message.id, &message.metadata);
+        update_message_metadata(api, thread_id, message).await?;
     }
-
     Ok(())
+}
+
+/// Display message metadata
+fn display_message_metadata(
+    message_id: &str,
+    metadata: &std::collections::HashMap<String, String>,
+) {
+    println!("   💬 Message metadata for {}:", message_id);
+    for (key, value) in metadata {
+        println!("      {key} = {value}");
+    }
+}
+
+/// Update message metadata
+async fn update_message_metadata(
+    api: &ThreadsApi,
+    thread_id: &str,
+    message: &openai_rust_sdk::models::threads::Message,
+) -> Result<()> {
+    let updated_message_request = create_updated_message_request(&message.role)?;
+    let updated_message = api
+        .modify_message(thread_id, &message.id, updated_message_request)
+        .await?;
+    println!(
+        "   ✅ Updated message metadata (now has {} pairs)",
+        updated_message.metadata.len()
+    );
+    Ok(())
+}
+
+/// Create updated message request
+fn create_updated_message_request(role: &MessageRole) -> Result<MessageRequest> {
+    MessageRequest::builder()
+        .role(role.clone())
+        .content("Updated message content with new metadata")
+        .metadata_pair("reviewed", "true")
+        .metadata_pair("reviewer", "supervisor_bob")
+        .metadata_pair("review_date", "2024-03-15")
+        .build()
+        .map_err(OpenAIError::InvalidRequest)
 }
 
 /// Demo 5: Demonstrate different content types

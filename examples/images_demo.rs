@@ -84,14 +84,21 @@ async fn demo_advanced_generation(api: &ImagesApi) -> Result<()> {
     println!("🎯 Demo 2: Advanced Image Generation");
     println!("------------------------------------");
 
-    // DALL-E 3 with HD quality and natural style
+    generate_hd_landscape_image(api).await?;
+    generate_portrait_image(api).await?;
+
+    println!();
+    Ok(())
+}
+
+async fn generate_hd_landscape_image(api: &ImagesApi) -> Result<()> {
     println!("Generating HD quality image with natural style...");
 
     let request = ImageGenerationRequest::new(
         ImageModels::DALL_E_3,
         "A serene mountain lake reflecting snow-capped peaks, painted in watercolor style",
     )
-    .with_size(ImageSize::Size1792x1024) // Landscape format
+    .with_size(ImageSize::Size1792x1024)
     .with_quality(ImageQuality::Hd)
     .with_style(ImageStyle::Natural)
     .with_response_format(ImageResponseFormat::B64Json);
@@ -102,7 +109,6 @@ async fn demo_advanced_generation(api: &ImagesApi) -> Result<()> {
             if let Some(first_image) = response.first_image() {
                 if first_image.has_b64_json() {
                     println!("   Received base64 encoded image data");
-                    // In a real application, you would save this to a file
                     println!(
                         "   Base64 data length: ~{} characters",
                         first_image.get_b64_json().unwrap_or("").len()
@@ -114,15 +120,17 @@ async fn demo_advanced_generation(api: &ImagesApi) -> Result<()> {
             println!("❌ Error generating HD image: {}", e);
         }
     }
+    Ok(())
+}
 
-    // Portrait format with vivid style
+async fn generate_portrait_image(api: &ImagesApi) -> Result<()> {
     println!("\nGenerating portrait format image with vivid style...");
 
     let portrait_request = ImageGenerationRequest::new(
         ImageModels::DALL_E_3,
         "A majestic dragon soaring through clouds with rainbow wings",
     )
-    .with_size(ImageSize::Size1024x1792) // Portrait format
+    .with_size(ImageSize::Size1024x1792)
     .with_quality(ImageQuality::Hd)
     .with_style(ImageStyle::Vivid)
     .with_response_format(ImageResponseFormat::Url);
@@ -138,8 +146,6 @@ async fn demo_advanced_generation(api: &ImagesApi) -> Result<()> {
             println!("❌ Error generating portrait image: {}", e);
         }
     }
-
-    println!();
     Ok(())
 }
 

@@ -14,34 +14,49 @@ async fn main() {
 #[cfg(feature = "yara")]
 use openai_rust_sdk::{
     api::{
-        common::ApiClientConstructors,
         functions::{FunctionConfig, FunctionsApi},
         gpt5::{GPT5Api, GPT5RequestBuilder},
         responses::ResponsesApi,
         streaming::StreamingApi,
     },
-    builders::function_builder::FunctionBuilder,
     models::{
-        functions::ToolChoice,
+        functions::{FunctionTool, Tool, ToolChoice},
         gpt5::models,
         responses::{Message, ResponseRequest},
     },
     schema::builder::SchemaBuilder,
-    testing::yara_validator::YaraValidator,
+    testing::yara_validator::{ValidationResult, YaraValidator},
     OpenAIClient,
 };
 
 #[cfg(feature = "yara")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    print_header();
+
+    demo_client_creation()?;
+    demo_request_building();
+    demo_gpt5_builder()?;
+    demo_function_building();
+    demo_yara_integration()?;
+    demo_model_constants();
+    demo_schema_building();
+
+    print_completion_summary();
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn print_header() {
     println!("🚀 OpenAI SDK Demo - Structure and Configuration");
     println!("═══════════════════════════════════════════════");
+}
 
-    // Demo 1: Client Creation (without API calls)
+#[cfg(feature = "yara")]
+fn demo_client_creation() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n1️⃣ SDK Components Demonstration");
-    println!("──────────────────────────────────");
+    println!("──────────────────────────────");
 
-    // Show that we can create all the client types
     let dummy_key = "dummy-key-for-demo";
 
     println!("✅ Creating OpenAI Client...");
@@ -49,7 +64,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Client created successfully");
 
     println!("✅ Creating Responses API...");
-    let _responses_api = ResponsesApi::new(dummy_key.to_string())?;
+    let _responses_api =
+        ResponsesApi::with_base_url(dummy_key.to_string(), "https://api.openai.com".to_string())?;
     println!("   Responses API created successfully");
 
     println!("✅ Creating GPT-5 API...");
@@ -64,11 +80,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _streaming_api = StreamingApi::new(dummy_key.to_string())?;
     println!("   Streaming API created successfully");
 
-    // Demo 2: Request Building
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn demo_request_building() {
     println!("\n2️⃣ Request Building Demonstration");
     println!("─────────────────────────────────");
 
-    // Basic request
     let basic_request = ResponseRequest::new_text("gpt-4o-mini", "Hello, world!")
         .with_temperature(0.7)
         .with_max_tokens(100);
@@ -78,7 +97,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Temperature: {:?}", basic_request.temperature);
     println!("   Max tokens: {:?}", basic_request.max_tokens);
 
-    // Messages request
     let messages = vec![
         Message::user("You are a helpful assistant."),
         Message::assistant("I'm here to help!"),
@@ -98,8 +116,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("     {}: {:?} - {:?}", i + 1, msg.role, msg.content);
         }
     }
+}
 
-    // Demo 3: GPT-5 Request Builder
+#[cfg(feature = "yara")]
+fn demo_gpt5_builder() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n3️⃣ GPT-5 Request Builder Demonstration");
     println!("──────────────────────────────────────");
 
@@ -118,24 +138,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Text config: {:?}", gpt5_request.text);
     println!("   Temperature: {:?}", gpt5_request.temperature);
 
-    // Demo 4: Function Building
-    println!("\n4️⃣ Function Building Demonstration");
-    println!("──────────────────────────────────");
+    Ok(())
+}
 
-    let calculator_function = FunctionBuilder::new()
-        .name("calculate")
-        .description("Perform mathematical calculations")
-        .required_parameter(
+#[cfg(feature = "yara")]
+fn demo_function_building() {
+    println!("\n4️⃣ Function Building Demonstration");
+    println!("──────────────────────────────");
+
+    let parameters = SchemaBuilder::new_object()
+        .required_property(
             "operation",
             SchemaBuilder::string().pattern(r"^(add|subtract|multiply|divide)$"),
         )
-        .required_parameter("a", SchemaBuilder::number())
-        .required_parameter("b", SchemaBuilder::number())
-        .build_tool()?;
+        .required_property("a", SchemaBuilder::number())
+        .required_property("b", SchemaBuilder::number())
+        .build();
+
+    let calculator_function = Tool::Function {
+        function: FunctionTool {
+            name: "calculate".to_string(),
+            description: "Perform mathematical calculations".to_string(),
+            parameters: parameters.unwrap(),
+            strict: None,
+        },
+    };
 
     println!("✅ Calculator Function created successfully");
 
-    // Function configuration
     let function_config = FunctionConfig::new()
         .with_tools(vec![calculator_function])
         .with_tool_choice(ToolChoice::Auto)
@@ -148,14 +178,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "   Parallel calls: {:?}",
         function_config.parallel_function_calls
     );
+}
 
-    // Demo 5: YARA Integration
+#[cfg(feature = "yara")]
+fn demo_yara_integration() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n5️⃣ YARA Integration Demonstration");
     println!("─────────────────────────────────");
 
     let validator = YaraValidator::new();
+    let test_rule = create_test_yara_rule();
+    let validation_result = validator.validate_rule(test_rule)?;
 
-    let test_rule = r#"
+    print_yara_results(&validation_result);
+
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+const fn create_test_yara_rule() -> &'static str {
+    r#"
 rule demo_rule {
     meta:
         description = "Demo rule for SDK testing"
@@ -168,10 +209,11 @@ rule demo_rule {
     condition:
         $text or $hex or $regex
 }
-"#;
+"#
+}
 
-    let validation_result = validator.validate_rule(test_rule)?;
-
+#[cfg(feature = "yara")]
+fn print_yara_results(validation_result: &ValidationResult) {
     println!("✅ YARA Validation:");
     println!("   Valid: {}", validation_result.is_valid);
     println!(
@@ -205,9 +247,10 @@ rule demo_rule {
         "   String count: {}",
         validation_result.features.string_count
     );
-    // Note: Individual pattern counts not exposed in current API
+}
 
-    // Demo 6: Model Constants
+#[cfg(feature = "yara")]
+fn demo_model_constants() {
     println!("\n6️⃣ Available Models");
     println!("──────────────────");
 
@@ -220,8 +263,10 @@ rule demo_rule {
     println!("✅ Legacy Models:");
     println!("   GPT-4 Turbo: {}", models::GPT_4_TURBO);
     println!("   O4 Mini: {}", models::O4_MINI);
+}
 
-    // Demo 7: Schema Building
+#[cfg(feature = "yara")]
+fn demo_schema_building() {
     println!("\n7️⃣ JSON Schema Building");
     println!("──────────────────────");
 
@@ -246,9 +291,12 @@ rule demo_rule {
             }
         }
     }
+}
 
+#[cfg(feature = "yara")]
+fn print_completion_summary() {
     println!("\n🎉 SDK Demo Completed Successfully!");
-    println!("═══════════════════════════════════");
+    println!("═══════════════════════════════");
     println!("✅ All components initialized correctly");
     println!("✅ Request building works properly");
     println!("✅ Function definitions created successfully");
@@ -258,6 +306,4 @@ rule demo_rule {
     println!("   1. Set OPENAI_API_KEY environment variable");
     println!("   2. Run: cargo run --example api_integration_test");
     println!("   3. Enjoy using the OpenAI SDK!");
-
-    Ok(())
 }

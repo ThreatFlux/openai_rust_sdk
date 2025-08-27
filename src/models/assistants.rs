@@ -165,43 +165,90 @@ impl AssistantRequest {
 
     /// Validate the assistant request
     pub fn validate(&self) -> Result<(), String> {
-        // Validate name length
+        self.validate_text_fields()?;
+        self.validate_collections()?;
+        self.validate_metadata()?;
+        Ok(())
+    }
+
+    /// Validate text field lengths
+    fn validate_text_fields(&self) -> Result<(), String> {
+        self.validate_name()?;
+        self.validate_description()?;
+        self.validate_instructions()?;
+        Ok(())
+    }
+
+    /// Validate name length
+    fn validate_name(&self) -> Result<(), String> {
         if let Some(name) = &self.name {
             if name.len() > 256 {
                 return Err("Assistant name cannot exceed 256 characters".to_string());
             }
         }
+        Ok(())
+    }
 
-        // Validate description length
+    /// Validate description length
+    fn validate_description(&self) -> Result<(), String> {
         if let Some(description) = &self.description {
             if description.len() > 512 {
                 return Err("Assistant description cannot exceed 512 characters".to_string());
             }
         }
+        Ok(())
+    }
 
-        // Validate instructions length
+    /// Validate instructions length
+    fn validate_instructions(&self) -> Result<(), String> {
         if let Some(instructions) = &self.instructions {
             if instructions.len() > 32768 {
                 return Err("Assistant instructions cannot exceed 32768 characters".to_string());
             }
         }
+        Ok(())
+    }
 
-        // Validate tools count
+    /// Validate collection sizes
+    fn validate_collections(&self) -> Result<(), String> {
+        self.validate_tools_count()?;
+        self.validate_file_ids_count()?;
+        Ok(())
+    }
+
+    /// Validate tools count
+    fn validate_tools_count(&self) -> Result<(), String> {
         if self.tools.len() > 128 {
             return Err("Assistant cannot have more than 128 tools".to_string());
         }
+        Ok(())
+    }
 
-        // Validate file IDs count
+    /// Validate file IDs count
+    fn validate_file_ids_count(&self) -> Result<(), String> {
         if self.file_ids.len() > 20 {
             return Err("Assistant cannot have more than 20 file IDs".to_string());
         }
+        Ok(())
+    }
 
-        // Validate metadata count
+    /// Validate metadata
+    fn validate_metadata(&self) -> Result<(), String> {
+        self.validate_metadata_count()?;
+        self.validate_metadata_entries()?;
+        Ok(())
+    }
+
+    /// Validate metadata count
+    fn validate_metadata_count(&self) -> Result<(), String> {
         if self.metadata.len() > 16 {
             return Err("Assistant cannot have more than 16 metadata pairs".to_string());
         }
+        Ok(())
+    }
 
-        // Validate metadata key/value lengths
+    /// Validate metadata key/value lengths
+    fn validate_metadata_entries(&self) -> Result<(), String> {
         for (key, value) in &self.metadata {
             if key.len() > 64 {
                 return Err("Metadata key cannot exceed 64 characters".to_string());
@@ -210,7 +257,6 @@ impl AssistantRequest {
                 return Err("Metadata value cannot exceed 512 characters".to_string());
             }
         }
-
         Ok(())
     }
 }

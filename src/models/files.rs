@@ -311,28 +311,39 @@ impl FileUploadRequest {
     /// Get the MIME type for the file based on its extension
     #[must_use]
     pub fn mime_type(&self) -> &'static str {
-        let filename_lower = self.filename.to_lowercase();
+        Self::determine_mime_type(&self.filename)
+    }
 
-        if filename_lower.ends_with(".jsonl") {
-            "application/jsonl"
-        } else if filename_lower.ends_with(".json") {
-            "application/json"
-        } else if filename_lower.ends_with(".txt") {
-            "text/plain"
-        } else if filename_lower.ends_with(".csv") {
-            "text/csv"
-        } else if filename_lower.ends_with(".png") {
-            "image/png"
-        } else if filename_lower.ends_with(".jpg") || filename_lower.ends_with(".jpeg") {
-            "image/jpeg"
-        } else if filename_lower.ends_with(".gif") {
-            "image/gif"
-        } else if filename_lower.ends_with(".webp") {
-            "image/webp"
-        } else if filename_lower.ends_with(".pdf") {
-            "application/pdf"
+    /// Determine MIME type from filename
+    fn determine_mime_type(filename: &str) -> &'static str {
+        let filename_lower = filename.to_lowercase();
+
+        // Use pattern matching on extension for better performance
+        if let Some(extension) = Self::extract_extension(&filename_lower) {
+            Self::mime_type_for_extension(extension)
         } else {
             "application/octet-stream"
+        }
+    }
+
+    /// Extract file extension from lowercase filename
+    fn extract_extension(filename_lower: &str) -> Option<&str> {
+        filename_lower.rfind('.').map(|pos| &filename_lower[pos..])
+    }
+
+    /// Get MIME type for a given extension
+    fn mime_type_for_extension(extension: &str) -> &'static str {
+        match extension {
+            ".jsonl" => "application/jsonl",
+            ".json" => "application/json",
+            ".txt" => "text/plain",
+            ".csv" => "text/csv",
+            ".png" => "image/png",
+            ".jpg" | ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream",
         }
     }
 }

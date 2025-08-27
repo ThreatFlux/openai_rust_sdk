@@ -11,39 +11,65 @@ use openai_rust_sdk::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize client from environment variable or use a test key
-    let client = if let Ok(client) = from_env() {
-        client
+    let client = initialize_client()?;
+    print_header();
+
+    run_basic_examples(&client).await?;
+    run_advanced_examples(&client).await?;
+    run_utility_examples().await?;
+    run_compatibility_examples(&client).await?;
+
+    print_completion_message();
+    Ok(())
+}
+
+/// Initialize the OpenAI client
+fn initialize_client() -> Result<OpenAIClient, Box<dyn std::error::Error>> {
+    if let Ok(client) = from_env() {
+        Ok(client)
     } else {
         println!("OPENAI_API_KEY not set, using demo mode with test key");
-        OpenAIClient::new("test-key-for-demo")?
-    };
+        Ok(OpenAIClient::new("test-key-for-demo")?)
+    }
+}
 
+/// Print the demo header
+fn print_header() {
     println!("=== OpenAI Vision API Examples ===\n");
+}
 
-    // Example 1: Simple image analysis with URL
-    simple_image_analysis(&client).await?;
-
-    // Example 2: Image analysis with detail levels
-    image_detail_levels(&client).await?;
-
-    // Example 3: Multi-image analysis
-    multi_image_analysis(&client).await?;
-
-    // Example 4: Base64 image processing
-    base64_image_processing(&client).await?;
-
-    // Example 5: Image format validation
-    image_format_validation().await?;
-
-    // Example 6: Token estimation for images
-    token_estimation().await?;
-
-    // Example 7: Backward compatibility with text-only messages
-    backward_compatibility(&client).await?;
-
-    println!("\n=== All vision examples completed! ===");
+/// Run basic vision examples
+async fn run_basic_examples(client: &OpenAIClient) -> Result<(), Box<dyn std::error::Error>> {
+    simple_image_analysis(client).await?;
+    image_detail_levels(client).await?;
     Ok(())
+}
+
+/// Run advanced vision examples
+async fn run_advanced_examples(client: &OpenAIClient) -> Result<(), Box<dyn std::error::Error>> {
+    multi_image_analysis(client).await?;
+    base64_image_processing(client).await?;
+    Ok(())
+}
+
+/// Run utility examples
+async fn run_utility_examples() -> Result<(), Box<dyn std::error::Error>> {
+    image_format_validation().await?;
+    token_estimation().await?;
+    Ok(())
+}
+
+/// Run compatibility examples
+async fn run_compatibility_examples(
+    client: &OpenAIClient,
+) -> Result<(), Box<dyn std::error::Error>> {
+    backward_compatibility(client).await?;
+    Ok(())
+}
+
+/// Print completion message
+fn print_completion_message() {
+    println!("\n=== All vision examples completed! ===");
 }
 
 /// Example 1: Simple image analysis with URL

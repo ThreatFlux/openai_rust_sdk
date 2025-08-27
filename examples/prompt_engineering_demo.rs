@@ -27,22 +27,30 @@ mod common;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = common::try_get_api_key()?;
-
-    println!("🎯 Prompt Engineering Demo");
-    println!("==========================");
-
     let api = ResponsesApi::new(api_key)?;
 
-    demo_message_roles(&api).await?;
-    demo_prompt_templates(&api).await?;
-    demo_structured_prompts(&api).await?;
-    demo_few_shot_learning(&api).await?;
-    demo_xml_structured_content(&api).await?;
-    demo_prompt_patterns(&api).await?;
-    demo_context_window_management(&api).await?;
-    demo_code_generation(&api).await?;
-    demo_complex_multi_section_prompt(&api).await?;
+    print_demo_header();
+    run_all_demos(&api).await?;
     print_best_practices();
+
+    Ok(())
+}
+
+fn print_demo_header() {
+    println!("🎯 Prompt Engineering Demo");
+    println!("==========================");
+}
+
+async fn run_all_demos(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
+    demo_message_roles(api).await?;
+    demo_prompt_templates(api).await?;
+    demo_structured_prompts(api).await?;
+    demo_few_shot_learning(api).await?;
+    demo_xml_structured_content(api).await?;
+    demo_prompt_patterns(api).await?;
+    demo_context_window_management(api).await?;
+    demo_code_generation(api).await?;
+    demo_complex_multi_section_prompt(api).await?;
 
     Ok(())
 }
@@ -147,33 +155,7 @@ async fn demo_few_shot_learning(api: &ResponsesApi) -> Result<(), Box<dyn std::e
     println!("🎓 Example 4: Few-Shot Learning");
     println!("────────────────────────────────");
 
-    let classification_examples = vec![
-        Example::new(
-            "The product arrived damaged and customer service was unhelpful",
-            "Negative",
-        )
-        .with_id("ex1"),
-        Example::new(
-            "Amazing quality! Exceeded my expectations and arrived early",
-            "Positive",
-        )
-        .with_id("ex2"),
-        Example::new(
-            "Product works as described, nothing special but does the job",
-            "Neutral",
-        )
-        .with_id("ex3"),
-        Example::new(
-            "Terrible experience, would not recommend to anyone",
-            "Negative",
-        )
-        .with_id("ex4"),
-        Example::new(
-            "Outstanding service and premium quality product!",
-            "Positive",
-        )
-        .with_id("ex5"),
-    ];
+    let classification_examples = create_classification_examples();
 
     let few_shot_prompt = PromptBuilder::new()
         .with_identity("You are a sentiment classification assistant.")
@@ -204,22 +186,41 @@ async fn demo_few_shot_learning(api: &ResponsesApi) -> Result<(), Box<dyn std::e
     Ok(())
 }
 
+fn create_classification_examples() -> Vec<Example> {
+    vec![
+        Example::new(
+            "The product arrived damaged and customer service was unhelpful",
+            "Negative",
+        )
+        .with_id("ex1"),
+        Example::new(
+            "Amazing quality! Exceeded my expectations and arrived early",
+            "Positive",
+        )
+        .with_id("ex2"),
+        Example::new(
+            "Product works as described, nothing special but does the job",
+            "Neutral",
+        )
+        .with_id("ex3"),
+        Example::new(
+            "Terrible experience, would not recommend to anyone",
+            "Negative",
+        )
+        .with_id("ex4"),
+        Example::new(
+            "Outstanding service and premium quality product!",
+            "Positive",
+        )
+        .with_id("ex5"),
+    ]
+}
+
 async fn demo_xml_structured_content(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🏷️ Example 5: XML-Structured Content");
     println!("────────────────────────────────────");
 
-    // Build XML-formatted context
-    let document1 = XmlContentBuilder::new("document")
-        .with_attribute("id", "doc1")
-        .with_attribute("type", "policy")
-        .with_content("Refund Policy: Full refunds are available within 30 days of purchase for unopened items. Opened items may be eligible for store credit.")
-        .build();
-
-    let document2 = XmlContentBuilder::new("document")
-        .with_attribute("id", "doc2")
-        .with_attribute("type", "faq")
-        .with_content("Q: How long does shipping take? A: Standard shipping takes 5-7 business days. Express shipping takes 2-3 business days.")
-        .build();
+    let (document1, document2) = create_xml_documents();
 
     let xml_prompt = PromptBuilder::new()
         .with_identity("You are a customer service assistant that answers questions based on company documentation.")
@@ -241,11 +242,33 @@ async fn demo_xml_structured_content(api: &ResponsesApi) -> Result<(), Box<dyn s
     Ok(())
 }
 
+fn create_xml_documents() -> (String, String) {
+    let document1 = XmlContentBuilder::new("document")
+        .with_attribute("id", "doc1")
+        .with_attribute("type", "policy")
+        .with_content("Refund Policy: Full refunds are available within 30 days of purchase for unopened items. Opened items may be eligible for store credit.")
+        .build();
+
+    let document2 = XmlContentBuilder::new("document")
+        .with_attribute("id", "doc2")
+        .with_attribute("type", "faq")
+        .with_content("Q: How long does shipping take? A: Standard shipping takes 5-7 business days. Express shipping takes 2-3 business days.")
+        .build();
+
+    (document1, document2)
+}
+
 async fn demo_prompt_patterns(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎨 Example 6: Pre-built Prompt Patterns");
     println!("────────────────────────────────────────");
 
-    // Classification pattern
+    demo_classification_pattern(api).await?;
+    demo_extraction_pattern(api).await?;
+
+    Ok(())
+}
+
+async fn demo_classification_pattern(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     let categories = vec![
         "Bug Report".to_string(),
         "Feature Request".to_string(),
@@ -273,7 +296,10 @@ async fn demo_prompt_patterns(api: &ResponsesApi) -> Result<(), Box<dyn std::err
     let response = api.create_response(&pattern_request).await?;
     println!("Category: {}\n", response.output_text().trim());
 
-    // Data extraction pattern
+    Ok(())
+}
+
+async fn demo_extraction_pattern(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {
     let extraction_prompt = PromptPatterns::extraction(
         &[
             "name".to_string(),
@@ -309,21 +335,7 @@ async fn demo_context_window_management(
     println!("📏 Example 7: Context Window Management");
     println!("───────────────────────────────────────");
 
-    // Simulate RAG with relevant context
-    let knowledge_base = r"
-    Rust Memory Safety:
-    Rust achieves memory safety without garbage collection through its ownership system.
-    The borrow checker ensures that references are always valid and prevents data races.
-    
-    Ownership Rules:
-    1. Each value has a single owner
-    2. When the owner goes out of scope, the value is dropped
-    3. There can be multiple immutable references OR one mutable reference
-    
-    Performance:
-    Rust provides zero-cost abstractions and has performance comparable to C/C++.
-    The compiler optimizes code aggressively while maintaining safety guarantees.
-    ";
+    let knowledge_base = create_knowledge_base();
 
     let rag_prompt = PromptPatterns::qa_with_context(
         knowledge_base,
@@ -350,6 +362,23 @@ async fn demo_context_window_management(
     println!("A: {}\n", response.output_text());
 
     Ok(())
+}
+
+fn create_knowledge_base() -> &'static str {
+    r"
+    Rust Memory Safety:
+    Rust achieves memory safety without garbage collection through its ownership system.
+    The borrow checker ensures that references are always valid and prevents data races.
+    
+    Ownership Rules:
+    1. Each value has a single owner
+    2. When the owner goes out of scope, the value is dropped
+    3. There can be multiple immutable references OR one mutable reference
+    
+    Performance:
+    Rust provides zero-cost abstractions and has performance comparable to C/C++.
+    The compiler optimizes code aggressively while maintaining safety guarantees.
+    "
 }
 
 async fn demo_code_generation(api: &ResponsesApi) -> Result<(), Box<dyn std::error::Error>> {

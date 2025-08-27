@@ -182,7 +182,7 @@ pub enum ModelTier {
 }
 
 /// Internal enum to categorize model types for capability determination
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum ModelType {
     /// GPT-4o series models
     Gpt4o,
@@ -280,43 +280,52 @@ impl ModelCapabilities {
 
     /// Determine the model type from the model ID
     fn determine_model_type(model_id: &str) -> ModelType {
+        Self::match_model_prefix(model_id)
+            .or_else(|| Self::match_model_contains(model_id))
+            .unwrap_or(ModelType::Legacy)
+    }
+
+    /// Match model type by prefix patterns
+    fn match_model_prefix(model_id: &str) -> Option<ModelType> {
         if model_id.starts_with("gpt-4o") {
-            return ModelType::Gpt4o;
+            return Some(ModelType::Gpt4o);
         }
 
         if Self::is_gpt4_turbo(model_id) {
-            return ModelType::Gpt4Turbo;
+            return Some(ModelType::Gpt4Turbo);
         }
 
-        if model_id.starts_with("gpt-4") {
-            return ModelType::Gpt4;
+        let prefix_mappings = [
+            ("gpt-4", ModelType::Gpt4),
+            ("gpt-3.5-turbo", ModelType::Gpt35),
+            ("dall-e", ModelType::Dalle),
+            ("whisper", ModelType::Whisper),
+            ("tts", ModelType::Tts),
+        ];
+
+        for (prefix, model_type) in &prefix_mappings {
+            if model_id.starts_with(prefix) {
+                return Some(*model_type);
+            }
         }
 
-        if model_id.starts_with("gpt-3.5-turbo") {
-            return ModelType::Gpt35;
+        None
+    }
+
+    /// Match model type by substring patterns
+    fn match_model_contains(model_id: &str) -> Option<ModelType> {
+        let contains_mappings = [
+            ("embedding", ModelType::Embedding),
+            ("moderation", ModelType::Moderation),
+        ];
+
+        for (substring, model_type) in &contains_mappings {
+            if model_id.contains(substring) {
+                return Some(*model_type);
+            }
         }
 
-        if model_id.starts_with("dall-e") {
-            return ModelType::Dalle;
-        }
-
-        if model_id.starts_with("whisper") {
-            return ModelType::Whisper;
-        }
-
-        if model_id.starts_with("tts") {
-            return ModelType::Tts;
-        }
-
-        if model_id.contains("embedding") {
-            return ModelType::Embedding;
-        }
-
-        if model_id.contains("moderation") {
-            return ModelType::Moderation;
-        }
-
-        ModelType::Legacy
+        None
     }
 
     /// Check if the model ID represents a GPT-4 Turbo model

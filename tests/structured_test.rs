@@ -131,6 +131,26 @@ fn test_batch_job_structure() {
 #[cfg(feature = "yara")]
 #[test]
 fn test_json_serialization_roundtrip() {
+    let original_result = create_test_validation_result();
+    let json_string = serialize_validation_result(&original_result);
+    let deserialized_result = deserialize_validation_result(&json_string);
+
+    verify_all_preservation(&original_result, &deserialized_result);
+}
+
+#[cfg(feature = "yara")]
+fn verify_all_preservation(
+    original: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    deserialized: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+) {
+    verify_structure_preservation(original, deserialized);
+    verify_features_preservation(original, deserialized);
+    verify_metrics_preservation(original, deserialized);
+    verify_pattern_tests_preservation(original, deserialized);
+}
+
+#[cfg(feature = "yara")]
+fn create_test_validation_result() -> openai_rust_sdk::testing::yara_validator::ValidationResult {
     let validator = YaraValidator::new();
     let rule = r#"
         rule serialization_test {
@@ -140,61 +160,82 @@ fn test_json_serialization_roundtrip() {
                 $test
         }
     "#;
+    validator.validate_rule(rule).unwrap()
+}
 
-    let original_result = validator.validate_rule(rule).unwrap();
-
-    // Serialize to JSON
-    let json_string = serde_json::to_string(&original_result).unwrap();
+#[cfg(feature = "yara")]
+fn serialize_validation_result(
+    result: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+) -> String {
+    let json_string = serde_json::to_string(result).unwrap();
     assert!(!json_string.is_empty());
+    json_string
+}
 
-    // Deserialize back
-    let deserialized_result: openai_rust_sdk::testing::yara_validator::ValidationResult =
-        serde_json::from_str(&json_string).unwrap();
+#[cfg(feature = "yara")]
+fn deserialize_validation_result(
+    json_string: &str,
+) -> openai_rust_sdk::testing::yara_validator::ValidationResult {
+    serde_json::from_str(json_string).unwrap()
+}
 
-    // Verify structure preservation
-    assert_eq!(original_result.is_valid, deserialized_result.is_valid);
-    assert_eq!(original_result.rule_name, deserialized_result.rule_name);
-    assert_eq!(
-        original_result.errors.len(),
-        deserialized_result.errors.len()
-    );
-    assert_eq!(
-        original_result.warnings.len(),
-        deserialized_result.warnings.len()
-    );
+#[cfg(feature = "yara")]
+fn verify_structure_preservation(
+    original: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    deserialized: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+) {
+    assert_eq!(original.is_valid, deserialized.is_valid);
+    assert_eq!(original.rule_name, deserialized.rule_name);
+    assert_eq!(original.errors.len(), deserialized.errors.len());
+    assert_eq!(original.warnings.len(), deserialized.warnings.len());
+}
 
-    // Verify features preservation
+#[cfg(feature = "yara")]
+fn verify_features_preservation(
+    original: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    deserialized: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+) {
     assert_eq!(
-        original_result.features.has_strings,
-        deserialized_result.features.has_strings
+        original.features.has_strings,
+        deserialized.features.has_strings
     );
     assert_eq!(
-        original_result.features.has_hex_patterns,
-        deserialized_result.features.has_hex_patterns
+        original.features.has_hex_patterns,
+        deserialized.features.has_hex_patterns
     );
     assert_eq!(
-        original_result.features.string_count,
-        deserialized_result.features.string_count
+        original.features.string_count,
+        deserialized.features.string_count
     );
     assert_eq!(
-        original_result.features.complexity_score,
-        deserialized_result.features.complexity_score
+        original.features.complexity_score,
+        deserialized.features.complexity_score
     );
+}
 
-    // Verify metrics preservation
+#[cfg(feature = "yara")]
+fn verify_metrics_preservation(
+    original: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    deserialized: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+) {
     assert_eq!(
-        original_result.metrics.rule_size_bytes,
-        deserialized_result.metrics.rule_size_bytes
+        original.metrics.rule_size_bytes,
+        deserialized.metrics.rule_size_bytes
     );
     assert_eq!(
-        original_result.metrics.compilation_time_ms,
-        deserialized_result.metrics.compilation_time_ms
+        original.metrics.compilation_time_ms,
+        deserialized.metrics.compilation_time_ms
     );
+}
 
-    // Verify pattern tests preservation
+#[cfg(feature = "yara")]
+fn verify_pattern_tests_preservation(
+    original: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+    deserialized: &openai_rust_sdk::testing::yara_validator::ValidationResult,
+) {
     assert_eq!(
-        original_result.pattern_tests.len(),
-        deserialized_result.pattern_tests.len()
+        original.pattern_tests.len(),
+        deserialized.pattern_tests.len()
     );
 }
 

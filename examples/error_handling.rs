@@ -144,28 +144,57 @@ fn demo_file_operation_errors() -> Result<()> {
     println!("--------------------------------");
 
     let generator = BatchJobGenerator::new(None);
+    execute_file_operation_tests(&generator)
+}
 
-    // Test 1: Valid file operations
+#[cfg(feature = "yara")]
+fn execute_file_operation_tests(generator: &BatchJobGenerator) -> Result<()> {
+    test_valid_file_operations(generator)?;
+    test_invalid_file_operations(generator)?;
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn test_valid_file_operations(generator: &BatchJobGenerator) -> Result<()> {
     println!("Testing valid file operations...");
     let temp_dir = tempfile::tempdir().expect("Failed to create temp directory");
     let temp_path = temp_dir.path().join("test_batch_valid.jsonl");
+
     match generator.generate_test_suite(&temp_path, "basic") {
         Ok(()) => {
             println!("  ✓ Successfully generated batch file");
-
-            // Clean up
-            if let Err(e) = std::fs::remove_file(&temp_path) {
-                println!("  ⚠️  Warning: Could not clean up file: {}", e);
-            }
+            cleanup_temp_file(&temp_path);
         }
         Err(e) => {
             println!("  ❌ Failed to generate batch file: {}", e);
         }
     }
 
-    // Test 2: Invalid file operations
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn cleanup_temp_file(temp_path: &std::path::Path) {
+    if let Err(e) = std::fs::remove_file(temp_path) {
+        println!("  ⚠️  Warning: Could not clean up file: {}", e);
+    }
+}
+
+#[cfg(feature = "yara")]
+fn test_invalid_file_operations(generator: &BatchJobGenerator) -> Result<()> {
     println!("\nTesting invalid file operations...");
-    let invalid_scenarios = vec![
+    let invalid_scenarios = create_invalid_file_scenarios();
+
+    for (scenario, path) in invalid_scenarios {
+        test_invalid_scenario(generator, scenario, path);
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "yara")]
+fn create_invalid_file_scenarios() -> Vec<(&'static str, &'static str)> {
+    vec![
         (
             "Non-existent directory",
             "/non/existent/directory/batch.jsonl",
@@ -174,36 +203,40 @@ fn demo_file_operation_errors() -> Result<()> {
             "Permission denied (simulated)",
             "/root/batch.jsonl", // Assuming no root permissions
         ),
-    ];
+    ]
+}
 
-    for (scenario, path) in invalid_scenarios {
-        println!("  Scenario: {}", scenario);
-        match generator.generate_test_suite(std::path::Path::new(path), "basic") {
-            Ok(()) => {
-                println!("    ⚠️  Unexpected success");
-            }
-            Err(e) => {
-                println!("    ✓ Expected error: {}", e);
+#[cfg(feature = "yara")]
+fn test_invalid_scenario(generator: &BatchJobGenerator, scenario: &str, path: &str) {
+    println!("  Scenario: {}", scenario);
 
-                // Implement retry with fallback location
-                println!("    Attempting fallback to temp directory...");
-                let fallback_dir =
-                    tempfile::tempdir().expect("Failed to create fallback temp directory");
-                let fallback_path = fallback_dir.path().join("fallback_batch.jsonl");
-                match generator.generate_test_suite(&fallback_path, "basic") {
-                    Ok(()) => {
-                        println!("    ✓ Fallback successful");
-                        let _ = std::fs::remove_file(fallback_path);
-                    }
-                    Err(fallback_err) => {
-                        println!("    ❌ Fallback also failed: {}", fallback_err);
-                    }
-                }
-            }
+    match generator.generate_test_suite(std::path::Path::new(path), "basic") {
+        Ok(()) => {
+            println!("    ⚠️  Unexpected success");
+        }
+        Err(e) => {
+            println!("    ✓ Expected error: {}", e);
+            attempt_fallback_recovery(generator);
         }
     }
+}
 
-    Ok(())
+#[cfg(feature = "yara")]
+fn attempt_fallback_recovery(generator: &BatchJobGenerator) {
+    println!("    Attempting fallback to temp directory...");
+
+    let fallback_dir = tempfile::tempdir().expect("Failed to create fallback temp directory");
+    let fallback_path = fallback_dir.path().join("fallback_batch.jsonl");
+
+    match generator.generate_test_suite(&fallback_path, "basic") {
+        Ok(()) => {
+            println!("    ✓ Fallback successful");
+            let _ = std::fs::remove_file(fallback_path);
+        }
+        Err(fallback_err) => {
+            println!("    ❌ Fallback also failed: {}", fallback_err);
+        }
+    }
 }
 
 #[cfg(feature = "yara")]
