@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.2.3] - 2025-08-27
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: remove invalid YAML front matter from CLAUDE.md (2066e2f)
+- fix: resolve all code complexity issues identified by Codacy (51b78bd)
+
+#### 🔧 Other Changes
+- refactor: massive deduplication effort reducing code duplication from 43% to target (57ff14f)
+- refactor: eliminate 268+ duplicate lines in runs.rs through macro consolidation (0263a58)
+- refactor: eliminate code duplication through helper functions and macros (537f277)
+- refactor: reduce code complexity across multiple files (4491e07)
+
+### 📊 Statistics
+
+- **Version**: 1.2.2 → 1.2.3
+- **Date**: 2025-08-27
+- **Commits**: 6
+- **Contributors**: 1
+
+
 ## [1.2.2] - 2025-08-26
 
 
