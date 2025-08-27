@@ -189,7 +189,7 @@ jobs:
           docker pull ${{ needs.build.outputs.image }} || echo "Warning: Could not pull image"
       
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808  # master
         with:
           image-ref: ${{ needs.build.outputs.image }}
           format: 'sarif'
@@ -222,7 +222,7 @@ jobs:
       - name: Run Snyk Container scan
         if: github.event_name != 'pull_request' && env.SNYK_TOKEN != ''
         continue-on-error: true
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/docker@e2221410bff24446ba09102212d8bc75a567237d  # master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
