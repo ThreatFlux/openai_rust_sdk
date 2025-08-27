@@ -2,6 +2,8 @@
 pub mod common;
 /// Common builder patterns to reduce duplication
 pub mod common_builder;
+/// Shared traits and implementations to eliminate model duplication
+pub mod shared_traits;
 
 /// Assistants models for AI assistant creation and management  
 pub mod assistants;

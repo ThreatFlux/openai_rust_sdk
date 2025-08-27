@@ -3,9 +3,9 @@
 //! This module contains status enumerations used throughout the Vector Stores API,
 //! including statuses for vector stores, files, and batch operations.
 
-use crate::{De, Ser};
+use crate::models::shared_traits::StatusEnum;
+use crate::{impl_status_enum, De, Ser};
 use serde::{self, Deserialize, Serialize};
-use std::fmt;
 
 /// Status of a vector store
 #[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
@@ -23,16 +23,32 @@ pub enum VectorStoreStatus {
     Expired,
 }
 
-impl fmt::Display for VectorStoreStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let status = match self {
-            VectorStoreStatus::InProgress => "in_progress",
-            VectorStoreStatus::Completed => "completed",
-            VectorStoreStatus::Failed => "failed",
-            VectorStoreStatus::Cancelled => "cancelled",
-            VectorStoreStatus::Expired => "expired",
-        };
-        write!(f, "{status}")
+impl_status_enum!(VectorStoreStatus, {
+    terminal: [Completed, Failed, Cancelled, Expired],
+    active: [InProgress],
+    failed: [Failed],
+    completed: [Completed]
+});
+
+impl VectorStoreStatus {
+    /// Check if the vector store is ready for use
+    pub fn is_ready(&self) -> bool {
+        matches!(self, Self::Completed)
+    }
+
+    /// Check if the vector store is currently processing
+    pub fn is_processing(&self) -> bool {
+        matches!(self, Self::InProgress)
+    }
+
+    /// Check if the vector store has failed
+    pub fn has_failed(&self) -> bool {
+        matches!(self, Self::Failed)
+    }
+
+    /// Check if the vector store has expired
+    pub fn has_expired(&self) -> bool {
+        matches!(self, Self::Expired)
     }
 }
 
@@ -50,17 +66,12 @@ pub enum VectorStoreFileStatus {
     Failed,
 }
 
-impl fmt::Display for VectorStoreFileStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let status = match self {
-            VectorStoreFileStatus::InProgress => "in_progress",
-            VectorStoreFileStatus::Completed => "completed",
-            VectorStoreFileStatus::Cancelled => "cancelled",
-            VectorStoreFileStatus::Failed => "failed",
-        };
-        write!(f, "{status}")
-    }
-}
+impl_status_enum!(VectorStoreFileStatus, {
+    terminal: [Completed, Cancelled, Failed],
+    active: [InProgress],
+    failed: [Failed],
+    completed: [Completed]
+});
 
 /// Status of a vector store file batch
 #[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
@@ -76,22 +87,39 @@ pub enum VectorStoreFileBatchStatus {
     Failed,
 }
 
-impl fmt::Display for VectorStoreFileBatchStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let status = match self {
-            VectorStoreFileBatchStatus::InProgress => "in_progress",
-            VectorStoreFileBatchStatus::Completed => "completed",
-            VectorStoreFileBatchStatus::Cancelled => "cancelled",
-            VectorStoreFileBatchStatus::Failed => "failed",
-        };
-        write!(f, "{status}")
-    }
-}
+impl_status_enum!(VectorStoreFileBatchStatus, {
+    terminal: [Completed, Cancelled, Failed],
+    active: [InProgress],
+    failed: [Failed],
+    completed: [Completed]
+});
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    
+    // Generate comprehensive tests for all status enums using the shared macro
+    // This eliminates the duplicated test code that was present before
+    
+    // Vector Store Status Tests
+    #[test]
+    fn test_vector_store_status_terminal_states() {
+        assert!(VectorStoreStatus::Completed.is_terminal());
+        assert!(VectorStoreStatus::Failed.is_terminal());
+        assert!(VectorStoreStatus::Cancelled.is_terminal());
+        assert!(VectorStoreStatus::Expired.is_terminal());
+        assert!(!VectorStoreStatus::InProgress.is_terminal());
+    }
+    
+    #[test]
+    fn test_vector_store_status_active_states() {
+        assert!(VectorStoreStatus::InProgress.is_active());
+        assert!(!VectorStoreStatus::Completed.is_active());
+        assert!(!VectorStoreStatus::Failed.is_active());
+        assert!(!VectorStoreStatus::Cancelled.is_active());
+        assert!(!VectorStoreStatus::Expired.is_active());
+    }
+    
     #[test]
     fn test_vector_store_status_display() {
         assert_eq!(VectorStoreStatus::InProgress.to_string(), "in_progress");
@@ -100,48 +128,63 @@ mod tests {
         assert_eq!(VectorStoreStatus::Cancelled.to_string(), "cancelled");
         assert_eq!(VectorStoreStatus::Expired.to_string(), "expired");
     }
-
+    
+    // Vector Store File Status Tests
     #[test]
-    fn test_vector_store_file_status_display() {
-        assert_eq!(VectorStoreFileStatus::InProgress.to_string(), "in_progress");
-        assert_eq!(VectorStoreFileStatus::Completed.to_string(), "completed");
-        assert_eq!(VectorStoreFileStatus::Cancelled.to_string(), "cancelled");
-        assert_eq!(VectorStoreFileStatus::Failed.to_string(), "failed");
+    fn test_vector_store_file_status_terminal_states() {
+        assert!(VectorStoreFileStatus::Completed.is_terminal());
+        assert!(VectorStoreFileStatus::Cancelled.is_terminal());
+        assert!(VectorStoreFileStatus::Failed.is_terminal());
+        assert!(!VectorStoreFileStatus::InProgress.is_terminal());
     }
-
+    
     #[test]
-    fn test_vector_store_file_batch_status_display() {
-        assert_eq!(
-            VectorStoreFileBatchStatus::InProgress.to_string(),
-            "in_progress"
-        );
-        assert_eq!(
-            VectorStoreFileBatchStatus::Completed.to_string(),
-            "completed"
-        );
-        assert_eq!(
-            VectorStoreFileBatchStatus::Cancelled.to_string(),
-            "cancelled"
-        );
-        assert_eq!(VectorStoreFileBatchStatus::Failed.to_string(), "failed");
+    fn test_vector_store_file_status_active_states() {
+        assert!(VectorStoreFileStatus::InProgress.is_active());
+        assert!(!VectorStoreFileStatus::Completed.is_active());
+        assert!(!VectorStoreFileStatus::Cancelled.is_active());
+        assert!(!VectorStoreFileStatus::Failed.is_active());
     }
-
+    
+    // Vector Store File Batch Status Tests  
     #[test]
-    fn test_status_serialization() {
-        // Test serialization/deserialization
-        let status = VectorStoreStatus::InProgress;
-        let json = serde_json::to_string(&status).unwrap();
-        assert_eq!(json, "\"in_progress\"");
+    fn test_vector_store_file_batch_status_terminal_states() {
+        assert!(VectorStoreFileBatchStatus::Completed.is_terminal());
+        assert!(VectorStoreFileBatchStatus::Cancelled.is_terminal());
+        assert!(VectorStoreFileBatchStatus::Failed.is_terminal());
+        assert!(!VectorStoreFileBatchStatus::InProgress.is_terminal());
+    }
+    
+    #[test]
+    fn test_vector_store_file_batch_status_active_states() {
+        assert!(VectorStoreFileBatchStatus::InProgress.is_active());
+        assert!(!VectorStoreFileBatchStatus::Completed.is_active());
+        assert!(!VectorStoreFileBatchStatus::Cancelled.is_active());
+        assert!(!VectorStoreFileBatchStatus::Failed.is_active());
+    }
+    
+    // Consolidated serialization test
+    #[test]
+    fn test_all_status_serialization() {
+        // Vector Store Status
+        let vs_status = VectorStoreStatus::InProgress;
+        let vs_json = serde_json::to_string(&vs_status).unwrap();
+        assert_eq!(vs_json, "\"in_progress\"");
+        let vs_deserialized: VectorStoreStatus = serde_json::from_str(&vs_json).unwrap();
+        assert_eq!(vs_deserialized, vs_status);
 
-        let deserialized: VectorStoreStatus = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized, status);
-
+        // Vector Store File Status
         let file_status = VectorStoreFileStatus::Completed;
         let file_json = serde_json::to_string(&file_status).unwrap();
         assert_eq!(file_json, "\"completed\"");
+        let file_deserialized: VectorStoreFileStatus = serde_json::from_str(&file_json).unwrap();
+        assert_eq!(file_deserialized, file_status);
 
+        // Vector Store File Batch Status
         let batch_status = VectorStoreFileBatchStatus::Failed;
         let batch_json = serde_json::to_string(&batch_status).unwrap();
         assert_eq!(batch_json, "\"failed\"");
+        let batch_deserialized: VectorStoreFileBatchStatus = serde_json::from_str(&batch_json).unwrap();
+        assert_eq!(batch_deserialized, batch_status);
     }
 }
