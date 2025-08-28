@@ -27,7 +27,7 @@ impl_status_enum!(VectorStoreStatus, {
     terminal: [Completed, Failed, Cancelled, Expired],
     active: [InProgress],
     failed: [Failed],
-    completed: [Completed]
+    completed: [Completed],
 });
 
 impl VectorStoreStatus {
@@ -70,7 +70,7 @@ impl_status_enum!(VectorStoreFileStatus, {
     terminal: [Completed, Cancelled, Failed],
     active: [InProgress],
     failed: [Failed],
-    completed: [Completed]
+    completed: [Completed],
 });
 
 /// Status of a vector store file batch
@@ -91,7 +91,7 @@ impl_status_enum!(VectorStoreFileBatchStatus, {
     terminal: [Completed, Cancelled, Failed],
     active: [InProgress],
     failed: [Failed],
-    completed: [Completed]
+    completed: [Completed],
 });
 
 #[cfg(test)]

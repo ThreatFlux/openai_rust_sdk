@@ -186,36 +186,45 @@ fn test_vector_store_file_batch_request() {
     assert_eq!(request.chunking_strategy, Some(ChunkingStrategy::Auto));
 }
 
-#[test]
-fn test_list_vector_stores_params() {
-    let params = ListVectorStoresParams::new()
-        .with_limit(25)
-        .with_order("desc")
-        .with_after("vs-abc123")
-        .with_before("vs-xyz789");
+// Generate comprehensive parameter tests using a macro
+macro_rules! test_list_params {
+    ($test_name:ident, $param_type:ty, {
+        $($method:ident($value:expr) => ($key:literal, $expected:literal)),*
+    }, expected_count: $count:expr) => {
+        #[test]
+        fn $test_name() {
+            let params = <$param_type>::new()
+                $(.$method($value))*;
 
-    let query_params = params.to_query_params();
-    assert_eq!(query_params.len(), 4);
-    assert!(query_params.contains(&("limit".to_string(), "25".to_string())));
-    assert!(query_params.contains(&("order".to_string(), "desc".to_string())));
-    assert!(query_params.contains(&("after".to_string(), "vs-abc123".to_string())));
-    assert!(query_params.contains(&("before".to_string(), "vs-xyz789".to_string())));
+            let query_params = params.to_query_params();
+            assert_eq!(query_params.len(), $count);
+            $(
+                assert!(query_params.contains(&($key.to_string(), $expected.to_string())));
+            )*
+        }
+    };
 }
 
-#[test]
-fn test_list_vector_store_files_params() {
-    let params = ListVectorStoreFilesParams::new()
-        .with_limit(50)
-        .with_order("asc")
-        .with_filter(VectorStoreFileStatus::Completed)
-        .with_after("file-123");
+test_list_params!(test_list_vector_stores_params, ListVectorStoresParams, {
+    with_limit(25) => ("limit", "25"),
+    with_order("desc") => ("order", "desc"),
+    with_after("vs-abc123") => ("after", "vs-abc123"),
+    with_before("vs-xyz789") => ("before", "vs-xyz789")
+}, expected_count: 4);
 
+test_list_params!(test_list_vector_store_files_params, ListVectorStoreFilesParams, {
+    with_limit(50) => ("limit", "50"),
+    with_order("asc") => ("order", "asc"),
+    with_after("file-123") => ("after", "file-123")
+}, expected_count: 3);
+
+#[test]
+fn test_list_vector_store_files_params_with_filter() {
+    let params = ListVectorStoreFilesParams::new()
+        .with_filter(VectorStoreFileStatus::Completed);
+        
     let query_params = params.to_query_params();
-    assert_eq!(query_params.len(), 4);
-    assert!(query_params.contains(&("limit".to_string(), "50".to_string())));
-    assert!(query_params.contains(&("order".to_string(), "asc".to_string())));
     assert!(query_params.contains(&("filter".to_string(), "completed".to_string())));
-    assert!(query_params.contains(&("after".to_string(), "file-123".to_string())));
 }
 
 #[test]
@@ -402,16 +411,27 @@ fn test_empty_list_responses() {
     assert!(empty_files.completed_files().is_empty());
 }
 
-#[test]
-fn test_error_handling_patterns() {
-    // Test that invalid parameters would cause errors
-    let empty_params = ListVectorStoresParams::new();
-    let query_params = empty_params.to_query_params();
-    assert!(query_params.is_empty());
+// Generate error handling tests using a macro
+macro_rules! test_param_edge_cases {
+    ($($test_name:ident: $param_type:ty => $test_body:block),*) => {
+        $(
+            #[test]
+            fn $test_name() $test_body
+        )*
+    };
+}
 
-    let params_with_zero_limit = ListVectorStoresParams::new().with_limit(0);
-    let query_params = params_with_zero_limit.to_query_params();
-    assert!(query_params.contains(&("limit".to_string(), "0".to_string())));
+test_param_edge_cases! {
+    test_empty_params: ListVectorStoresParams => {
+        let empty_params = ListVectorStoresParams::new();
+        let query_params = empty_params.to_query_params();
+        assert!(query_params.is_empty());
+    },
+    test_zero_limit_params: ListVectorStoresParams => {
+        let params = ListVectorStoresParams::new().with_limit(0);
+        let query_params = params.to_query_params();
+        assert!(query_params.contains(&("limit".to_string(), "0".to_string())));
+    }
 }
 
 #[test]

@@ -269,31 +269,6 @@ pub trait QueryParamBuilder {
     fn is_empty(&self) -> bool;
 }
 
-/// Macro for implementing status checking methods for different status enums
-#[macro_export]
-macro_rules! impl_status_methods {
-    ($struct_name:ty, $status_enum:ty, {
-        $(
-            $method_name:ident => $variant:ident,
-        )*
-    }) => {
-        impl $struct_name {
-            $(
-                /// Check if the status matches the specified variant
-                #[must_use]
-                pub fn $method_name(&self) -> bool {
-                    matches!(self.status, <$status_enum>::$variant)
-                }
-            )*
-        }
-        
-        impl StatusChecker<$status_enum> for $struct_name {
-            fn status(&self) -> &$status_enum {
-                &self.status
-            }
-        }
-    };
-}
 
 /// Macro for implementing common builder methods
 #[macro_export]

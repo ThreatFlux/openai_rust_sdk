@@ -37,7 +37,7 @@
 //!     .build();
 //! ```
 
-use crate::{De, Ser};
+use crate::{De, Ser, impl_fine_tuning_params, impl_status_enum, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -68,6 +68,14 @@ pub enum FineTuningJobStatus {
     /// Job was cancelled by the user
     Cancelled,
 }
+
+// Generate status enum methods using macro
+impl_status_enum!(FineTuningJobStatus, {
+    terminal: [Succeeded, Failed, Cancelled],
+    active: [ValidatingFiles, Queued, Running],
+    failed: [Failed],
+    completed: [Succeeded],
+});
 
 impl FineTuningJobStatus {
     /// Check if the job is in a terminal state (completed, failed, or cancelled)
@@ -448,134 +456,14 @@ fn default_list_object_type() -> String {
     "list".to_string()
 }
 
-/// Parameters for listing fine-tuning jobs
-#[derive(Debug, Clone, Default)]
-pub struct ListFineTuningJobsParams {
-    /// Identifier for the last job from the previous pagination request
-    pub after: Option<String>,
-    /// Number of jobs to retrieve (1-100, default: 20)
-    pub limit: Option<u32>,
-}
+// Generate fine-tuning job list params using macro
+impl_fine_tuning_params!(ListFineTuningJobsParams, "fine-tuning jobs");
 
-impl ListFineTuningJobsParams {
-    /// Create new list parameters
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
+// Generate fine-tuning job events list params using macro
+impl_fine_tuning_params!(ListFineTuningJobEventsParams, "fine-tuning job events");
 
-    /// Set the after cursor for pagination
-    pub fn after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set the limit for number of items to return
-    #[must_use]
-    pub fn limit(mut self, limit: u32) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
-    /// Build query parameters for the API request
-    #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
-        }
-        params
-    }
-}
-
-/// Parameters for listing fine-tuning job events
-#[derive(Debug, Clone, Default)]
-pub struct ListFineTuningJobEventsParams {
-    /// Identifier for the last event from the previous pagination request
-    pub after: Option<String>,
-    /// Number of events to retrieve (1-100, default: 20)
-    pub limit: Option<u32>,
-}
-
-impl ListFineTuningJobEventsParams {
-    /// Create new list parameters
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the after cursor for pagination
-    pub fn after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set the limit for number of items to return
-    #[must_use]
-    pub fn limit(mut self, limit: u32) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
-    /// Build query parameters for the API request
-    #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
-        }
-        params
-    }
-}
-
-/// Parameters for listing fine-tuning job checkpoints
-#[derive(Debug, Clone, Default)]
-pub struct ListFineTuningJobCheckpointsParams {
-    /// Identifier for the last checkpoint from the previous pagination request
-    pub after: Option<String>,
-    /// Number of checkpoints to retrieve (1-100, default: 10)
-    pub limit: Option<u32>,
-}
-
-impl ListFineTuningJobCheckpointsParams {
-    /// Create new list parameters
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the after cursor for pagination
-    pub fn after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set the limit for number of items to return
-    #[must_use]
-    pub fn limit(mut self, limit: u32) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
-    /// Build query parameters for the API request
-    #[must_use]
-    pub fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
-        }
-        params
-    }
-}
+// Generate fine-tuning job checkpoints list params using macro
+impl_fine_tuning_params!(ListFineTuningJobCheckpointsParams, "fine-tuning job checkpoints");
 
 /// Response when cancelling a fine-tuning job
 #[derive(Debug, Clone, Ser, De)]

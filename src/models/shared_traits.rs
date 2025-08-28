@@ -62,8 +62,6 @@ macro_rules! impl_status_enum {
                 let snake_case = match self {
                     $(Self::$terminal => stringify!($terminal),)+
                     $(Self::$active => stringify!($active),)+
-                    $($(Self::$failed => stringify!($failed),)+)?
-                    $($(Self::$completed => stringify!($completed),)+)?
                 };
                 // Convert CamelCase to snake_case
                 let mut result = String::new();
@@ -88,12 +86,18 @@ pub trait MetadataBuilder<T> {
     fn with_metadata(self, metadata: HashMap<String, String>) -> Self;
     
     /// Add a metadata entry (alias for add_metadata)
-    fn metadata_entry<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
+    fn metadata_entry<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self 
+    where 
+        Self: Sized 
+    {
         self.add_metadata(key, value)
     }
     
     /// Add a metadata pair (alias for add_metadata) 
-    fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self {
+    fn metadata_pair<K: Into<String>, V: Into<String>>(self, key: K, value: V) -> Self 
+    where 
+        Self: Sized 
+    {
         self.add_metadata(key, value)
     }
 }
@@ -276,7 +280,10 @@ pub trait FileSupported<T> {
     fn with_file_ids(self, file_ids: Vec<String>) -> Self;
     
     /// Add a file ID (alias)
-    fn file_id<S: Into<String>>(self, file_id: S) -> Self {
+    fn file_id<S: Into<String>>(self, file_id: S) -> Self 
+    where 
+        Self: Sized 
+    {
         self.add_file_id(file_id)
     }
 }

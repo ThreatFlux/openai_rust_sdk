@@ -5,186 +5,41 @@
 
 use crate::models::vector_stores::common_types::QueryParamBuilder;
 use crate::models::vector_stores::status_types::VectorStoreFileStatus;
-use crate::impl_query_params;
+use crate::{impl_list_params_with_builder, impl_query_params};
 
-/// Parameters for listing vector stores
-#[derive(Debug, Clone, Default)]
-pub struct ListVectorStoresParams {
-    /// Maximum number of vector stores to return (default 20, max 100)
-    pub limit: Option<u32>,
-    /// Sort order for the results (desc for descending, asc for ascending)
-    pub order: Option<String>,
-    /// Pagination cursor - list vector stores after this ID
-    pub after: Option<String>,
-    /// Pagination cursor - list vector stores before this ID
-    pub before: Option<String>,
-}
-
-impl ListVectorStoresParams {
-    /// Create new parameters with default values
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the limit
-    #[must_use]
-    pub fn with_limit(mut self, limit: u32) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
-    /// Set the sort order
-    pub fn with_order(mut self, order: impl Into<String>) -> Self {
-        self.order = Some(order.into());
-        self
-    }
-
-    /// Set the after cursor for pagination
-    pub fn with_after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set the before cursor for pagination
-    pub fn with_before(mut self, before: impl Into<String>) -> Self {
-        self.before = Some(before.into());
-        self
+// Generate ListVectorStoresParams using our macro
+impl_list_params_with_builder! {
+    ListVectorStoresParams {
+        base_fields: {
+            limit: "Maximum number of vector stores to return (default 20, max 100)",
+            order: "Sort order for the results (desc for descending, asc for ascending)",
+            after: "Pagination cursor - list vector stores after this ID",
+            before: "Pagination cursor - list vector stores before this ID"
+        }
     }
 }
 
-// Use macro to generate query parameter methods for ListVectorStoresParams
-impl QueryParamBuilder for ListVectorStoresParams {
-    fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
+// Generate ListVectorStoreFilesParams using our macro
+impl_list_params_with_builder! {
+    ListVectorStoreFilesParams {
+        base_fields: {
+            limit: "Maximum number of files to return (default 20, max 100)",
+            order: "Sort order for the results (desc for descending, asc for ascending)",
+            after: "Pagination cursor - list files after this ID",
+            before: "Pagination cursor - list files before this ID"
+        },
+        extra_fields: {
+            filter: VectorStoreFileStatus = "Filter files by status"
         }
-
-        if let Some(order) = &self.order {
-            params.push(("order".to_string(), order.clone()));
-        }
-
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-
-        if let Some(before) = &self.before {
-            params.push(("before".to_string(), before.clone()));
-        }
-
-        params
     }
-
-    fn is_empty(&self) -> bool {
-        self.limit.is_none()
-            && self.order.is_none()
-            && self.after.is_none()
-            && self.before.is_none()
-    }
-}
-
-/// Parameters for listing vector store files
-#[derive(Debug, Clone, Default)]
-pub struct ListVectorStoreFilesParams {
-    /// Maximum number of files to return (default 20, max 100)
-    pub limit: Option<u32>,
-    /// Sort order for the results (desc for descending, asc for ascending)
-    pub order: Option<String>,
-    /// Pagination cursor - list files after this ID
-    pub after: Option<String>,
-    /// Pagination cursor - list files before this ID
-    pub before: Option<String>,
-    /// Filter files by status
-    pub filter: Option<VectorStoreFileStatus>,
 }
 
 impl ListVectorStoreFilesParams {
-    /// Create new parameters with default values
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the limit
-    #[must_use]
-    pub fn with_limit(mut self, limit: u32) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
-    /// Set the sort order
-    pub fn with_order(mut self, order: impl Into<String>) -> Self {
-        self.order = Some(order.into());
-        self
-    }
-
-    /// Set the after cursor for pagination
-    pub fn with_after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set the before cursor for pagination
-    pub fn with_before(mut self, before: impl Into<String>) -> Self {
-        self.before = Some(before.into());
-        self
-    }
-
-    /// Set the status filter
+    /// Set the status filter (custom method for better API)
     #[must_use]
     pub fn with_filter(mut self, filter: VectorStoreFileStatus) -> Self {
         self.filter = Some(filter);
         self
-    }
-
-    /// Check if pagination parameters are set
-    #[must_use]
-    pub fn has_pagination(&self) -> bool {
-        self.after.is_some() || self.before.is_some()
-    }
-
-    /// Check if filtering parameters are set
-    #[must_use]
-    pub fn has_filters(&self) -> bool {
-        self.filter.is_some()
-    }
-}
-
-impl QueryParamBuilder for ListVectorStoreFilesParams {
-    fn to_query_params(&self) -> Vec<(String, String)> {
-        let mut params = Vec::new();
-
-        if let Some(limit) = self.limit {
-            params.push(("limit".to_string(), limit.to_string()));
-        }
-
-        if let Some(order) = &self.order {
-            params.push(("order".to_string(), order.clone()));
-        }
-
-        if let Some(after) = &self.after {
-            params.push(("after".to_string(), after.clone()));
-        }
-
-        if let Some(before) = &self.before {
-            params.push(("before".to_string(), before.clone()));
-        }
-
-        if let Some(filter) = &self.filter {
-            params.push(("filter".to_string(), filter.to_string()));
-        }
-
-        params
-    }
-
-    fn is_empty(&self) -> bool {
-        self.limit.is_none()
-            && self.order.is_none()
-            && self.after.is_none()
-            && self.before.is_none()
-            && self.filter.is_none()
     }
 }
 
