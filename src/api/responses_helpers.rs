@@ -19,8 +19,7 @@ pub fn role_to_string(role: &MessageRole) -> &'static str {
     ROLE_LOOKUP
         .iter()
         .find(|(r, _)| std::mem::discriminant(r) == std::mem::discriminant(role))
-        .map(|(_, s)| *s)
-        .unwrap_or("user") // Safe fallback
+        .map_or("user", |(_, s)| *s) // Safe fallback
 }
 
 /// Convert message content to OpenAI format

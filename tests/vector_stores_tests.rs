@@ -220,9 +220,8 @@ test_list_params!(test_list_vector_store_files_params, ListVectorStoreFilesParam
 
 #[test]
 fn test_list_vector_store_files_params_with_filter() {
-    let params = ListVectorStoreFilesParams::new()
-        .with_filter(VectorStoreFileStatus::Completed);
-        
+    let params = ListVectorStoreFilesParams::new().with_filter(VectorStoreFileStatus::Completed);
+
     let query_params = params.to_query_params();
     assert!(query_params.contains(&("filter".to_string(), "completed".to_string())));
 }

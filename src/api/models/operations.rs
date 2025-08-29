@@ -12,7 +12,7 @@ impl ModelsApi {
     pub async fn list_models_by_family(&self, family: ModelFamily) -> Result<Vec<Model>> {
         let response = self.list_models().await?;
         Ok(response
-            .filter_by_family(&family)
+            .filter_by_family(family)
             .into_iter()
             .cloned()
             .collect())

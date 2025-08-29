@@ -6,7 +6,10 @@ use super::models::AudioModels;
 use super::requests::{AudioSpeechRequest, AudioTranscriptionRequest, AudioTranslationRequest};
 use super::types::{AudioFormat, TranscriptionFormat, Voice};
 use crate::models::common_builder::{Builder, WithFormat, WithSpeed, WithTemperature};
-use crate::{impl_builder, impl_with_format, impl_with_speed, impl_with_temperature, impl_audio_format_methods, impl_transcription_format_methods};
+use crate::{
+    impl_audio_format_methods, impl_builder, impl_transcription_format_methods, impl_with_format,
+    impl_with_speed, impl_with_temperature,
+};
 
 /// Builder for creating speech requests
 pub struct SpeechBuilder {
@@ -30,6 +33,23 @@ impl SpeechBuilder {
     /// Use the high-definition TTS model
     pub fn tts_1_hd(input: impl Into<String>, voice: Voice) -> Self {
         Self::new(AudioModels::TTS_1_HD, input, voice)
+    }
+
+    /// Set the speech speed
+    pub fn speed(self, speed: f32) -> Self {
+        <Self as crate::models::common_builder::WithSpeed<AudioSpeechRequest>>::speed(self, speed)
+    }
+
+    /// Set the audio format
+    pub fn format(self, format: AudioFormat) -> Self {
+        <Self as crate::models::common_builder::WithFormat<AudioSpeechRequest, AudioFormat>>::format(
+            self, format,
+        )
+    }
+
+    /// Build the request
+    pub fn build(self) -> AudioSpeechRequest {
+        <Self as crate::models::common_builder::Builder<AudioSpeechRequest>>::build(self)
     }
 }
 
@@ -78,11 +98,26 @@ impl TranscriptionBuilder {
         self.request.timestamp_granularities = Some(vec![super::types::TimestampGranularity::Word]);
         self
     }
+
+    /// Set the temperature
+    pub fn temperature(self, temperature: f32) -> Self {
+        <Self as crate::models::common_builder::WithTemperature<AudioTranscriptionRequest>>::temperature(self, temperature)
+    }
+
+    /// Build the request
+    pub fn build(self) -> AudioTranscriptionRequest {
+        <Self as crate::models::common_builder::Builder<AudioTranscriptionRequest>>::build(self)
+    }
 }
 
 // Apply common builder traits
 impl_builder!(TranscriptionBuilder, AudioTranscriptionRequest, request);
-impl_with_format!(TranscriptionBuilder, AudioTranscriptionRequest, request, TranscriptionFormat);
+impl_with_format!(
+    TranscriptionBuilder,
+    AudioTranscriptionRequest,
+    request,
+    TranscriptionFormat
+);
 impl_with_temperature!(TranscriptionBuilder, AudioTranscriptionRequest, request);
 
 // Generate transcription format convenience methods
@@ -112,11 +147,26 @@ impl TranslationBuilder {
         self.request.prompt = Some(prompt.into());
         self
     }
+
+    /// Set the temperature
+    pub fn temperature(self, temperature: f32) -> Self {
+        <Self as crate::models::common_builder::WithTemperature<AudioTranslationRequest>>::temperature(self, temperature)
+    }
+
+    /// Build the request
+    pub fn build(self) -> AudioTranslationRequest {
+        <Self as crate::models::common_builder::Builder<AudioTranslationRequest>>::build(self)
+    }
 }
 
 // Apply common builder traits
 impl_builder!(TranslationBuilder, AudioTranslationRequest, request);
-impl_with_format!(TranslationBuilder, AudioTranslationRequest, request, TranscriptionFormat);
+impl_with_format!(
+    TranslationBuilder,
+    AudioTranslationRequest,
+    request,
+    TranscriptionFormat
+);
 impl_with_temperature!(TranslationBuilder, AudioTranslationRequest, request);
 
 // Generate transcription format convenience methods (works for translation too)

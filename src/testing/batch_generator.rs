@@ -144,15 +144,15 @@ impl BatchJobGenerator {
     /// ```
     #[allow(dead_code)]
     pub fn generate_test_suite(&self, output_path: &Path, suite_name: &str) -> Result<()> {
-        let prompts = self.get_test_suite_prompts(suite_name)?;
+        let prompts = Self::get_test_suite_prompts(suite_name)?;
         let requests = self.create_batch_requests(suite_name, &prompts);
-        self.write_requests_to_file(output_path, requests)
+        Self::write_requests_to_file(output_path, requests)
     }
 
     /// Gets the prompts for a specific test suite using the prompts registry
-    fn get_test_suite_prompts(&self, suite_name: &str) -> Result<Vec<&'static str>> {
+    fn get_test_suite_prompts(suite_name: &str) -> Result<Vec<&'static str>> {
         PromptsRegistry::get_prompts(suite_name)
-            .map(|prompts| prompts.to_vec())
+            .map(<[&str]>::to_vec)
             .ok_or_else(|| anyhow::anyhow!("Unknown test suite: {}", suite_name))
     }
 
@@ -173,7 +173,7 @@ impl BatchJobGenerator {
         prompt: &str,
     ) -> BatchJobRequest {
         BatchJobRequest {
-            custom_id: format!("{}_{:03}", suite_name, index),
+            custom_id: format!("{suite_name}_{index:03}"),
             method: "POST".to_string(),
             url: "/v1/chat/completions".to_string(),
             body: BatchJobBody {
@@ -195,11 +195,7 @@ impl BatchJobGenerator {
     }
 
     /// Writes batch job requests to a JSONL file
-    fn write_requests_to_file(
-        &self,
-        output_path: &Path,
-        requests: Vec<BatchJobRequest>,
-    ) -> Result<()> {
+    fn write_requests_to_file(output_path: &Path, requests: Vec<BatchJobRequest>) -> Result<()> {
         let file = File::create(output_path)?;
         let mut writer = BufWriter::new(file);
 

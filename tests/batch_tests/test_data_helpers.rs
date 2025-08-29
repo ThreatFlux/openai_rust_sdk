@@ -1,7 +1,7 @@
 //! Helper functions for creating test data
 
 use openai_rust_sdk::api::batch::{
-    Batch, BatchList, BatchReport, BatchRequestCounts, BatchStatus, FileUploadResponse,
+    Batch, BatchList, BatchRequestCounts, BatchStatus, FileUploadResponse,
 };
 use serde_json::json;
 

@@ -50,22 +50,31 @@ pub mod threads;
 /// Vector stores API for RAG and knowledge management
 pub mod vector_stores;
 
+// Re-export specific items to avoid naming conflicts
 pub use assistants::*;
-pub use audio::*;
+// Audio exports - explicitly list to avoid conflict with threads::types
+pub use audio::types as audio_types;
+pub use audio::{client::AudioApi, speech, transcription, translation, utilities};
 pub use batch::{BatchApi, BatchReport, BatchStatus, YaraProcessor};
 pub use containers::*;
 pub use custom_tools::*;
 pub use embeddings::*;
 pub use files::*;
 pub use fine_tuning::*;
-pub use functions::*;
+// Functions exports - be explicit to avoid conflicts
+pub use functions::{
+    ConversationState, FunctionCallEvent, FunctionConfig, FunctionResponseResult, FunctionsApi,
+};
 pub use gpt5::*;
 pub use images::*;
-pub use models::*;
-pub use moderations::*;
+// Models exports - be explicit to avoid conflicts
+pub use models::ModelsApi;
+pub use moderations::ModerationsApi;
 pub use realtime_audio::*;
 pub use responses::*;
 pub use runs::*;
 pub use streaming::{FunctionStream, ResponseStream, ResponseStreamExt, StreamingApi};
-pub use threads::*;
+// Threads exports - explicitly list to avoid conflict with audio::types
+pub use threads::types as thread_types;
+pub use threads::{client::ThreadsApi, files as thread_files, messages, operations};
 pub use vector_stores::*;

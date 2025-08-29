@@ -1,6 +1,6 @@
 //! Builder for function tool configurations
 
-use super::*;
+use super::{EnhancedTool, FunctionTool};
 use serde_json::Value;
 
 /// Builder for function tools

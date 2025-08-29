@@ -1,6 +1,6 @@
 //! Builder for MCP (Model Context Protocol) tool configurations
 
-use super::*;
+use super::{EnhancedTool, McpApproval, McpTool};
 use std::collections::HashMap;
 
 /// Builder for MCP server tools

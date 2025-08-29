@@ -279,7 +279,8 @@ async fn demo_response_formats(audio_api: &AudioApi) -> Result<(), Box<dyn std::
     }
 
     let file_path = "output_voice_alloy.mp3";
-    let formats: [(&str, fn(TranscriptionBuilder) -> TranscriptionBuilder); 4] = [
+    type FormatFn = fn(TranscriptionBuilder) -> TranscriptionBuilder;
+    let formats: [(&str, FormatFn); 4] = [
         ("JSON", |b| b.json()),
         ("Plain Text", |b| b.text()),
         ("SRT Subtitles", |b| b.srt()),

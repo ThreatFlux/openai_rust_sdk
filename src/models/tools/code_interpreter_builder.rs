@@ -1,6 +1,6 @@
 //! Builder for code interpreter tool configurations
 
-use super::*;
+use super::{CodeInterpreterConfig, EnhancedTool};
 
 /// Builder for code interpreter tools
 pub struct CodeInterpreterBuilder {

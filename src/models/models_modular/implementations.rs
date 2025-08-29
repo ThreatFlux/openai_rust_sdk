@@ -57,10 +57,10 @@ impl Model {
 impl ListModelsResponse {
     /// Filter models by family
     #[must_use]
-    pub fn filter_by_family(&self, family: &ModelFamily) -> Vec<&Model> {
+    pub fn filter_by_family(&self, family: ModelFamily) -> Vec<&Model> {
         self.data
             .iter()
-            .filter(|model| model.family() == *family)
+            .filter(|model| model.family() == family)
             .collect()
     }
 

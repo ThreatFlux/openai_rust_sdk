@@ -14,12 +14,7 @@
 
 #![allow(dead_code)] // Test utility functions may not all be used yet
 
-// Export the test generation macros
-pub use crate::{
-    generate_api_test_suite, generate_builder_tests, generate_parameter_tests,
-    generate_serialization_tests, generate_status_enum_tests, generate_validation_tests,
-    generate_list_response_tests,
-};
+// Note: Test macros are defined in test_macros.rs and used directly via #[macro_use]
 
 use openai_rust_sdk::api::common::ApiClientConstructors;
 use openai_rust_sdk::error::OpenAIError;

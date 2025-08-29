@@ -51,8 +51,15 @@ pub use assistants::{
     Assistant, AssistantRequest, AssistantTool, ListAssistantsParams, ListAssistantsResponse,
 };
 
-// Audio API
-pub use audio::*;
+// Audio API - explicit exports to avoid conflicts
+pub use audio::builders as audio_builders;
+pub use audio::requests as audio_requests;
+pub use audio::types as audio_types;
+pub use audio::{
+    AudioFormat, AudioModels, AudioSpeechRequest, AudioSpeechResponse, AudioTranscriptionRequest,
+    AudioTranscriptionResponse, AudioTranslationRequest, AudioTranslationResponse,
+    TimestampGranularity, TranscriptionFormat, Voice,
+};
 
 // Containers API
 pub use containers::*;
@@ -78,14 +85,28 @@ pub use functions::{
 // GPT-5 API
 pub use gpt5::*;
 
-// Images API
-pub use images::*;
+// Images API - explicit exports to avoid conflicts
+pub use images::builders as image_builders;
+pub use images::requests as image_requests;
+pub use images::types as image_types;
+pub use images::{
+    ImageData, ImageEditRequest, ImageGenerationRequest, ImageModels, ImageQuality, ImageResponse,
+    ImageResponseFormat, ImageSize, ImageStyle, ImageVariationRequest,
+};
 
-// Models API
-pub use models::*;
+// Models API - explicit exports to avoid conflicts
+pub use models::implementations as model_implementations;
+pub use models::{
+    ListModelsResponse, Model, ModelCapabilities, ModelPermission, ModelRequirements,
+};
 
-// Moderations API
-pub use moderations::*;
+// Moderations API - explicit exports to avoid conflicts
+pub use moderations::builders as moderation_builders;
+pub use moderations::types as moderation_types;
+pub use moderations::{
+    CategoryScores, ModerationCategories, ModerationModels, ModerationRequest, ModerationResponse,
+    ModerationResult,
+};
 
 // Real-time Audio API
 pub use realtime_audio::*;

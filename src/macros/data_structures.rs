@@ -4,7 +4,7 @@
 #[macro_export]
 macro_rules! impl_list_query_params {
     ($struct_name:ident, $order_type:ty) => {
-        impl crate::api::common::ListQueryParams for $struct_name {
+        impl $crate::api::common::ListQueryParams for $struct_name {
             fn limit(&self) -> Option<u32> {
                 self.limit
             }
@@ -587,13 +587,13 @@ macro_rules! impl_comprehensive_test_suite {
                 .unwrap();
 
             let json = serde_json::to_string(&request).unwrap();
-            
+
             $(
                 assert!(json.contains($json_fragment), "JSON should contain: {}", $json_fragment);
             )*
 
             let deserialized: $request_type = serde_json::from_str(&json).unwrap();
-            
+
             // Verify round-trip integrity
             let json2 = serde_json::to_string(&deserialized).unwrap();
             assert_eq!(json, json2, "Serialization should be deterministic");
@@ -605,11 +605,11 @@ macro_rules! impl_comprehensive_test_suite {
                 $(.$req_field($req_val))*
                 .build()
                 .unwrap();
-            
+
             // Test that default values are properly set
             let json = serde_json::to_string(&request).unwrap();
             let deserialized: $request_type = serde_json::from_str(&json).unwrap();
-            
+
             $(
                 assert!($req_assertion);
             )*
@@ -678,7 +678,7 @@ macro_rules! impl_params_test_suite {
 
             let query_params = params.to_query_params();
             assert_eq!(query_params.len(), $expected_count);
-            
+
             $(
                 assert!($param_check);
             )*

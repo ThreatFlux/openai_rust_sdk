@@ -121,11 +121,13 @@ impl RealtimeAudioApi {
     }
 
     /// Get the HTTP client for internal use
+    #[allow(dead_code)]
     pub(crate) fn http_client(&self) -> &HttpClient {
         &self.http_client
     }
 
     /// Get the sessions map for internal use
+    #[allow(dead_code)]
     pub(crate) fn sessions(&self) -> &Arc<RwLock<HashMap<String, Arc<RealtimeSession>>>> {
         &self.sessions
     }

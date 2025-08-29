@@ -41,6 +41,20 @@ impl ListVectorStoreFilesParams {
         self.filter = Some(filter);
         self
     }
+
+    /// Convert to query parameters
+    #[must_use]
+    pub fn to_query_params(&self) -> Vec<(String, String)> {
+        <Self as QueryParamBuilder>::to_query_params(self)
+    }
+}
+
+impl ListVectorStoresParams {
+    /// Convert to query parameters
+    #[must_use]
+    pub fn to_query_params(&self) -> Vec<(String, String)> {
+        <Self as QueryParamBuilder>::to_query_params(self)
+    }
 }
 
 /// Common query parameter building utilities

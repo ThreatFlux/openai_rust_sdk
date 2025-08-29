@@ -1,6 +1,6 @@
 //! Builder for web search tool configurations
 
-use super::*;
+use super::{EnhancedTool, SearchFilters, WebSearchConfig};
 
 /// Builder for web search configuration
 pub struct WebSearchBuilder {

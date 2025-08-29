@@ -100,9 +100,7 @@ impl FunctionStreamProcessor {
         let mut events = Vec::new();
 
         for tool_call in tool_calls {
-            let builder = function_calls
-                .entry(tool_call.index)
-                .or_insert_with(FunctionCallBuilder::default);
+            let builder = function_calls.entry(tool_call.index).or_default();
 
             if let Some(id) = tool_call.id {
                 builder.call_id = Some(id);

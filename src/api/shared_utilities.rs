@@ -354,8 +354,7 @@ impl EnumConverter {
         Self::MESSAGE_ROLE_MAP
             .iter()
             .find(|(r, _)| std::mem::discriminant(r) == std::mem::discriminant(role))
-            .map(|(_, s)| *s)
-            .unwrap_or("user") // Default fallback
+            .map_or("user", |(_, s)| *s) // Default fallback
     }
 
     /// Convert image detail to string representation using lookup table
@@ -363,8 +362,7 @@ impl EnumConverter {
         Self::IMAGE_DETAIL_MAP
             .iter()
             .find(|(d, _)| std::mem::discriminant(d) == std::mem::discriminant(detail))
-            .map(|(_, s)| *s)
-            .unwrap_or("auto") // Default fallback
+            .map_or("auto", |(_, s)| *s) // Default fallback
     }
 }
 

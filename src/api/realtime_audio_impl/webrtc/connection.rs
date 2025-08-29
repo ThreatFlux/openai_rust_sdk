@@ -165,6 +165,7 @@ impl RealtimeAudioApi {
     }
 
     /// Maps WebRTC connection state to internal state
+    #[allow(dead_code)]
     pub(crate) fn map_connection_state(state: RTCPeerConnectionState) -> WebRtcConnectionState {
         map_webrtc_connection_state(state)
     }

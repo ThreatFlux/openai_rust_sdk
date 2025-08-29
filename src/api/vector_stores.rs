@@ -51,9 +51,9 @@ use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
 use crate::models::vector_stores::{
     ListVectorStoreFilesParams, ListVectorStoreFilesResponse, ListVectorStoresParams,
-    ListVectorStoresResponse, QueryParamBuilder, VectorStore, VectorStoreDeleteResponse, VectorStoreFile,
-    VectorStoreFileBatch, VectorStoreFileBatchRequest, VectorStoreFileDeleteResponse,
-    VectorStoreFileRequest, VectorStoreRequest,
+    ListVectorStoresResponse, QueryParamBuilder, VectorStore, VectorStoreDeleteResponse,
+    VectorStoreFile, VectorStoreFileBatch, VectorStoreFileBatchRequest,
+    VectorStoreFileDeleteResponse, VectorStoreFileRequest, VectorStoreRequest,
 };
 use std::collections::HashMap;
 

@@ -1,6 +1,6 @@
 //! Builder for file search tool configurations
 
-use super::*;
+use super::{EnhancedTool, FileSearchConfig};
 
 /// Builder for file search configuration
 pub struct FileSearchBuilder {

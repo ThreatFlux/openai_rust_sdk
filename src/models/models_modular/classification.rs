@@ -119,8 +119,7 @@ impl ModelCapabilities {
                     model_id.contains(pattern)
                 }
             })
-            .map(|(_, _, family)| *family)
-            .unwrap_or(ModelFamily::Unknown)
+            .map_or(ModelFamily::Unknown, |(_, _, family)| *family)
     }
 
     /// Classify the model tier based on the model ID

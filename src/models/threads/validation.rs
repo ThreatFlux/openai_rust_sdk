@@ -4,10 +4,14 @@ use std::collections::HashMap;
 
 /// Common validation functions for threads and messages
 pub mod common {
-    use super::*;
+    use super::HashMap;
+    use std::hash::BuildHasher;
 
     /// Validate metadata constraints
-    pub fn validate_metadata(metadata: &HashMap<String, String>) -> Result<(), String> {
+    pub fn validate_metadata<S>(metadata: &HashMap<String, String, S>) -> Result<(), String>
+    where
+        S: BuildHasher,
+    {
         // Validate metadata count
         if metadata.len() > 16 {
             return Err("Cannot have more than 16 metadata pairs".to_string());

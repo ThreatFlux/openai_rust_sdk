@@ -52,9 +52,16 @@ pub mod store_types;
 
 // Re-export all public types for backward compatibility
 pub use batch_types::*;
-pub use common_types::*;
+// Export everything except utils from common_types to avoid conflict
+pub use common_types::utils as common_utils;
+pub use common_types::{
+    ChunkingStrategy, ExpirationPolicy, FileCounts, FileIdBuilder, MetadataBuilder,
+    QueryParamBuilder, StatusChecker, VectorStoreFileError,
+};
 pub use file_types::*;
-pub use request_types::*;
+// Export everything except utils from request_types
+pub use request_types::utils as request_utils;
+pub use request_types::{ListVectorStoreFilesParams, ListVectorStoresParams};
 // Alias to avoid conflict with realtime_audio module
 pub use response_types::{
     ListVectorStoreFilesResponse, ListVectorStoresResponse, VectorStoreDeleteResponse,

@@ -37,7 +37,7 @@
 //!     .build();
 //! ```
 
-use crate::{De, Ser, impl_fine_tuning_params, impl_status_enum, impl_status_methods};
+use crate::{impl_fine_tuning_params, impl_status_enum, impl_status_methods, De, Ser};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -463,7 +463,10 @@ impl_fine_tuning_params!(ListFineTuningJobsParams, "fine-tuning jobs");
 impl_fine_tuning_params!(ListFineTuningJobEventsParams, "fine-tuning job events");
 
 // Generate fine-tuning job checkpoints list params using macro
-impl_fine_tuning_params!(ListFineTuningJobCheckpointsParams, "fine-tuning job checkpoints");
+impl_fine_tuning_params!(
+    ListFineTuningJobCheckpointsParams,
+    "fine-tuning job checkpoints"
+);
 
 /// Response when cancelling a fine-tuning job
 #[derive(Debug, Clone, Ser, De)]

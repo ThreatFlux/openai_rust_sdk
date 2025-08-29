@@ -1,6 +1,6 @@
 //! Builder for image generation tool configurations
 
-use super::*;
+use super::{EnhancedTool, ImageGenerationConfig};
 
 /// Builder for image generation tools
 pub struct ImageGenerationToolBuilder {

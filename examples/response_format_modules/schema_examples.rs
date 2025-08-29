@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 /// Helper function to create example schemas for different use cases
 #[must_use]
+#[allow(dead_code)]
 pub fn create_example_schemas() -> HashMap<String, Value> {
     let mut schemas = HashMap::new();
 
@@ -16,12 +17,14 @@ pub fn create_example_schemas() -> HashMap<String, Value> {
 }
 
 /// Add product schema to the collection
+#[allow(dead_code)]
 fn add_product_schema(schemas: &mut HashMap<String, Value>) {
     let product_schema = create_product_schema();
     schemas.insert("product".to_string(), product_schema);
 }
 
 /// Create a product schema for e-commerce applications
+#[allow(dead_code)]
 fn create_product_schema() -> Value {
     json!({
         "type": "object",
@@ -39,12 +42,14 @@ fn create_product_schema() -> Value {
 }
 
 /// Add article schema to the collection
+#[allow(dead_code)]
 fn add_article_schema(schemas: &mut HashMap<String, Value>) {
     let article_schema = create_article_schema();
     schemas.insert("article".to_string(), article_schema);
 }
 
 /// Create an article schema for content management
+#[allow(dead_code)]
 fn create_article_schema() -> Value {
     json!({
         "type": "object",
@@ -62,6 +67,7 @@ fn create_article_schema() -> Value {
 }
 
 /// Create an author schema for article authors
+#[allow(dead_code)]
 fn create_author_schema() -> Value {
     json!({
         "type": "object",
@@ -74,12 +80,14 @@ fn create_author_schema() -> Value {
 }
 
 /// Add analytics report schema to the collection
+#[allow(dead_code)]
 fn add_analytics_report_schema(schemas: &mut HashMap<String, Value>) {
     let analytics_schema = create_analytics_report_schema();
     schemas.insert("analytics_report".to_string(), analytics_schema);
 }
 
 /// Create an analytics report schema for data analysis
+#[allow(dead_code)]
 fn create_analytics_report_schema() -> Value {
     json!({
         "type": "object",
@@ -95,6 +103,7 @@ fn create_analytics_report_schema() -> Value {
 }
 
 /// Create a period schema for date ranges
+#[allow(dead_code)]
 fn create_period_schema() -> Value {
     json!({
         "type": "object",
@@ -107,6 +116,7 @@ fn create_period_schema() -> Value {
 }
 
 /// Create a metrics schema for analytics data
+#[allow(dead_code)]
 fn create_metrics_schema() -> Value {
     json!({
         "type": "object",
@@ -121,6 +131,7 @@ fn create_metrics_schema() -> Value {
 }
 
 /// Create a top pages schema for popular page tracking
+#[allow(dead_code)]
 fn create_top_pages_schema() -> Value {
     json!({
         "type": "array",

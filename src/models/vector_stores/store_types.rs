@@ -4,10 +4,10 @@
 //! request types and builder patterns.
 
 use crate::models::vector_stores::common_types::{
-    ChunkingStrategy, ExpirationPolicy, FileCounts, MetadataBuilder, FileIdBuilder, StatusChecker,
+    ChunkingStrategy, ExpirationPolicy, FileCounts, FileIdBuilder, MetadataBuilder, StatusChecker,
 };
 use crate::models::vector_stores::status_types::VectorStoreStatus;
-use crate::{De, Ser, impl_status_methods};
+use crate::{impl_status_methods, De, Ser};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -51,7 +51,6 @@ impl_status_methods!(VectorStore, VectorStoreStatus, {
 });
 
 impl VectorStore {
-
     /// Get human-readable usage size
     #[must_use]
     pub fn usage_human_readable(&self) -> String {

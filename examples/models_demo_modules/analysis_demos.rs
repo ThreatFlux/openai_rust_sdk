@@ -6,10 +6,7 @@
 //! - Model statistics and analytics
 
 use crate::helpers::*;
-use openai_rust_sdk::{
-    api::models::ModelsApi,
-    models::models::{ModelFamily, ModelRequirements},
-};
+use openai_rust_sdk::api::models::ModelsApi;
 use std::collections::HashMap;
 
 /// Helper function to print use case results

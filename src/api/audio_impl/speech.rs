@@ -2,7 +2,10 @@
 //!
 //! This module provides text-to-speech functionality for the Audio API.
 
-use super::types::*;
+use super::types::{
+    ApiClientConstructors, AudioFormat, AudioModels, AudioSpeechRequest, AudioSpeechResponse,
+    Bytes, Path, Result, StreamExt, Voice,
+};
 use crate::api::audio::AudioApi;
 
 impl AudioApi {

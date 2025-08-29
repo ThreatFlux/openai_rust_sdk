@@ -203,10 +203,10 @@ pub mod utils {
 pub trait StatusChecker<T> {
     /// Get the current status
     fn status(&self) -> &T;
-    
+
     /// Check if the status matches a specific value
     fn has_status(&self, status: &T) -> bool
-    where 
+    where
         T: PartialEq,
     {
         self.status() == status
@@ -228,7 +228,7 @@ pub trait OptionalFieldBuilder<T> {
 pub trait MetadataBuilder {
     /// Get a mutable reference to the metadata field
     fn metadata_mut(&mut self) -> &mut Option<HashMap<String, String>>;
-    
+
     /// Add a metadata key-value pair
     fn add_metadata_pair(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
         if self.metadata_mut().is_none() {
@@ -246,16 +246,13 @@ pub trait MetadataBuilder {
 pub trait FileIdBuilder {
     /// Get a mutable reference to the file_ids field
     fn file_ids_mut(&mut self) -> &mut Option<Vec<String>>;
-    
+
     /// Add a file ID to the list
     fn add_file_id_to_list(&mut self, file_id: impl Into<String>) -> &mut Self {
         if self.file_ids_mut().is_none() {
             *self.file_ids_mut() = Some(Vec::new());
         }
-        self.file_ids_mut()
-            .as_mut()
-            .unwrap()
-            .push(file_id.into());
+        self.file_ids_mut().as_mut().unwrap().push(file_id.into());
         self
     }
 }
@@ -264,11 +261,10 @@ pub trait FileIdBuilder {
 pub trait QueryParamBuilder {
     /// Convert to query parameter vector
     fn to_query_params(&self) -> Vec<(String, String)>;
-    
+
     /// Check if any parameters are set
     fn is_empty(&self) -> bool;
 }
-
 
 /// Macro for implementing common builder methods
 #[macro_export]
@@ -302,16 +298,16 @@ macro_rules! impl_query_params {
         impl QueryParamBuilder for $struct_name {
             fn to_query_params(&self) -> Vec<(String, String)> {
                 let mut params = Vec::new();
-                
+
                 $(
                     if let Some(ref value) = self.$field_name {
                         params.push((stringify!($field_name).to_string(), value.to_string()));
                     }
                 )*
-                
+
                 params
             }
-            
+
             fn is_empty(&self) -> bool {
                 true $(&& self.$field_name.is_none())*
             }

@@ -1,6 +1,6 @@
 //! Builder for computer use tool configurations
 
-use super::*;
+use super::{ComputerUseConfig, EnhancedTool};
 
 /// Builder for computer use tools
 pub struct ComputerUseBuilder {

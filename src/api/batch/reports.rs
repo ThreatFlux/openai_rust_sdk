@@ -117,44 +117,40 @@ impl BatchReport {
 
     /// Add summary statistics section to the report
     fn add_summary_section(&self, report: &mut String) {
+        use std::fmt::Write;
+
         report.push_str("## Summary Statistics\n\n");
-        report.push_str(&format!(
-            "- **Total Responses**: {}\n",
-            self.total_responses
-        ));
-        report.push_str(&format!(
-            "- **Successful Responses**: {}\n",
+        let _ = writeln!(report, "- **Total Responses**: {}", self.total_responses);
+        let _ = writeln!(
+            report,
+            "- **Successful Responses**: {}",
             self.successful_responses
-        ));
-        report.push_str(&format!(
-            "- **Error Responses**: {}\n",
-            self.error_responses
-        ));
-        report.push_str(&format!(
-            "- **Success Rate**: {:.1}%\n",
-            self.success_rate()
-        ));
-        report.push_str(&format!(
-            "- **Total Content Length**: {} characters\n",
+        );
+        let _ = writeln!(report, "- **Error Responses**: {}", self.error_responses);
+        let _ = writeln!(report, "- **Success Rate**: {:.1}%", self.success_rate());
+        let _ = writeln!(
+            report,
+            "- **Total Content Length**: {} characters",
             self.total_tokens
-        ));
-        report.push_str(&format!(
+        );
+        let _ = write!(
+            report,
             "- **Average Response Length**: {:.0} characters\n\n",
             self.average_response_length()
-        ));
+        );
     }
 
     /// Add YARA analysis section to the report
     fn add_yara_section(&self, report: &mut String) {
+        use std::fmt::Write;
+
         report.push_str("## YARA Rule Analysis\n\n");
-        report.push_str(&format!(
-            "- **YARA Rules Found**: {}\n",
-            self.yara_rules_found
-        ));
-        report.push_str(&format!(
-            "- **YARA Extraction Rate**: {:.1}%\n\n",
+        let _ = writeln!(report, "- **YARA Rules Found**: {}", self.yara_rules_found);
+        let _ = writeln!(
+            report,
+            "- **YARA Extraction Rate**: {:.1}%\n",
             self.yara_extraction_rate()
-        ));
+        );
     }
 
     /// Add error analysis section to the report
@@ -162,7 +158,8 @@ impl BatchReport {
         if !self.error_types.is_empty() {
             report.push_str("## Error Analysis\n\n");
             for (error_type, count) in &self.error_types {
-                report.push_str(&format!("- **{error_type}**: {count} occurrences\n"));
+                use std::fmt::Write;
+                let _ = writeln!(report, "- **{error_type}**: {count} occurrences");
             }
             report.push('\n');
         }

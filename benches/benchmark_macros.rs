@@ -29,7 +29,7 @@ macro_rules! generate_serialization_benchmarks {
             fn [<benchmark_ $type:snake _serialization>](c: &mut criterion::Criterion) {
                 let item = $factory();
                 let mut group = c.benchmark_group($group_name);
-                
+
                 // Basic JSON serialization
                 group.bench_function("to_json", |b| {
                     b.iter(|| {
@@ -98,11 +98,11 @@ macro_rules! generate_bulk_benchmarks {
         paste::paste! {
             fn [<benchmark_ $type:snake _bulk_processing>](c: &mut criterion::Criterion) {
                 let mut group = c.benchmark_group($group_name);
-                
+
                 $(
                     // Generate test data for this size
                     let items: Vec<_> = (0..$size).map(|_| $factory()).collect();
-                    
+
                     // Serialization benchmark for this size
                     group.bench_with_input(
                         criterion::BenchmarkId::new("serialize", $size),
@@ -113,8 +113,8 @@ macro_rules! generate_bulk_benchmarks {
                             });
                         }
                     );
-                    
-                    // Deserialization benchmark for this size  
+
+                    // Deserialization benchmark for this size
                     let json_string = serde_json::to_string(&items).unwrap();
                     group.bench_with_input(
                         criterion::BenchmarkId::new("deserialize", $size),
@@ -127,7 +127,7 @@ macro_rules! generate_bulk_benchmarks {
                             });
                         }
                     );
-                    
+
                     // Processing benchmark (iterate through items)
                     group.bench_with_input(
                         criterion::BenchmarkId::new("iterate", $size),
@@ -141,14 +141,14 @@ macro_rules! generate_bulk_benchmarks {
                         }
                     );
                 )+
-                
+
                 group.finish();
             }
         }
     };
 }
 
-/// Generate file processing benchmarks 
+/// Generate file processing benchmarks
 ///
 /// Creates benchmarks for file I/O operations.
 ///
@@ -169,10 +169,10 @@ macro_rules! generate_file_benchmarks {
             fn [<benchmark_ $type:snake _file_processing>](c: &mut criterion::Criterion) {
                 use std::io::Write;
                 use tempfile::NamedTempFile;
-                
+
                 let item = $factory();
                 let mut group = c.benchmark_group($group_name);
-                
+
                 // Write to file benchmark
                 group.bench_function("write_to_file", |b| {
                     b.iter(|| {
@@ -182,12 +182,12 @@ macro_rules! generate_file_benchmarks {
                         temp_file.flush().unwrap();
                     });
                 });
-                
+
                 // Read from file benchmark
                 let temp_file = NamedTempFile::new().unwrap();
                 let json = serde_json::to_string(&item).unwrap();
                 std::fs::write(temp_file.path(), &json).unwrap();
-                
+
                 group.bench_function("read_from_file", |b| {
                     b.iter(|| {
                         let content = std::fs::read_to_string(
@@ -196,7 +196,7 @@ macro_rules! generate_file_benchmarks {
                         let _: $type = serde_json::from_str(&content).unwrap();
                     });
                 });
-                
+
                 // Write multiple items to JSONL
                 let items: Vec<_> = (0..100).map(|_| $factory()).collect();
                 group.bench_function("write_jsonl", |b| {
@@ -209,29 +209,29 @@ macro_rules! generate_file_benchmarks {
                         temp_file.flush().unwrap();
                     });
                 });
-                
+
                 // Read JSONL file
                 let temp_file = NamedTempFile::new().unwrap();
                 for item in &items {
                     let json = serde_json::to_string(item).unwrap();
                     writeln!(&temp_file, "{}", json).unwrap();
                 }
-                
+
                 group.bench_function("read_jsonl", |b| {
                     b.iter(|| {
                         let content = std::fs::read_to_string(
                             criterion::black_box(temp_file.path())
                         ).unwrap();
-                        
+
                         let parsed_items: Vec<$type> = content
                             .lines()
                             .map(|line| serde_json::from_str(line).unwrap())
                             .collect();
-                            
+
                         criterion::black_box(parsed_items);
                     });
                 });
-                
+
                 group.finish();
             }
         }
@@ -258,7 +258,7 @@ macro_rules! generate_memory_benchmarks {
         paste::paste! {
             fn [<benchmark_ $type:snake _memory_usage>](c: &mut criterion::Criterion) {
                 let mut group = c.benchmark_group($group_name);
-                
+
                 // Clone benchmark
                 let item = $factory();
                 group.bench_function("clone", |b| {
@@ -266,7 +266,7 @@ macro_rules! generate_memory_benchmarks {
                         criterion::black_box(criterion::black_box(&item).clone())
                     });
                 });
-                
+
                 // Drop benchmark (measuring destructor performance)
                 group.bench_function("drop", |b| {
                     b.iter_batched(
@@ -275,7 +275,7 @@ macro_rules! generate_memory_benchmarks {
                         criterion::BatchSize::SmallInput
                     );
                 });
-                
+
                 // Vec creation and population
                 group.bench_function("vec_creation_1000", |b| {
                     b.iter(|| {
@@ -286,7 +286,7 @@ macro_rules! generate_memory_benchmarks {
                         criterion::black_box(items);
                     });
                 });
-                
+
                 // Vec clear and refill
                 let mut base_vec: Vec<$type> = (0..1000).map(|_| $factory()).collect();
                 group.bench_function("vec_clear_refill", |b| {
@@ -298,7 +298,7 @@ macro_rules! generate_memory_benchmarks {
                         criterion::black_box(&base_vec);
                     });
                 });
-                
+
                 group.finish();
             }
         }
@@ -329,7 +329,7 @@ macro_rules! generate_validation_benchmarks {
                 let valid_item = $valid_factory();
                 let invalid_item = $invalid_factory();
                 let mut group = c.benchmark_group($group_name);
-                
+
                 // Validate valid item
                 group.bench_function("validate_valid", |b| {
                     b.iter(|| {
@@ -339,7 +339,7 @@ macro_rules! generate_validation_benchmarks {
                         ).unwrap();
                     });
                 });
-                
+
                 // Validate invalid item (expect error)
                 group.bench_function("validate_invalid", |b| {
                     b.iter(|| {
@@ -349,7 +349,7 @@ macro_rules! generate_validation_benchmarks {
                         criterion::black_box(result);
                     });
                 });
-                
+
                 group.finish();
             }
         }
@@ -379,23 +379,23 @@ macro_rules! generate_comprehensive_benchmarks {
             factory: $factory,
             group_name: concat!($base_name, "_serialization")
         });
-        
+
         generate_bulk_benchmarks!($type, {
             factory: $factory,
             group_name: concat!($base_name, "_bulk"),
             sizes: [1, 10, 100, 500]
         });
-        
+
         generate_file_benchmarks!($type, {
             factory: $factory,
             group_name: concat!($base_name, "_file")
         });
-        
+
         generate_memory_benchmarks!($type, {
             factory: $factory,
             group_name: concat!($base_name, "_memory")
         });
-        
+
         paste::paste! {
             // Create a combined benchmark function that registers all benchmarks
             pub fn [<register_ $type:snake _benchmarks>](c: &mut criterion::Criterion) {
@@ -434,7 +434,7 @@ macro_rules! generate_comparison_benchmarks {
             fn [<benchmark_ $name>](c: &mut criterion::Criterion) {
                 let test_data = $setup();
                 let mut group = c.benchmark_group($name);
-                
+
                 $(
                     group.bench_function($label, |b| {
                         let func = $func;
@@ -443,7 +443,7 @@ macro_rules! generate_comparison_benchmarks {
                         });
                     });
                 )+
-                
+
                 group.finish();
             }
         }
@@ -477,7 +477,7 @@ macro_rules! generate_throughput_benchmarks {
             fn [<benchmark_ $type:snake _throughput>](c: &mut criterion::Criterion) {
                 let mut group = c.benchmark_group($group_name);
                 group.throughput(criterion::Throughput::Elements(1));
-                
+
                 $(
                     let items: Vec<_> = (0..1000).map(|_| $factory()).collect();
                     group.bench_function(stringify!($op_name), |b| {
@@ -489,7 +489,7 @@ macro_rules! generate_throughput_benchmarks {
                         });
                     });
                 )+
-                
+
                 group.finish();
             }
         }

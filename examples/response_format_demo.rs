@@ -50,7 +50,7 @@ fn demonstrate_example_schemas() -> Result<(), Box<dyn std::error::Error>> {
 
     let schemas = create_example_schemas();
     println!("Available example schemas:");
-    for (name, _) in &schemas {
+    for name in schemas.keys() {
         println!("  - {name}");
     }
 

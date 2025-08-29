@@ -2,7 +2,7 @@
 //!
 //! Main client implementation for the Audio API.
 
-use super::types::*;
+use super::types::{ApiClientConstructors, HttpClient};
 
 /// Audio API client
 pub struct AudioApi {
@@ -32,6 +32,7 @@ impl AudioApi {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::audio::AudioApi;
 
     #[test]
     fn test_audio_api_creation() {

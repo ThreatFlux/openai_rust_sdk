@@ -315,25 +315,25 @@ impl BatchProcessor {
 }
 
 fn parse_command_line_args() -> Result<String, Box<dyn std::error::Error>> {
-    // Safely collect args into a vector to avoid security concerns  
+    // Safely collect args into a vector to avoid security concerns
     // This is just for parsing a batch ID, not for security operations
     // nosemgrep: rust.lang.security.args.args - Safe usage: only reading batch ID from CLI
     let args: Vec<String> = env::args().collect();
-    
+
     // Check argument count
     if args.len() < 2 {
         eprintln!("Usage: batch_file_processing <batch_id>");
         eprintln!("Example: batch_file_processing batch_68a039c97af48190b645b9ece8266a52");
         return Err("Missing batch ID".into());
     }
-    
+
     // Ensure no extra arguments
     if args.len() > 2 {
         eprintln!("Error: Too many arguments provided");
         eprintln!("Usage: batch_file_processing <batch_id>");
         return Err("Too many arguments".into());
     }
-    
+
     // Get batch ID from command line arguments (skip program name at index 0)
     let batch_id = args[1].clone();
 

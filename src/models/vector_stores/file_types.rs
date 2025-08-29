@@ -3,9 +3,11 @@
 //! This module contains types and functions for managing individual files
 //! within vector stores, including file associations and their processing status.
 
-use crate::models::vector_stores::common_types::{ChunkingStrategy, VectorStoreFileError, StatusChecker};
+use crate::models::vector_stores::common_types::{
+    ChunkingStrategy, StatusChecker, VectorStoreFileError,
+};
 use crate::models::vector_stores::status_types::VectorStoreFileStatus;
-use crate::{De, Ser, impl_status_methods};
+use crate::{impl_status_methods, De, Ser};
 use serde::{self, Deserialize, Serialize};
 
 /// A vector store file represents the association between a file and a vector store
@@ -40,7 +42,6 @@ impl_status_methods!(VectorStoreFile, VectorStoreFileStatus, {
 });
 
 impl VectorStoreFile {
-
     /// Get human-readable usage size
     #[must_use]
     pub fn usage_human_readable(&self) -> String {

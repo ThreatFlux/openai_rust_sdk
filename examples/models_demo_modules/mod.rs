@@ -16,5 +16,3 @@ pub mod utility_demos;
 pub use analysis_demos::*;
 pub use basic_demos::*;
 pub use cost_demos::*;
-pub use helpers::*;
-pub use utility_demos::*;

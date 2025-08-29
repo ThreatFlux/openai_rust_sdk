@@ -21,13 +21,18 @@ pub struct OpenAIClient {
 
 /// State management for function calling conversations
 struct ConversationState {
+    /// The current messages in the conversation
     current_messages: Vec<Message>,
+    /// Results from function calls
     results: Vec<FunctionResponseResult>,
+    /// Current iteration count
     iteration_count: u32,
+    /// Maximum allowed iterations
     max_iterations: u32,
 }
 
 impl ConversationState {
+    /// Create a new conversation state
     fn new(messages: Vec<Message>, max_iterations: Option<u32>) -> Self {
         Self {
             current_messages: messages,
@@ -37,14 +42,17 @@ impl ConversationState {
         }
     }
 
+    /// Check if the conversation should continue
     fn should_continue(&self) -> bool {
         self.iteration_count < self.max_iterations
     }
 
+    /// Increment the iteration counter
     fn increment_iteration(&mut self) {
         self.iteration_count += 1;
     }
 
+    /// Add a function result
     fn add_result(&mut self, result: FunctionResponseResult) {
         self.results.push(result);
     }

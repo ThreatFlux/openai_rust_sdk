@@ -6,8 +6,11 @@
 use super::common::ImageRequestCommon;
 use super::requests::{ImageEditRequest, ImageGenerationRequest, ImageVariationRequest};
 use super::types::{ImageModels, ImageQuality, ImageResponseFormat, ImageSize, ImageStyle};
-use crate::models::common_builder::{Builder, WithFormat, WithN, WithSize, WithUser, WithQuality};
-use crate::{impl_builder, impl_with_n, impl_with_format, impl_with_size, impl_with_user, impl_with_quality, impl_format_methods, impl_image_size_methods};
+use crate::models::common_builder::{Builder, WithFormat, WithN, WithQuality, WithSize, WithUser};
+use crate::{
+    impl_builder, impl_format_methods, impl_image_size_methods, impl_with_format, impl_with_n,
+    impl_with_quality, impl_with_size, impl_with_user,
+};
 
 /// Builder for creating image generation requests
 pub struct ImageGenerationBuilder {
@@ -60,15 +63,46 @@ impl ImageGenerationBuilder {
         self.request.style = Some(ImageStyle::Natural);
         self
     }
+
+    /// Set the user identifier
+    #[must_use]
+    pub fn user(self, user: impl Into<String>) -> Self {
+        <Self as crate::models::common_builder::WithUser<ImageGenerationRequest>>::user(self, user)
+    }
+
+    /// Build the request
+    pub fn build(self) -> ImageGenerationRequest {
+        <Self as crate::models::common_builder::Builder<ImageGenerationRequest>>::build(self)
+    }
 }
 
 // Apply common builder traits
 impl_builder!(ImageGenerationBuilder, ImageGenerationRequest, request);
-impl_with_n!(ImageGenerationBuilder, ImageGenerationRequest, request, |n: u32| n.clamp(1, 10));
-impl_with_format!(ImageGenerationBuilder, ImageGenerationRequest, request, ImageResponseFormat);
-impl_with_size!(ImageGenerationBuilder, ImageGenerationRequest, request, ImageSize);
+impl_with_n!(
+    ImageGenerationBuilder,
+    ImageGenerationRequest,
+    request,
+    |n: u32| n.clamp(1, 10)
+);
+impl_with_format!(
+    ImageGenerationBuilder,
+    ImageGenerationRequest,
+    request,
+    ImageResponseFormat
+);
+impl_with_size!(
+    ImageGenerationBuilder,
+    ImageGenerationRequest,
+    request,
+    ImageSize
+);
 impl_with_user!(ImageGenerationBuilder, ImageGenerationRequest, request);
-impl_with_quality!(ImageGenerationBuilder, ImageGenerationRequest, request, ImageQuality);
+impl_with_quality!(
+    ImageGenerationBuilder,
+    ImageGenerationRequest,
+    request,
+    ImageQuality
+);
 
 // Generate format and size convenience methods
 impl_format_methods!(ImageGenerationBuilder, ImageResponseFormat, request);
@@ -102,12 +136,43 @@ impl ImageEditBuilder {
         self.request.mask = Some(mask.into());
         self
     }
+
+    /// Set the number of images to generate
+    #[must_use]
+    pub fn n(self, n: u32) -> Self {
+        <Self as crate::models::common_builder::WithN<ImageEditRequest>>::n(self, n)
+    }
+
+    /// Set the size of the generated images
+    #[must_use]
+    pub fn size(self, size: ImageSize) -> Self {
+        <Self as crate::models::common_builder::WithSize<ImageEditRequest, ImageSize>>::size(
+            self, size,
+        )
+    }
+
+    /// Set the user identifier
+    #[must_use]
+    pub fn user(self, user: impl Into<String>) -> Self {
+        <Self as crate::models::common_builder::WithUser<ImageEditRequest>>::user(self, user)
+    }
+
+    /// Build the request
+    pub fn build(self) -> ImageEditRequest {
+        <Self as crate::models::common_builder::Builder<ImageEditRequest>>::build(self)
+    }
 }
 
 // Apply common builder traits
 impl_builder!(ImageEditBuilder, ImageEditRequest, request);
-impl_with_n!(ImageEditBuilder, ImageEditRequest, request, |n: u32| n.clamp(1, 10));
-impl_with_format!(ImageEditBuilder, ImageEditRequest, request, ImageResponseFormat);
+impl_with_n!(ImageEditBuilder, ImageEditRequest, request, |n: u32| n
+    .clamp(1, 10));
+impl_with_format!(
+    ImageEditBuilder,
+    ImageEditRequest,
+    request,
+    ImageResponseFormat
+);
 impl_with_size!(ImageEditBuilder, ImageEditRequest, request, ImageSize);
 impl_with_user!(ImageEditBuilder, ImageEditRequest, request);
 
@@ -132,13 +197,47 @@ impl ImageVariationBuilder {
     pub fn dall_e_2(image: impl Into<String>) -> Self {
         Self::new(ImageModels::DALL_E_2, image)
     }
+
+    /// Set the number of images to generate
+    #[must_use]
+    pub fn n(self, n: u32) -> Self {
+        <Self as crate::models::common_builder::WithN<ImageVariationRequest>>::n(self, n)
+    }
+
+    /// Set the size of the generated images
+    #[must_use]
+    pub fn size(self, size: ImageSize) -> Self {
+        <Self as crate::models::common_builder::WithSize<ImageVariationRequest, ImageSize>>::size(
+            self, size,
+        )
+    }
+
+    /// Build the request
+    pub fn build(self) -> ImageVariationRequest {
+        <Self as crate::models::common_builder::Builder<ImageVariationRequest>>::build(self)
+    }
 }
 
 // Apply common builder traits
 impl_builder!(ImageVariationBuilder, ImageVariationRequest, request);
-impl_with_n!(ImageVariationBuilder, ImageVariationRequest, request, |n: u32| n.clamp(1, 10));
-impl_with_format!(ImageVariationBuilder, ImageVariationRequest, request, ImageResponseFormat);
-impl_with_size!(ImageVariationBuilder, ImageVariationRequest, request, ImageSize);
+impl_with_n!(
+    ImageVariationBuilder,
+    ImageVariationRequest,
+    request,
+    |n: u32| n.clamp(1, 10)
+);
+impl_with_format!(
+    ImageVariationBuilder,
+    ImageVariationRequest,
+    request,
+    ImageResponseFormat
+);
+impl_with_size!(
+    ImageVariationBuilder,
+    ImageVariationRequest,
+    request,
+    ImageSize
+);
 impl_with_user!(ImageVariationBuilder, ImageVariationRequest, request);
 
 // Generate format convenience methods

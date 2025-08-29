@@ -2,7 +2,11 @@
 //!
 //! This module provides audio translation functionality for the Audio API.
 
-use super::types::*;
+use super::types::{
+    ApiClientConstructors, AudioModels, AudioResponseHandler, AudioTranslationRequest,
+    AudioTranslationResponse, FormBuilder, MultipartRequestExecutor, Path, RequestValidator,
+    Result,
+};
 use crate::api::audio::AudioApi;
 
 impl AudioApi {

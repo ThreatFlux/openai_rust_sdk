@@ -133,6 +133,7 @@ pub async fn demo_filter_by_completion_type(
 }
 
 /// Demo: Show available (non-deprecated) models
+#[allow(dead_code)]
 pub async fn demo_available_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n✅ Example 5: Available (Non-Deprecated) Models");
     println!("───────────────────────────────────────────");
@@ -153,6 +154,7 @@ pub async fn demo_available_models(api: &ModelsApi) -> Result<(), Box<dyn std::e
 }
 
 /// Demo: Show latest models from each family
+#[allow(dead_code)]
 pub async fn demo_latest_models(api: &ModelsApi) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🆕 Example 6: Latest Models from Each Family");
     println!("─────────────────────────────────────────────");

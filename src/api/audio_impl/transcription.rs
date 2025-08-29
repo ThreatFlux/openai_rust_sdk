@@ -2,7 +2,11 @@
 //!
 //! This module provides speech-to-text transcription functionality for the Audio API.
 
-use super::types::*;
+use super::types::{
+    ApiClientConstructors, AudioModels, AudioResponseHandler, AudioTranscriptionRequest,
+    AudioTranscriptionResponse, FormBuilder, MultipartRequestExecutor, Path, RequestValidator,
+    Result,
+};
 use crate::api::audio::AudioApi;
 
 impl AudioApi {

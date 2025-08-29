@@ -100,6 +100,7 @@ allow = [
     "0BSD",
     "Unlicense",
     "MPL-2.0",  # Required for webpki-roots (rustls dependency)
+    "CDLA-Permissive-2.0",  # Required for webpki-roots in newer reqwest
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the

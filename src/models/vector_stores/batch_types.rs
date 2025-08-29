@@ -5,7 +5,7 @@
 
 use crate::models::vector_stores::common_types::{ChunkingStrategy, FileCounts, StatusChecker};
 use crate::models::vector_stores::status_types::VectorStoreFileBatchStatus;
-use crate::{De, Ser, impl_status_methods};
+use crate::{impl_status_methods, De, Ser};
 use serde::{self, Deserialize, Serialize};
 
 /// A vector store file batch represents a batch operation on multiple files
@@ -34,7 +34,6 @@ impl_status_methods!(VectorStoreFileBatch, VectorStoreFileBatchStatus, {
 });
 
 impl VectorStoreFileBatch {
-
     /// Get the creation date as a formatted string
     #[must_use]
     pub fn created_at_formatted(&self) -> String {

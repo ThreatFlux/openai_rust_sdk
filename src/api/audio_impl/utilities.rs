@@ -2,7 +2,7 @@
 //!
 //! Helper functions and utilities for the Audio API.
 
-use super::types::*;
+use super::types::{AudioFormat, Path, Voice};
 use crate::api::audio::AudioApi;
 
 impl AudioApi {

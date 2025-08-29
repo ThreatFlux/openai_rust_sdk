@@ -4,8 +4,11 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 // Lookup table for grammar type constants to reduce duplication
+/// Lark grammar type identifier
 const GRAMMAR_TYPE_LARK: &str = "lark";
+/// Regex grammar type identifier
 const GRAMMAR_TYPE_REGEX: &str = "regex";
+/// Context-free grammar type identifier
 const GRAMMAR_TYPE_CFG: &str = "cfg";
 
 /// Custom tools API for advanced tool definitions

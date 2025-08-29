@@ -3,8 +3,11 @@
 /// Extraction strategy for YARA rules
 #[derive(Debug, PartialEq)]
 enum ExtractionStrategy {
+    /// Extract from ```yara code blocks
     YaraCodeBlock,
+    /// Extract from generic ``` code blocks
     GenericCodeBlock,
+    /// Extract as plain text
     PlainText,
 }
 

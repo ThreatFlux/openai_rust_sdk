@@ -70,6 +70,7 @@ fn default_thread_deletion_object() -> String {
     "thread.deleted".to_string()
 }
 
+/// Default object type for message files
 fn default_message_file_object() -> String {
     "thread.message.file".to_string()
 }

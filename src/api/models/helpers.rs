@@ -130,7 +130,7 @@ impl ModelUtils {
                 model
                     .capabilities()
                     .max_tokens
-                    .map_or(false, |tokens| tokens >= min_tokens)
+                    .is_some_and(|tokens| tokens >= min_tokens)
             })
             .collect()
     }

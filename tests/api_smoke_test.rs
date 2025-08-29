@@ -48,7 +48,7 @@ fn test_embeddings_api_exists() {
 
 #[test]
 fn test_models_api_exists() {
-    use openai_rust_sdk::api::{common::ApiClientConstructors, models::ModelsApi};
+    use openai_rust_sdk::api::models::ModelsApi;
 
     // API can be created
     let _api = ModelsApi::new("test-key").unwrap();

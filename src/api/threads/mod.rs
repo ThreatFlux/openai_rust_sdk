@@ -64,8 +64,8 @@ pub mod client;
 pub mod files;
 /// Message management functionality  
 pub mod messages;
-/// Thread management functionality
-pub mod threads;
+/// Thread operations functionality
+pub mod operations;
 /// Type definitions and re-exports
 pub mod types;
 

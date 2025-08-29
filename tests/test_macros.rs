@@ -20,8 +20,10 @@ macro_rules! generate_api_test_suite {
     ($api_type:ty, $custom_url:expr) => {
         mod api_tests {
             use super::*;
-            use crate::common::{create_test_api_client, create_test_api_client_with_url, TEST_API_KEY};
-            
+            use $crate::common::{
+                create_test_api_client, create_test_api_client_with_url, TEST_API_KEY,
+            };
+
             #[test]
             fn test_api_creation() {
                 let api = create_test_api_client::<$api_type>();
@@ -95,7 +97,7 @@ macro_rules! generate_status_enum_tests {
                 )+
             }
 
-            #[test] 
+            #[test]
             fn [<test_ $status_type:snake _active_states>]() {
                 $(
                     assert!(<$status_type>::$active.is_active());
@@ -114,7 +116,7 @@ macro_rules! generate_status_enum_tests {
                     assert_eq!(string_repr, snake_case);
                 )+
                 $(
-                    let status = <$status_type>::$active; 
+                    let status = <$status_type>::$active;
                     let string_repr = status.to_string();
                     let snake_case = stringify!($active).to_lowercase();
                     assert_eq!(string_repr, snake_case);
@@ -123,7 +125,7 @@ macro_rules! generate_status_enum_tests {
 
             #[test]
             fn [<test_ $status_type:snake _serialization>]() {
-                use crate::common::test_serialization_round_trip;
+                use $crate::common::test_serialization_round_trip;
                 $(
                     test_serialization_round_trip(&<$status_type>::$terminal);
                 )+
@@ -179,7 +181,7 @@ macro_rules! generate_builder_tests {
                 #[test]
                 fn test_builder_chaining() {
                     let request = $factory();
-                    use crate::common::test_serialization_only;
+                    use $crate::common::test_serialization_only;
                     test_serialization_only(&request);
                 }
 
@@ -215,7 +217,7 @@ macro_rules! generate_serialization_tests {
     }) => {
         mod serialization_tests {
             use super::*;
-            use crate::common::{test_serialization_only, assert_json_contains};
+            use $crate::common::{test_serialization_only, assert_json_contains};
 
             #[test]
             fn test_serialization() {
@@ -223,7 +225,7 @@ macro_rules! generate_serialization_tests {
                 test_serialization_only(&item);
             }
 
-            #[test] 
+            #[test]
             fn test_json_contains_expected_fields() {
                 let item = $factory();
                 let json = serde_json::to_string(&item).unwrap();
@@ -270,13 +272,13 @@ macro_rules! generate_parameter_tests {
                     )+
                 }
 
-                #[test] 
+                #[test]
                 fn test_parameter_with_values() {
                     let params = <$param_type>::new()
                         $(
                             .[<with_ $field_name>]($value)
                         )+;
-                    
+
                     $(
                         assert_eq!(params.$field_name, Some($value.into()));
                     )+
@@ -288,7 +290,7 @@ macro_rules! generate_parameter_tests {
                         $(
                             .[<with_ $field_name>]($value)
                         )+;
-                    
+
                     let query_params = params.to_query_params();
                     assert!(!query_params.is_empty());
                 }
@@ -331,7 +333,7 @@ macro_rules! generate_list_response_tests {
             fn test_response_with_data() {
                 let item1 = $factory();
                 let item2 = $factory();
-                
+
                 let response = <$response_type> {
                     object: "list".to_string(),
                     data: vec![item1, item2],
@@ -354,7 +356,7 @@ macro_rules! generate_list_response_tests {
                         last_id: None,
                         has_more: false,
                     };
-                    
+
                     let _filtered = response.$filter();
                 }
             )+
@@ -370,7 +372,7 @@ macro_rules! generate_list_response_tests {
                         last_id: None,
                         has_more: false,
                     };
-                    
+
                     let _result = response.$utility();
                 }
             )+
@@ -392,7 +394,7 @@ macro_rules! generate_list_response_tests {
 ///     ]
 /// });
 /// ```
-#[macro_export] 
+#[macro_export]
 macro_rules! generate_validation_tests {
     ($type:ty, {
         builder: $builder:ty,
@@ -402,7 +404,7 @@ macro_rules! generate_validation_tests {
             use super::*;
 
             $(
-                #[test] 
+                #[test]
                 fn [<test_ $field _ $description:snake>]() {
                     let result = <$builder>::default()
                         .$field($value)

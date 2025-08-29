@@ -5,6 +5,7 @@ use serde_json::Value;
 /// Helper struct for extracting tool call data with reduced complexity
 #[derive(Debug)]
 pub(crate) struct ToolCallExtractor<'a> {
+    /// The tool call value to extract from
     call: &'a Value,
 }
 

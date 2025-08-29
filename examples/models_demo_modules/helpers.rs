@@ -4,6 +4,7 @@ use openai_rust_sdk::models::models::{CompletionType, Model, ModelRequirements};
 use std::collections::HashMap;
 
 /// Demo configuration for each example
+#[allow(dead_code)]
 pub struct DemoConfig {
     pub title: &'static str,
     pub description: &'static str,
@@ -16,6 +17,7 @@ pub struct UseCaseConfig {
 }
 
 /// Configuration for model cost comparisons
+#[allow(dead_code)]
 pub struct CostConfig {
     pub models: Vec<&'static str>,
     pub monthly_input: u64,
@@ -65,12 +67,13 @@ pub fn print_model_summary(model: &Model, index: usize) {
 }
 
 /// Helper function to print limited model list with optional count
+#[allow(dead_code)]
 pub fn print_limited_models<'a>(
     models: impl Iterator<Item = &'a Model>,
     limit: usize,
     total_count: usize,
 ) {
-    for (_i, model) in models.take(limit).enumerate() {
+    for model in models.take(limit) {
         let deprecated = deprecation_status(model);
         println!("  • {}{}", model.id, deprecated);
     }

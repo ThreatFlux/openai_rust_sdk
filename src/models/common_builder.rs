@@ -81,35 +81,40 @@ macro_rules! impl_image_size_methods {
             /// Set size to 256x256
             #[must_use]
             pub fn size_256x256(mut self) -> Self {
-                self.$request_field.size = Some(crate::models::images::types::ImageSize::Size256x256);
+                self.$request_field.size =
+                    Some($crate::models::images::types::ImageSize::Size256x256);
                 self
             }
 
             /// Set size to 512x512
             #[must_use]
             pub fn size_512x512(mut self) -> Self {
-                self.$request_field.size = Some(crate::models::images::types::ImageSize::Size512x512);
+                self.$request_field.size =
+                    Some($crate::models::images::types::ImageSize::Size512x512);
                 self
             }
 
             /// Set size to 1024x1024
             #[must_use]
             pub fn size_1024x1024(mut self) -> Self {
-                self.$request_field.size = Some(crate::models::images::types::ImageSize::Size1024x1024);
+                self.$request_field.size =
+                    Some($crate::models::images::types::ImageSize::Size1024x1024);
                 self
             }
 
             /// Set size to 1792x1024 (landscape)
             #[must_use]
             pub fn size_1792x1024(mut self) -> Self {
-                self.$request_field.size = Some(crate::models::images::types::ImageSize::Size1792x1024);
+                self.$request_field.size =
+                    Some($crate::models::images::types::ImageSize::Size1792x1024);
                 self
             }
 
             /// Set size to 1024x1792 (portrait)
             #[must_use]
             pub fn size_1024x1792(mut self) -> Self {
-                self.$request_field.size = Some(crate::models::images::types::ImageSize::Size1024x1792);
+                self.$request_field.size =
+                    Some($crate::models::images::types::ImageSize::Size1024x1792);
                 self
             }
         }
@@ -124,28 +129,28 @@ macro_rules! impl_audio_format_methods {
             /// Use MP3 format
             #[must_use]
             pub fn mp3(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::AudioFormat::Mp3);
+                self.$request_field.response_format = Some($crate::models::AudioFormat::Mp3);
                 self
             }
 
             /// Use Opus format
             #[must_use]
             pub fn opus(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::AudioFormat::Opus);
+                self.$request_field.response_format = Some($crate::models::AudioFormat::Opus);
                 self
             }
 
             /// Use AAC format
             #[must_use]
             pub fn aac(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::AudioFormat::Aac);
+                self.$request_field.response_format = Some($crate::models::AudioFormat::Aac);
                 self
             }
 
             /// Use FLAC format
             #[must_use]
             pub fn flac(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::AudioFormat::Flac);
+                self.$request_field.response_format = Some($crate::models::AudioFormat::Flac);
                 self
             }
         }
@@ -160,35 +165,40 @@ macro_rules! impl_transcription_format_methods {
             /// Use JSON format
             #[must_use]
             pub fn json(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::TranscriptionFormat::Json);
+                self.$request_field.response_format =
+                    Some($crate::models::TranscriptionFormat::Json);
                 self
             }
 
             /// Use verbose JSON format with timestamps
             #[must_use]
             pub fn verbose_json(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::TranscriptionFormat::VerboseJson);
+                self.$request_field.response_format =
+                    Some($crate::models::TranscriptionFormat::VerboseJson);
                 self
             }
 
             /// Use plain text format
             #[must_use]
             pub fn text(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::TranscriptionFormat::Text);
+                self.$request_field.response_format =
+                    Some($crate::models::TranscriptionFormat::Text);
                 self
             }
 
             /// Use SRT subtitle format
             #[must_use]
             pub fn srt(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::TranscriptionFormat::Srt);
+                self.$request_field.response_format =
+                    Some($crate::models::TranscriptionFormat::Srt);
                 self
             }
 
             /// Use WebVTT subtitle format
             #[must_use]
             pub fn vtt(mut self) -> Self {
-                self.$request_field.response_format = Some(crate::models::TranscriptionFormat::Vtt);
+                self.$request_field.response_format =
+                    Some($crate::models::TranscriptionFormat::Vtt);
                 self
             }
         }
@@ -264,7 +274,9 @@ macro_rules! impl_with_user {
 #[macro_export]
 macro_rules! impl_with_quality {
     ($builder:ty, $request_type:ty, $request_field:ident, $quality_type:ty) => {
-        impl $crate::models::common_builder::WithQuality<$request_type, $quality_type> for $builder {
+        impl $crate::models::common_builder::WithQuality<$request_type, $quality_type>
+            for $builder
+        {
             fn quality(mut self, quality: $quality_type) -> Self {
                 self.$request_field.quality = Some(quality);
                 self

@@ -199,7 +199,7 @@ mod tests {
     }
 
     fn test_family_filtering(response: &ListModelsResponse) {
-        let gpt4_models = response.filter_by_family(&ModelFamily::GPT4);
+        let gpt4_models = response.filter_by_family(ModelFamily::GPT4);
         assert_eq!(gpt4_models.len(), 1);
         assert_eq!(gpt4_models[0].id, "gpt-4");
     }

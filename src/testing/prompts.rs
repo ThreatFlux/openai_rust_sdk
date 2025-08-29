@@ -67,6 +67,7 @@ impl PromptsRegistry {
     /// # Returns
     ///
     /// Returns a vector of all available test suite names
+    #[allow(dead_code)]
     pub fn available_suites() -> Vec<&'static str> {
         vec!["basic", "malware", "comprehensive"]
     }
@@ -80,6 +81,7 @@ impl PromptsRegistry {
     /// # Returns
     ///
     /// Returns true if the suite exists, false otherwise
+    #[allow(dead_code)]
     pub fn suite_exists(suite_name: &str) -> bool {
         Self::get_prompts(suite_name).is_some()
     }
@@ -91,19 +93,19 @@ mod tests {
 
     #[test]
     fn test_basic_prompts_not_empty() {
-        assert!(!BASIC_PROMPTS.is_empty());
+        // Const arrays always have a fixed size, just verify the expected count
         assert_eq!(BASIC_PROMPTS.len(), 3);
     }
 
     #[test]
     fn test_malware_prompts_not_empty() {
-        assert!(!MALWARE_PROMPTS.is_empty());
+        // Const arrays always have a fixed size, just verify the expected count
         assert_eq!(MALWARE_PROMPTS.len(), 3);
     }
 
     #[test]
     fn test_comprehensive_prompts_not_empty() {
-        assert!(!COMPREHENSIVE_PROMPTS.is_empty());
+        // Const arrays always have a fixed size, just verify the expected count
         assert_eq!(COMPREHENSIVE_PROMPTS.len(), 10);
     }
 
