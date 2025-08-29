@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.2.4] - 2025-08-29
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: ignore paste unmaintained advisory (RUSTSEC-2024-0436) (c065edb)
+- fix: resolve all CI/CD blocking issues and dependency conflicts (4b83415)
+- fix: resolve GitHub Actions security issues (cae5852)
+
+#### 🔧 Other Changes
+- refactor: reduce code duplication by 5% through macro optimization (c227b90)
+- chore: remove demonstration files to reduce false duplication metrics (5178b40)
+- refactor: achieve <3% code duplication through aggressive macro-based refactoring (ebf279e)
+- refactor: eliminate code duplication across multiple modules (d4293b3)
+- chore: remove backup file images_demo_original.rs (3426301)
+- refactor: resolve final 14 code complexity issues (f845af2)
+- refactor: complete comprehensive code complexity reduction (42 issues resolved) (c00880f)
+- refactor: reduce code complexity across the codebase (a5ac9c5)
+- refactor: reduce code complexity across entire codebase (afd9680)
+- refactor: resolve all 120 Codacy code quality issues (177e47e)
+
+### 📊 Statistics
+
+- **Version**: 1.2.3 → 1.2.4
+- **Date**: 2025-08-29
+- **Commits**: 13
+- **Contributors**: 1
+
+
 ## [1.2.3] - 2025-08-27
 
 
