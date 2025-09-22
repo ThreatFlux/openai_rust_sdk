@@ -305,7 +305,7 @@ jobs:
           git push origin "v$VERSION"
       
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8  # v2.0.9
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836  # v2.3.3
         with:
           tag_name: v${{ needs.check-for-release.outputs.next_version }}
           name: Release v${{ needs.check-for-release.outputs.next_version }}
@@ -337,7 +337,7 @@ jobs:
           fetch-depth: 0
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921  # v1
         with:
           toolchain: stable
       
