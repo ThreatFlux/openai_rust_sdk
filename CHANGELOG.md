@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.3.0] - 2025-09-29
+
+
+### 🚀 What's Changed
+
+#### ✨ Features
+- feat: add OpenAI Responses API v2 support (58cd203)
+
+#### 🐛 Bug Fixes
+- fix: remove responses_api.md to resolve Semgrep security scan false positive (40814d7)
+- fix: resolve CI/CD license check failures (4b33447)
+
+### 📊 Statistics
+
+- **Version**: 1.2.4 → 1.3.0
+- **Date**: 2025-09-29
+- **Commits**: 3
+- **Contributors**: 1
+
+
 ## [1.2.4] - 2025-08-29
 
 
