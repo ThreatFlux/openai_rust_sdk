@@ -189,7 +189,7 @@ jobs:
           docker pull ${{ needs.build.outputs.image }} || echo "Warning: Could not pull image"
       
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808  # master
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8  # master
         with:
           image-ref: ${{ needs.build.outputs.image }}
           format: 'sarif'
@@ -205,7 +205,7 @@ jobs:
         if: always() && hashFiles('trivy-results.sarif') != ''
       
       - name: Run Grype scanner
-        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e  # v6.5.1
+        uses: anchore/scan-action@f6601287cdb1efc985d6b765bbf99cb4c0ac29d8  # v7.0.0
         with:
           image: ${{ needs.build.outputs.image }}
           fail-build: false
@@ -347,7 +347,7 @@ jobs:
       id-token: write
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159  # v3.9.2
+        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62  # v3.10.0
       
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1  # v3.5.0
@@ -411,7 +411,7 @@ jobs:
           docker pull ${{ needs.build.outputs.image }} || echo "Warning: Could not pull image"
       
       - name: Generate SBOM with Syft
-        uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c  # v0.20.5
+        uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b  # v0.20.6
         with:
           image: ${{ needs.build.outputs.image }}
           artifact-name: sbom-spdx.json
