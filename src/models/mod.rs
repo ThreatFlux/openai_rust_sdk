@@ -34,6 +34,8 @@ pub mod moderations_modular;
 pub mod realtime_audio;
 /// Response models and data structures
 pub mod responses;
+/// Modern Responses API data structures
+pub mod responses_v2;
 /// Runs models for assistant execution and run steps management
 pub mod runs;
 /// Threads models for conversation thread and message management
@@ -116,6 +118,17 @@ pub use responses::{
     ImageContent, ImageDetail, ImageInput, ImageUrl, JsonSchemaSpec, MessageContent,
     MessageContentInput, MessageRole, PromptTemplate, PromptVariable, ResponseFormat,
     ResponseInput, ResponseOutput, ResponseRequest, SchemaValidationResult, TextContent, Usage,
+};
+pub use responses_v2::{
+    Annotation as ResponsesApiAnnotation,
+    CompletionTokenDetails as ResponsesApiCompletionTokenDetails,
+    ContentPart as ResponsesApiContentPart, ConversationObject as ResponsesApiConversationObject,
+    ConversationReference as ResponsesApiConversationReference, CreateResponseRequest,
+    Instructions as ResponsesApiInstructions, PromptTokenDetails as ResponsesApiPromptTokenDetails,
+    ResponseError as ResponsesApiError, ResponseInput as ResponsesApiInput,
+    ResponseItem as ResponsesApiItem, ResponseObject, ResponseStatus, ResponseStreamEvent,
+    ResponseUsage as ResponsesApiUsage, ServiceTier as ResponsesApiServiceTier,
+    StreamOptions as ResponsesApiStreamOptions,
 };
 
 // Runs API

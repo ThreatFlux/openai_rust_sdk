@@ -339,12 +339,11 @@ impl VectorStoresApi {
         let vector_store_id = vector_store_id.into();
         let path = endpoints::vector_stores::files(&vector_store_id);
 
-        let mut query_params = Vec::new();
-
-        // Add query parameters if provided
-        if let Some(params) = params {
-            query_params = params.to_query_params();
-        }
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
 
         self.http_client.get_with_query(&path, &query_params).await
     }
@@ -606,12 +605,11 @@ impl VectorStoresApi {
         let batch_id = batch_id.into();
         let path = endpoints::vector_stores::file_batch_files(&vector_store_id, &batch_id);
 
-        let mut query_params = Vec::new();
-
-        // Add query parameters if provided
-        if let Some(params) = params {
-            query_params = params.to_query_params();
-        }
+        let query_params = if let Some(params) = params {
+            params.to_query_params()
+        } else {
+            Vec::new()
+        };
 
         self.http_client.get_with_query(&path, &query_params).await
     }

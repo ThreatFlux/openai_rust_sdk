@@ -1,11 +1,21 @@
 use crate::api::functions::{FunctionConfig, FunctionResponseResult, FunctionsApi};
+use crate::api::responses_v2::{
+    DeleteResponseAck, ListResponsesParams as ResponsesListParams, ResponseInputItemList,
+    ResponseList, ResponsesApiV2, ResponsesEventStream,
+};
 use crate::api::streaming::ResponseStream;
 use crate::api::streaming::StreamingApi;
-use crate::api::{common::ApiClientConstructors, ResponsesApi};
+use crate::api::{
+    common::{ApiClientConstructors, StandardListParams},
+    ResponsesApi,
+};
 use crate::error::Result;
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice};
 use crate::models::responses::{
     Message, MessageRole, ResponseInput, ResponseRequest, ResponseResult,
+};
+use crate::models::responses_v2::{
+    from_legacy_request, to_legacy_response, CreateResponseRequest, Instructions, ResponseObject,
 };
 
 /// Main `OpenAI` client that provides access to all APIs
@@ -13,6 +23,8 @@ use crate::models::responses::{
 pub struct OpenAIClient {
     /// API client for non-streaming responses
     responses_api: ResponsesApi,
+    /// Modern Responses API client
+    responses_api_v2: ResponsesApiV2,
     /// API client for streaming responses
     streaming_api: StreamingApi,
     /// API client for function calling
@@ -63,11 +75,13 @@ impl OpenAIClient {
     pub fn new(api_key: impl Into<String>) -> Result<Self> {
         let api_key = api_key.into();
         let responses_api = ResponsesApi::new(&api_key)?;
+        let responses_api_v2 = ResponsesApiV2::new(&api_key)?;
         let streaming_api = StreamingApi::new(&api_key)?;
         let functions_api = FunctionsApi::new(&api_key)?;
 
         Ok(Self {
             responses_api,
+            responses_api_v2,
             streaming_api,
             functions_api,
         })
@@ -78,11 +92,13 @@ impl OpenAIClient {
         let api_key = api_key.into();
         let base_url = base_url.into();
         let responses_api = ResponsesApi::with_base_url(&api_key, &base_url)?;
+        let responses_api_v2 = ResponsesApiV2::new_with_base_url(&api_key, &base_url)?;
         let streaming_api = StreamingApi::with_base_url(&api_key, &base_url)?;
         let functions_api = FunctionsApi::with_base_url(&api_key, &base_url)?;
 
         Ok(Self {
             responses_api,
+            responses_api_v2,
             streaming_api,
             functions_api,
         })
@@ -90,7 +106,12 @@ impl OpenAIClient {
 
     /// Create a response using the responses API
     pub async fn create_response(&self, request: &ResponseRequest) -> Result<ResponseResult> {
-        self.responses_api.create_response(request).await
+        let modern_request = from_legacy_request(request);
+        let response = self
+            .responses_api_v2
+            .create_response(&modern_request)
+            .await?;
+        Ok(to_legacy_response(&response))
     }
 
     /// Create a streaming response
@@ -109,7 +130,9 @@ impl OpenAIClient {
         model: impl Into<String>,
         prompt: impl Into<String>,
     ) -> Result<String> {
-        self.responses_api.create_text_response(model, prompt).await
+        let request = CreateResponseRequest::new_text(model, prompt);
+        let response = self.create_response_v2(&request).await?;
+        Ok(response.output_text())
     }
 
     /// Generate text with streaming
@@ -128,9 +151,10 @@ impl OpenAIClient {
         input: impl Into<String>,
         instructions: impl Into<String>,
     ) -> Result<String> {
-        self.responses_api
-            .create_instructed_response(model, input, instructions)
-            .await
+        let request = CreateResponseRequest::new_text(model, input)
+            .with_instructions(Instructions::Text(instructions.into()));
+        let response = self.create_response_v2(&request).await?;
+        Ok(response.output_text())
     }
 
     /// Generate text with instructions and streaming
@@ -151,9 +175,9 @@ impl OpenAIClient {
         model: impl Into<String>,
         messages: Vec<Message>,
     ) -> Result<String> {
-        self.responses_api
-            .create_chat_response(model, messages)
-            .await
+        let request = CreateResponseRequest::new_messages(model, messages);
+        let response = self.create_response_v2(&request).await?;
+        Ok(response.output_text())
     }
 
     /// Create a streaming chat completion
@@ -194,15 +218,91 @@ impl OpenAIClient {
         max_tokens: Option<u32>,
         instructions: Option<String>,
     ) -> Result<ResponseResult> {
-        self.responses_api
-            .create_custom_response(model, input, temperature, max_tokens, instructions)
-            .await
+        let model_str = model.into();
+        let mut legacy_request = match input {
+            ResponseInput::Text(text) => ResponseRequest::new_text(model_str.clone(), text),
+            ResponseInput::Messages(messages) => {
+                ResponseRequest::new_messages(model_str.clone(), messages)
+            }
+        };
+
+        if let Some(temp) = temperature {
+            legacy_request = legacy_request.with_temperature(temp);
+        }
+        if let Some(tokens) = max_tokens {
+            legacy_request = legacy_request.with_max_tokens(tokens);
+        }
+        if let Some(instr) = instructions {
+            legacy_request = legacy_request.with_instructions(instr);
+        }
+
+        let modern_request = from_legacy_request(&legacy_request);
+        let response = self
+            .responses_api_v2
+            .create_response(&modern_request)
+            .await?;
+        Ok(to_legacy_response(&response))
     }
 
     /// Get access to the responses API
     #[must_use]
     pub fn responses(&self) -> &ResponsesApi {
         &self.responses_api
+    }
+
+    /// Get access to the modern Responses API
+    #[must_use]
+    pub fn responses_v2(&self) -> &ResponsesApiV2 {
+        &self.responses_api_v2
+    }
+
+    /// Create a response using the modern Responses API
+    pub async fn create_response_v2(
+        &self,
+        request: &CreateResponseRequest,
+    ) -> Result<ResponseObject> {
+        self.responses_api_v2.create_response(request).await
+    }
+
+    /// Stream a response using the modern Responses API
+    pub async fn stream_response_v2(
+        &self,
+        request: &CreateResponseRequest,
+    ) -> Result<ResponsesEventStream> {
+        self.responses_api_v2.stream_response(request).await
+    }
+
+    /// Retrieve a response by ID using the modern Responses API
+    pub async fn retrieve_response_v2(&self, response_id: &str) -> Result<ResponseObject> {
+        self.responses_api_v2
+            .retrieve_response(response_id, None)
+            .await
+    }
+
+    /// Delete a stored response using the modern Responses API
+    pub async fn delete_response_v2(&self, response_id: &str) -> Result<DeleteResponseAck> {
+        self.responses_api_v2.delete_response(response_id).await
+    }
+
+    /// Cancel a background response request using the modern Responses API
+    pub async fn cancel_response_v2(&self, response_id: &str) -> Result<ResponseObject> {
+        self.responses_api_v2.cancel_response(response_id).await
+    }
+
+    /// List responses for the current project using the modern Responses API
+    pub async fn list_responses_v2(&self, params: &ResponsesListParams) -> Result<ResponseList> {
+        self.responses_api_v2.list_responses(params).await
+    }
+
+    /// List input items for a particular response using the modern Responses API
+    pub async fn list_response_input_items_v2(
+        &self,
+        response_id: &str,
+        params: &StandardListParams,
+    ) -> Result<ResponseInputItemList> {
+        self.responses_api_v2
+            .list_response_input_items(response_id, params)
+            .await
     }
 
     /// Get access to the streaming API

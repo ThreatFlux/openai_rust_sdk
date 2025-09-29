@@ -103,6 +103,48 @@ fn main() {
 5. **Download Results**: Retrieve generated YARA rules
 6. **Validate Rules**: Use yara-x validator to test correctness
 
+### Modern Responses API
+
+The SDK now ships with a native client for the `/v1/responses` endpoints. You can access
+the full feature set--including conversations, background execution, and structured
+outputs--through the new builder and client helpers:
+
+```rust
+use futures::StreamExt;
+use openai_rust_sdk::{
+    CreateResponseRequest, OpenAIClient,
+    ResponsesApiServiceTier as ServiceTier,
+};
+
+# tokio_test::block_on(async {
+let client = OpenAIClient::new(std::env::var("OPENAI_API_KEY")?)?;
+
+let request = CreateResponseRequest::new_text("gpt-4o-mini", "Summarize Rust ownership")
+    .with_service_tier(ServiceTier::Auto)
+    .with_store(true);
+
+let response = client.create_response_v2(&request).await?;
+println!("Summary: {}", response.output_text());
+
+// Stream events with strong typing
+let mut stream = client.stream_response_v2(&request).await?;
+while let Some(event) = stream.next().await {
+    match event? {
+        openai_rust_sdk::ResponseStreamEvent::OutputTextDelta { delta, .. } => {
+            print!("{}", delta);
+        }
+        openai_rust_sdk::ResponseStreamEvent::ResponseCompleted { .. } => println!("\nDone!"),
+        _ => {}
+    }
+}
+# Ok::<(), Box<dyn std::error::Error>>(())
+# })?;
+```
+
+Compatibility helpers such as `generate_text`, `create_chat_completion`, and
+`create_custom_response` automatically route through the Responses API to maintain
+the existing interface while unlocking new functionality.
+
 ## Test Suites
 
 The SDK includes three test suites for different complexity levels:

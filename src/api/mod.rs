@@ -39,6 +39,8 @@ pub mod realtime_audio;
 pub mod responses;
 /// Helper functions for responses API
 mod responses_helpers;
+/// Modern Responses API implementation for /v1/responses
+pub mod responses_v2;
 /// Runs API for assistant execution and run steps management
 pub mod runs;
 /// Streaming API implementation
@@ -72,6 +74,10 @@ pub use models::ModelsApi;
 pub use moderations::ModerationsApi;
 pub use realtime_audio::*;
 pub use responses::*;
+pub use responses_v2::{
+    DeleteResponseAck, ListResponsesParams as ResponsesListParams, ResponseInputItemList,
+    ResponseList as ResponsesList, ResponsesApiV2,
+};
 pub use runs::*;
 pub use streaming::{FunctionStream, ResponseStream, ResponseStreamExt, StreamingApi};
 // Threads exports - explicitly list to avoid conflict with audio::types
