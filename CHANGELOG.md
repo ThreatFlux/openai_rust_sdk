@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.0] - 2025-10-10
+
+
+### 🚀 What's Changed
+
+#### ✨ Features
+- feat: support custom base url via env (6632676)
+
+### 📊 Statistics
+
+- **Version**: 1.3.0 → 1.4.0
+- **Date**: 2025-10-10
+- **Commits**: 1
+- **Contributors**: 1
+
+
 ## [1.3.0] - 2025-09-29
 
 
