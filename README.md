@@ -39,7 +39,13 @@ openai_rust_sdk = "0.1.0"
 
 ```bash
 export OPENAI_API_KEY=your_api_key_here
+
+# Optional: target a non-default OpenAI-compatible endpoint (e.g., proxy or hosted variant)
+export OPENAI_BASE_URL=https://my-openai-proxy.example.com/v1
 ```
+
+With both variables set, `OpenAIClient::from_env()` will authenticate with your key and route
+requests through the alternate base URL automatically.
 
 ### Generate a Batch Job
 
@@ -144,6 +150,30 @@ while let Some(event) = stream.next().await {
 Compatibility helpers such as `generate_text`, `create_chat_completion`, and
 `create_custom_response` automatically route through the Responses API to maintain
 the existing interface while unlocking new functionality.
+
+### Using a Custom Base URL
+
+```rust
+# tokio_test::block_on(async {
+use openai_rust_sdk::{from_env, CreateResponseRequest};
+
+// Set OPENAI_API_KEY and optionally OPENAI_BASE_URL before running.
+let client = from_env()?;
+
+let response = client
+    .create_response_v2(&CreateResponseRequest::new_text(
+        "gpt-4o-mini",
+        "Send this request through my proxy",
+    ))
+    .await?;
+
+println!("{}", response.output_text());
+# Ok::<(), Box<dyn std::error::Error>>(())
+# })?;
+```
+
+When `OPENAI_BASE_URL` is supplied, the client automatically routes requests through that
+endpoint instead of the default `https://api.openai.com`.
 
 ## Test Suites
 
