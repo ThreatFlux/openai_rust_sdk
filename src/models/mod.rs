@@ -80,8 +80,9 @@ pub use fine_tuning::*;
 
 // Functions API
 pub use functions::{
-    CustomTool, FunctionCall as FunctionCallType, FunctionCallOutput, FunctionSelector,
-    FunctionTool as FunctionToolType, Grammar, Tool, ToolChoice as FunctionToolChoice,
+    AllowedToolSelection, CustomTool, FunctionCall as FunctionCallType, FunctionCallOutput,
+    FunctionTool as FunctionToolType, FunctionToolSelection, Grammar, Tool,
+    ToolChoice as FunctionToolChoice,
 };
 
 // GPT-5 API

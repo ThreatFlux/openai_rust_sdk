@@ -8,6 +8,7 @@ use serde_json::json;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openai_rust_sdk::models::tools::{EnhancedToolChoice, SpecificToolChoice};
 
     #[test]
     fn test_function_builder() {
@@ -57,17 +58,10 @@ mod tests {
 
     #[test]
     fn test_tool_choice_variants() {
-        use openai_rust_sdk::models::functions::FunctionSelector;
-
         let auto = ToolChoice::Auto;
         let required = ToolChoice::Required;
         let none = ToolChoice::None;
-        let specific = ToolChoice::Function {
-            r#type: "function".to_string(),
-            function: FunctionSelector {
-                name: "get_weather".to_string(),
-            },
-        };
+        let specific = ToolChoice::function("get_weather");
 
         // These serialize as simple strings
         assert!(serde_json::to_value(&auto).is_ok());
@@ -76,7 +70,7 @@ mod tests {
 
         let specific_json = serde_json::to_value(&specific).unwrap();
         assert_eq!(specific_json["type"], "function");
-        assert_eq!(specific_json["function"]["name"], "get_weather");
+        assert_eq!(specific_json["name"], "get_weather");
     }
 
     #[test]
@@ -110,17 +104,54 @@ mod tests {
 
     #[test]
     fn test_allowed_tools() {
-        let allowed = ToolChoice::AllowedTools {
-            allowed_tools: vec!["get_weather".to_string(), "code_exec".to_string()],
-        };
+        let allowed =
+            ToolChoice::allowed_tools(vec!["get_weather".to_string(), "code_exec".to_string()]);
 
         let json = serde_json::to_value(&allowed).unwrap();
+        assert_eq!(json["type"], "allowed");
         assert!(json["allowed_tools"].is_array());
 
         let tools = json["allowed_tools"].as_array().unwrap();
         assert_eq!(tools.len(), 2);
         assert_eq!(tools[0], "get_weather");
         assert_eq!(tools[1], "code_exec");
+    }
+
+    #[test]
+    fn test_tool_choice_function_round_trip() {
+        let choice = ToolChoice::function("get_weather");
+        let json = serde_json::to_value(&choice).expect("serialize");
+        let restored: ToolChoice = serde_json::from_value(json).expect("deserialize");
+
+        match restored {
+            ToolChoice::Function(selection) => {
+                assert_eq!(selection.r#type, "function");
+                assert_eq!(selection.name, "get_weather");
+            }
+            other => panic!("expected function tool choice, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_enhanced_tool_choice_specific_round_trip() {
+        let choice = EnhancedToolChoice::Specific(SpecificToolChoice {
+            tool_type: "mcp".to_string(),
+            name: Some("docs_mcp".to_string()),
+        });
+
+        let json = serde_json::to_value(&choice).expect("serialize");
+        assert_eq!(json["type"], "mcp");
+
+        let restored: EnhancedToolChoice =
+            serde_json::from_value(json).expect("deserialize specific choice");
+
+        match restored {
+            EnhancedToolChoice::Specific(spec) => {
+                assert_eq!(spec.tool_type, "mcp");
+                assert_eq!(spec.name.as_deref(), Some("docs_mcp"));
+            }
+            other => panic!("expected specific tool choice, got {:?}", other),
+        }
     }
 
     #[test]

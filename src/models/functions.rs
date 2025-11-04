@@ -98,24 +98,49 @@ pub enum ToolChoice {
     /// Don't use any tools
     None,
     /// Force a specific function to be called
-    Function {
-        /// Type must be "function"
-        r#type: String,
-        /// The function to force
-        function: FunctionSelector,
-    },
+    Function(FunctionToolSelection),
     /// Only allow specific tools
-    AllowedTools {
-        /// List of allowed tool names
-        allowed_tools: Vec<String>,
-    },
+    AllowedTools(AllowedToolSelection),
 }
 
-/// Function selector for tool choice
+/// Forced function tool choice following the legacy schema
 #[derive(Debug, Clone, Ser, De)]
-pub struct FunctionSelector {
-    /// Name of the function to select
+pub struct FunctionToolSelection {
+    /// Must be set to "function"
+    #[serde(rename = "type")]
+    pub r#type: String,
+    /// Name of the function to invoke
     pub name: String,
+}
+
+impl FunctionToolSelection {
+    /// Create a function tool choice with the required fields
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            r#type: "function".to_string(),
+            name: name.into(),
+        }
+    }
+}
+
+/// Allowed tool choice schema with explicit discriminator
+#[derive(Debug, Clone, Ser, De)]
+pub struct AllowedToolSelection {
+    /// Must be set to "allowed"
+    #[serde(rename = "type")]
+    pub r#type: String,
+    /// Tools permitted to run
+    pub allowed_tools: Vec<String>,
+}
+
+impl AllowedToolSelection {
+    /// Create a new allowed tool choice entry
+    pub fn new(tools: Vec<String>) -> Self {
+        Self {
+            r#type: "allowed".to_string(),
+            allowed_tools: tools,
+        }
+    }
 }
 
 impl FunctionTool {
@@ -253,18 +278,13 @@ impl ToolChoice {
 
     /// Force a specific function
     pub fn function(name: impl Into<String>) -> Self {
-        Self::Function {
-            r#type: "function".to_string(),
-            function: FunctionSelector { name: name.into() },
-        }
+        Self::Function(FunctionToolSelection::new(name))
     }
 
     /// Only allow specific tools
     #[must_use]
     pub fn allowed_tools(tools: Vec<String>) -> Self {
-        Self::AllowedTools {
-            allowed_tools: tools,
-        }
+        Self::AllowedTools(AllowedToolSelection::new(tools))
     }
 }
 
@@ -384,8 +404,8 @@ mod tests {
         assert!(matches!(auto, ToolChoice::Auto));
         assert!(matches!(required, ToolChoice::Required));
         assert!(matches!(none, ToolChoice::None));
-        assert!(matches!(function, ToolChoice::Function { .. }));
-        assert!(matches!(allowed, ToolChoice::AllowedTools { .. }));
+        assert!(matches!(function, ToolChoice::Function(_)));
+        assert!(matches!(allowed, ToolChoice::AllowedTools(_)));
     }
 
     #[test]
