@@ -858,12 +858,12 @@ impl CreateResponseRequest {
         let mut tools: Vec<Value> = Vec::new();
         if let Some(tool_list) = &self.tools {
             for tool in tool_list {
-                tools.push(serde_json::to_value(tool)?);
+                tools.push(convert_request_tool(tool)?);
             }
         }
         if let Some(enhanced_list) = &self.enhanced_tools {
             for tool in enhanced_list {
-                tools.push(serde_json::to_value(tool)?);
+                tools.push(convert_enhanced_request_tool(tool)?);
             }
         }
         if !tools.is_empty() {
@@ -952,28 +952,34 @@ fn message_to_input_item(message: &Message) -> serde_json::Result<Value> {
     );
     item.insert(
         "content".into(),
-        Value::Array(convert_message_content(&message.content)?),
+        Value::Array(convert_message_content(&message.role, &message.content)?),
     );
     Ok(Value::Object(item))
 }
 
 /// Convert message content into the input format for the v1/responses API
-fn convert_message_content(content: &MessageContentInput) -> serde_json::Result<Vec<Value>> {
+fn convert_message_content(
+    role: &MessageRole,
+    content: &MessageContentInput,
+) -> serde_json::Result<Vec<Value>> {
     match content {
         MessageContentInput::Text(text) => Ok(vec![json!({
-            "type": "input_text",
+            "type": text_part_type_for_role(role),
             "text": text
         })]),
         MessageContentInput::Array(contents) => contents
             .iter()
             .map(|part| match part {
                 MessageContent::Text { text } => Ok(json!({
-                    "type": "input_text",
+                    "type": text_part_type_for_role(role),
                     "text": text
                 })),
                 MessageContent::Image { image_url } => {
                     let mut image = Map::new();
-                    image.insert("type".into(), Value::String("input_image".into()));
+                    image.insert(
+                        "type".into(),
+                        Value::String(image_part_type_for_role(role).to_string()),
+                    );
                     let mut image_url_value = Map::new();
                     image_url_value.insert("url".into(), Value::String(image_url.url.clone()));
                     if let Some(detail) = &image_url.detail {
@@ -997,6 +1003,22 @@ fn message_role_as_str(role: &MessageRole) -> &'static str {
         MessageRole::System => "system",
         MessageRole::User => "user",
         MessageRole::Assistant => "assistant",
+    }
+}
+
+/// Select the appropriate text content type for a given role
+fn text_part_type_for_role(role: &MessageRole) -> &'static str {
+    match role {
+        MessageRole::Assistant => "output_text",
+        _ => "input_text",
+    }
+}
+
+/// Select the appropriate image content type for a given role
+fn image_part_type_for_role(role: &MessageRole) -> &'static str {
+    match role {
+        MessageRole::Assistant => "output_image",
+        _ => "input_image",
     }
 }
 
@@ -1027,6 +1049,96 @@ fn serialize_response_format(format: &ResponseFormat) -> Value {
             }
         }),
     }
+}
+
+/// Ensure common metadata fields for function-style tools are present
+fn ensure_function_metadata(
+    map: &mut Map<String, Value>,
+    name: &str,
+    description: &str,
+    parameters: &Value,
+    strict: Option<bool>,
+) {
+    if !map.contains_key("name") {
+        map.insert("name".into(), Value::String(name.to_string()));
+    }
+    if !map.contains_key("description") {
+        map.insert("description".into(), Value::String(description.to_string()));
+    }
+    if !map.contains_key("parameters") {
+        map.insert("parameters".into(), parameters.clone());
+    }
+    if let Some(strict) = strict {
+        if !map.contains_key("strict") {
+            map.insert("strict".into(), Value::Bool(strict));
+        }
+    }
+}
+
+/// Helper to ensure a default top-level name exists on tool payloads
+fn ensure_tool_name(map: &mut Map<String, Value>, name: &str) {
+    if !map.contains_key("name") {
+        map.insert("name".into(), Value::String(name.to_string()));
+    }
+}
+
+/// Convert a legacy Tool definition into the Responses API payload shape
+fn convert_request_tool(tool: &Tool) -> serde_json::Result<Value> {
+    let mut value = serde_json::to_value(tool)?;
+    if let Value::Object(ref mut map) = value {
+        match tool {
+            Tool::Function { function } => {
+                ensure_function_metadata(
+                    map,
+                    &function.name,
+                    &function.description,
+                    &function.parameters,
+                    function.strict,
+                );
+            }
+            Tool::Custom { custom_tool } => {
+                ensure_tool_name(map, &custom_tool.name);
+                if !map.contains_key("description") {
+                    map.insert(
+                        "description".into(),
+                        Value::String(custom_tool.description.clone()),
+                    );
+                }
+                if let Some(grammar) = &custom_tool.grammar {
+                    if !map.contains_key("grammar") {
+                        map.insert("grammar".into(), serde_json::to_value(grammar)?);
+                    }
+                }
+            }
+        }
+    }
+    Ok(value)
+}
+
+/// Convert an enhanced tool definition into the Responses API payload shape
+fn convert_enhanced_request_tool(tool: &EnhancedTool) -> serde_json::Result<Value> {
+    let mut value = serde_json::to_value(tool)?;
+    if let Value::Object(ref mut map) = value {
+        match tool {
+            EnhancedTool::Function(function) => {
+                ensure_function_metadata(
+                    map,
+                    &function.name,
+                    &function.description,
+                    &function.parameters,
+                    function.strict,
+                );
+            }
+            EnhancedTool::WebSearchPreview => ensure_tool_name(map, "web_search_preview"),
+            EnhancedTool::WebSearch(_) => ensure_tool_name(map, "web_search"),
+            EnhancedTool::FileSearch(_) => ensure_tool_name(map, "file_search"),
+            EnhancedTool::Mcp(mcp) => ensure_tool_name(map, &mcp.server_label),
+            EnhancedTool::ImageGeneration(_) => ensure_tool_name(map, "image_generation"),
+            EnhancedTool::CodeInterpreter(_) => ensure_tool_name(map, "code_interpreter"),
+            EnhancedTool::ComputerUse(_) => ensure_tool_name(map, "computer_use"),
+        }
+    }
+    Ok(value)
 }
 
 /// Convert a legacy `ResponseRequest` (chat completions style) into a modern request
@@ -1339,7 +1451,14 @@ mod tests {
             map["previous_response_id"],
             Value::String("resp_prev".into())
         );
-        assert_eq!(map["tools"].as_array().unwrap().len(), 2);
+        let tools = map["tools"].as_array().unwrap();
+        assert_eq!(tools.len(), 2);
+        assert_eq!(tools[0]["name"], Value::String("test_fn".into()));
+        assert_eq!(
+            tools[0]["description"],
+            Value::String("does testing".into())
+        );
+        assert_eq!(tools[1]["name"], Value::String("web_search_preview".into()));
         assert!(map.contains_key("tool_choice"));
         let stream_map = map["stream_options"].as_object().unwrap();
         assert!(stream_map["include_usage"].as_bool().unwrap());

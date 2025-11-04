@@ -122,6 +122,10 @@ path = "examples/vision_demo.rs"
 name = "response_format_demo"
 path = "examples/response_format_demo.rs"
 
+[[example]]
+name = "responses_mcp_tool"
+path = "examples/responses_mcp_tool.rs"
+
 # Optimization profiles for reduced binary size
 [profile.dev]
 # Faster compilation for development
