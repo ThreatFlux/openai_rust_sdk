@@ -12,7 +12,7 @@ use crate::schema::SchemaBuilder;
 use crate::{De, Ser};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 // -----------------------------------------------------------------------------
 // Response Objects
@@ -1157,7 +1157,7 @@ pub fn from_legacy_request(
         }
     };
 
-    CreateResponseRequest {
+    let mut modern = CreateResponseRequest {
         model: request.model.clone(),
         input,
         instructions,
@@ -1179,21 +1179,41 @@ pub fn from_legacy_request(
         parallel_tool_calls: request.parallel_tool_calls,
         response_format: request.response_format.clone(),
         ..CreateResponseRequest::default()
+    };
+
+    if is_gpt5_model(&modern.model) && (request.stream.unwrap_or(false) || modern.stream.is_none())
+    {
+        modern.stream = Some(false);
     }
+
+    modern
 }
 
 /// Convert a modern `ResponseObject` into the legacy `ResponseResult` structure
 pub fn to_legacy_response(response: &ResponseObject) -> crate::models::responses::ResponseResult {
+    use crate::models::functions::FunctionCall;
     use crate::models::responses::{
         ResponseChoice as LegacyResponseChoice, ResponseOutput as LegacyResponseOutput,
-        ResponseResult as LegacyResponseResult, Usage as LegacyUsage,
+        ResponseResult as LegacyResponseResult, ToolCall as LegacyToolCall, Usage as LegacyUsage,
     };
 
-    let text = response.output_text();
+    let text = collect_legacy_text(response);
+    let (tool_calls, function_calls) = extract_tool_and_function_calls(response);
+    let finish_reason = if !tool_calls.is_empty() || !function_calls.is_empty() {
+        Some("tool_calls".to_string())
+    } else {
+        None
+    };
+
+    let legacy_tool_calls: Option<Vec<LegacyToolCall>> =
+        (!tool_calls.is_empty()).then_some(tool_calls);
+    let legacy_function_calls: Option<Vec<FunctionCall>> =
+        (!function_calls.is_empty()).then_some(function_calls);
+
     let legacy_output = LegacyResponseOutput {
-        content: Some(text),
-        tool_calls: None,
-        function_calls: None,
+        content: text,
+        tool_calls: legacy_tool_calls,
+        function_calls: legacy_function_calls,
         structured_data: None,
         schema_validation: None,
     };
@@ -1201,7 +1221,7 @@ pub fn to_legacy_response(response: &ResponseObject) -> crate::models::responses
     let choice = LegacyResponseChoice {
         index: 0,
         message: legacy_output,
-        finish_reason: None,
+        finish_reason,
     };
 
     let usage = response.usage.as_ref().map(|usage| LegacyUsage {
@@ -1234,6 +1254,286 @@ pub fn to_legacy_response(response: &ResponseObject) -> crate::models::responses
     }
 }
 
+/// Detects whether the request targets any GPT-5 family model.
+fn is_gpt5_model(model: &str) -> bool {
+    model.trim_start().starts_with("gpt-5")
+}
+
+/// Prefer the aggregated output text and fall back to concatenating fragments.
+fn collect_legacy_text(response: &ResponseObject) -> Option<String> {
+    let mut text = response.output_text();
+    if text.trim().is_empty() {
+        let fallback = response
+            .output
+            .iter()
+            .flat_map(|item| item.content.iter())
+            .filter_map(|part| part.text.clone())
+            .collect::<String>();
+        if !fallback.trim().is_empty() {
+            text = fallback;
+        }
+    }
+
+    if text.trim().is_empty() {
+        None
+    } else {
+        Some(text)
+    }
+}
+
+/// Normalized representation of a tool or function call extracted from a response.
+#[derive(Debug)]
+struct ParsedCall {
+    /// Unique identifier inferred for the call.
+    id: String,
+    /// Name of the tool or function requested by the model.
+    name: String,
+    /// Parsed JSON arguments supplied with the call.
+    arguments_value: Value,
+    /// Raw textual arguments supplied with the call when available.
+    arguments_text: String,
+}
+
+/// Collects legacy tool and function calls from a modern response payload.
+fn extract_tool_and_function_calls(
+    response: &ResponseObject,
+) -> (
+    Vec<crate::models::responses::ToolCall>,
+    Vec<crate::models::functions::FunctionCall>,
+) {
+    /// Accumulator for merging partial tool/function call fragments.
+    #[derive(Default)]
+    struct CallParts {
+        /// Normalized tool or function name.
+        name: String,
+        /// Parsed JSON arguments returned across fragments.
+        arguments_value: Option<Value>,
+        /// Raw textual arguments captured from fragments.
+        arguments_text: Option<String>,
+    }
+
+    let mut calls: BTreeMap<String, CallParts> = BTreeMap::new();
+
+    for (index, item) in response.output.iter().enumerate() {
+        if item.item_type != "tool_call" && item.item_type != "function_call" {
+            continue;
+        }
+
+        if let Some(parsed) = extract_call_from_item(item, index) {
+            let entry = calls.entry(parsed.id.clone()).or_insert_with(|| CallParts {
+                name: parsed.name.clone(),
+                arguments_value: None,
+                arguments_text: None,
+            });
+
+            entry.name = parsed.name;
+            if entry.arguments_value.is_none() {
+                entry.arguments_value = Some(parsed.arguments_value);
+            }
+
+            if entry.arguments_text.is_none() && !parsed.arguments_text.is_empty() {
+                entry.arguments_text = Some(parsed.arguments_text);
+            }
+        }
+    }
+
+    let mut tool_calls = Vec::new();
+    let mut function_calls = Vec::new();
+
+    for (id, parts) in calls {
+        let CallParts {
+            name,
+            arguments_value,
+            arguments_text,
+        } = parts;
+
+        let arguments_value = arguments_value.unwrap_or_else(|| {
+            arguments_text
+                .as_deref()
+                .map_or(Value::Null, parse_arguments_string)
+        });
+
+        let normalized_value = normalize_arguments_value(arguments_value);
+        let arguments_text = arguments_text.unwrap_or_else(|| {
+            serde_json::to_string(&normalized_value).unwrap_or_else(|_| "null".to_string())
+        });
+
+        tool_calls.push(crate::models::responses::ToolCall {
+            id: id.clone(),
+            name: name.clone(),
+            arguments: normalized_value.clone(),
+        });
+
+        function_calls.push(crate::models::functions::FunctionCall {
+            call_id: id,
+            name,
+            arguments: arguments_text,
+        });
+    }
+
+    (tool_calls, function_calls)
+}
+
+/// Extracts a parsed call from a single response item, normalizing identifiers and arguments.
+fn extract_call_from_item(item: &ResponseItem, index: usize) -> Option<ParsedCall> {
+    if item.item_type != "tool_call" && item.item_type != "function_call" {
+        return None;
+    }
+
+    let mut payloads: Vec<Value> = Vec::new();
+
+    if let Some(value) = item.extra.get("tool_call") {
+        if value.is_object() {
+            payloads.push(value.clone());
+        }
+    }
+
+    if let Some(value) = item.extra.get("function_call") {
+        if value.is_object() {
+            payloads.push(value.clone());
+        }
+    }
+
+    if let Some(value) = item.extra.get("call") {
+        if value.is_object() {
+            payloads.push(value.clone());
+        }
+    }
+
+    if let Some(value) = item.extra.get("function") {
+        if value.is_object() {
+            let mut map = Map::new();
+            map.insert("function".to_string(), value.clone());
+            payloads.push(Value::Object(map));
+        }
+    }
+
+    if !item.extra.is_empty() {
+        let map: Map<String, Value> = item
+            .extra
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        payloads.push(Value::Object(map));
+    }
+
+    for payload in payloads {
+        if let Some(parsed) = parse_call_payload(item, &payload, index) {
+            return Some(parsed);
+        }
+    }
+
+    None
+}
+
+/// Parses the payload map for a tool/function call, returning a structured representation.
+fn parse_call_payload(
+    item: &ResponseItem,
+    payload: &Value,
+    fallback_index: usize,
+) -> Option<ParsedCall> {
+    let map = payload.as_object()?;
+
+    if let Some(function_map) = map.get("function").and_then(|v| v.as_object()) {
+        if let Some(name) = function_map.get("name").and_then(|v| v.as_str()) {
+            let (arguments_value, arguments_text) =
+                normalize_arguments(function_map.get("arguments"));
+            let identifier = select_identifier(item, map, Some(function_map), fallback_index);
+            return Some(ParsedCall {
+                id: identifier,
+                name: name.to_string(),
+                arguments_value,
+                arguments_text,
+            });
+        }
+    }
+
+    if let Some(name) = map.get("name").and_then(|v| v.as_str()) {
+        let raw = map
+            .get("arguments")
+            .or_else(|| map.get("input"))
+            .or_else(|| map.get("payload"));
+        let (arguments_value, arguments_text) = normalize_arguments(raw);
+        let identifier = select_identifier(item, map, None, fallback_index);
+        return Some(ParsedCall {
+            id: identifier,
+            name: name.to_string(),
+            arguments_value,
+            arguments_text,
+        });
+    }
+
+    None
+}
+
+/// Normalizes raw argument data into a JSON value alongside its string representation.
+fn normalize_arguments(raw: Option<&Value>) -> (Value, String) {
+    match raw {
+        Some(Value::String(s)) => {
+            if let Ok(parsed) = serde_json::from_str::<Value>(s) {
+                (parsed, s.clone())
+            } else {
+                (Value::String(s.clone()), s.clone())
+            }
+        }
+        Some(Value::Null) | None => (Value::Null, "null".to_string()),
+        Some(value) => {
+            let text = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
+            (value.clone(), text)
+        }
+    }
+}
+
+/// Ensures argument values are valid JSON by attempting to parse string payloads.
+fn normalize_arguments_value(value: Value) -> Value {
+    match value {
+        Value::String(ref s) => {
+            serde_json::from_str::<Value>(s).unwrap_or(Value::String(s.clone()))
+        }
+        other => other,
+    }
+}
+
+/// Parses argument string payloads into JSON, preserving the original text on failure.
+fn parse_arguments_string(text: &str) -> Value {
+    serde_json::from_str::<Value>(text).unwrap_or_else(|_| Value::String(text.to_string()))
+}
+
+/// Determines the most appropriate identifier for a tool/function call, falling back to order.
+fn select_identifier(
+    item: &ResponseItem,
+    map: &Map<String, Value>,
+    function_map: Option<&Map<String, Value>>,
+    fallback_index: usize,
+) -> String {
+    let mut candidates: Vec<Option<&str>> = Vec::new();
+    candidates.extend(
+        ["id", "call_id", "tool_call_id"]
+            .iter()
+            .map(|key| map.get(*key).and_then(|v| v.as_str())),
+    );
+
+    if let Some(func) = function_map {
+        candidates.extend(
+            ["id", "call_id", "tool_call_id"]
+                .iter()
+                .map(|key| func.get(*key).and_then(|v| v.as_str())),
+        );
+    }
+
+    candidates.push(item.extra.get("call_id").and_then(|v| v.as_str()));
+    candidates.push(item.extra.get("tool_call_id").and_then(|v| v.as_str()));
+    candidates.push(item.id.as_deref());
+
+    for candidate in candidates.into_iter().flatten() {
+        if !candidate.is_empty() {
+            return candidate.to_string();
+        }
+    }
+
+    format!("call_{}", fallback_index)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1261,6 +1561,15 @@ mod tests {
         assert!(
             matches!(modern.instructions, Some(Instructions::Text(ref s)) if s == "Be helpful")
         );
+    }
+
+    #[test]
+    fn gpt5_legacy_request_disables_streaming() {
+        let legacy =
+            LegacyResponseRequest::new_text("gpt-5.0-mini", "Hello world").with_streaming(true);
+
+        let modern = from_legacy_request(&legacy);
+        assert_eq!(modern.stream, Some(false));
     }
 
     #[test]
@@ -1319,6 +1628,102 @@ mod tests {
                 .unwrap_or_default(),
             2
         );
+    }
+
+    #[test]
+    fn converts_tool_only_response_to_legacy_with_calls() {
+        let mut tool_call_extra = HashMap::new();
+        tool_call_extra.insert(
+            "tool_call".to_string(),
+            json!({
+                "id": "call_abc",
+                "type": "function",
+                "function": {
+                    "name": "get_weather",
+                    "arguments": "{\"location\":\"Paris\"}"
+                }
+            }),
+        );
+
+        let tool_call_item = ResponseItem {
+            item_type: "tool_call".to_string(),
+            id: None,
+            status: Some("completed".to_string()),
+            role: None,
+            content: Vec::new(),
+            extra: tool_call_extra,
+        };
+
+        let mut function_call_extra = HashMap::new();
+        function_call_extra.insert(
+            "function_call".to_string(),
+            json!({
+                "call_id": "call_xyz",
+                "function": {
+                    "name": "lookup",
+                    "arguments": "{\"query\":\"manual\"}"
+                }
+            }),
+        );
+
+        let function_call_item = ResponseItem {
+            item_type: "function_call".to_string(),
+            id: None,
+            status: Some("completed".to_string()),
+            role: None,
+            content: Vec::new(),
+            extra: function_call_extra,
+        };
+
+        let response = ResponseObject {
+            id: "resp_tool".to_string(),
+            object: "response".to_string(),
+            created_at: 100,
+            status: ResponseStatus::Completed,
+            output: vec![tool_call_item, function_call_item],
+            ..ResponseObject::default()
+        };
+
+        let legacy = to_legacy_response(&response);
+        let choice = legacy.choices.first().expect("choice");
+
+        assert!(choice.message.content.is_none());
+        assert_eq!(choice.finish_reason.as_deref(), Some("tool_calls"));
+
+        let tool_calls = choice.message.tool_calls.as_ref().expect("tool_calls");
+        assert_eq!(tool_calls.len(), 2);
+
+        let call_ids: Vec<&str> = tool_calls.iter().map(|call| call.id.as_str()).collect();
+        assert!(call_ids.contains(&"call_abc"));
+        assert!(call_ids.contains(&"call_xyz"));
+
+        let weather_call = tool_calls
+            .iter()
+            .find(|call| call.name == "get_weather")
+            .expect("weather call");
+        assert_eq!(weather_call.arguments, json!({"location": "Paris"}));
+
+        let lookup_call = tool_calls
+            .iter()
+            .find(|call| call.name == "lookup")
+            .expect("lookup call");
+        assert_eq!(lookup_call.arguments, json!({"query": "manual"}));
+
+        let function_calls = choice
+            .message
+            .function_calls
+            .as_ref()
+            .expect("function calls");
+        assert_eq!(function_calls.len(), 2);
+
+        let lookup = function_calls
+            .iter()
+            .find(|call| call.name == "lookup")
+            .expect("lookup function");
+        assert_eq!(lookup.call_id, "call_xyz");
+        let parsed_arguments: serde_json::Value =
+            serde_json::from_str(&lookup.arguments).expect("json");
+        assert_eq!(parsed_arguments, json!({"query": "manual"}));
     }
 
     #[test]

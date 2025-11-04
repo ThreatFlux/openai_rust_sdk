@@ -6,7 +6,8 @@
 //!
 //! Required environment variables:
 //! - `OPENAI_API_KEY`
-//! Optional:
+//!
+//! Optional environment variables:
 //! - `MCP_SERVER_URL` (defaults to `http://localhost:8989`) pointing at a running MCP server
 //! - `MCP_SERVER_LABEL` (defaults to `docs_mcp`)
 //! - `MCP_BEARER_TOKEN` for authenticated MCP servers.
@@ -34,8 +35,7 @@ async fn main() -> anyhow::Result<()> {
         env::var("OPENAI_API_KEY").context("Set the OPENAI_API_KEY environment variable")?;
     let (mcp_url, used_default_server) = match env::var("MCP_SERVER_URL") {
         Ok(url) if !url.trim().is_empty() => (url, false),
-        Ok(_) => (DEFAULT_MCP_URL.to_string(), true),
-        Err(env::VarError::NotPresent) => (DEFAULT_MCP_URL.to_string(), true),
+        Ok(_) | Err(env::VarError::NotPresent) => (DEFAULT_MCP_URL.to_string(), true),
         Err(env::VarError::NotUnicode(_)) => {
             bail!("MCP_SERVER_URL contains non-Unicode data; please set a valid URL")
         }
@@ -116,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
                 io::stdout().flush().ok();
             }
             ResponseStreamEvent::OutputTextDone { text, .. } => {
-                assistant_text = text.clone();
+                assistant_text = text;
                 println!("\n");
             }
             ResponseStreamEvent::ResponseCompleted { response, .. } => {
