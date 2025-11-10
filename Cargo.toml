@@ -11,19 +11,19 @@ categories = ["development-tools", "api-bindings"]
 authors = ["Wyatt Roersma", "Claude Code"]
 
 [dependencies]
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
 thiserror = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "multipart", "rustls-tls"] }
-clap = { version = "4.0", features = ["derive"] }
-uuid = { version = "1.0", features = ["v4"] }
+clap = { version = "4.5", features = ["derive"] }
+uuid = { version = "1.18", features = ["v4"] }
 tokio-stream = "0.1"
 eventsource-stream = "0.2"
 futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
-indexmap = { version = "2.0", features = ["serde"] }
+indexmap = { version = "2.12", features = ["serde"] }
 jsonschema = "0.17"
 async-stream = "0.3"
 bytes = "1.0"
@@ -42,15 +42,15 @@ rand = "0.8"
 log = "0.4"
 
 # Optional YARA validation support
-yara-x = { version = "1.5", optional = true }
+yara-x = { version = "1.8", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
-tempfile = "3.0"
+tempfile = "3.23"
 pretty_assertions = "1.0"
 criterion = { version = "0.5", features = ["html_reports"] }
 mockito = "1.0"
-wiremock = "=0.6.4"
+wiremock = "=0.6.5"
 httpmock = "0.8"
 
 [features]
