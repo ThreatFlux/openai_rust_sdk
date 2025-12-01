@@ -42,14 +42,14 @@ rand = "0.8"
 log = "0.4"
 
 # Optional YARA validation support
-yara-x = { version = "1.8", optional = true }
+yara-x = { version = "1.10", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.23"
 pretty_assertions = "1.0"
 criterion = { version = "0.5", features = ["html_reports"] }
-mockito = "1.0"
+mockito = "1.7"
 wiremock = "=0.6.5"
 httpmock = "0.8"
 
