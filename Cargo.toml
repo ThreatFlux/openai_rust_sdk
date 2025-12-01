@@ -36,7 +36,7 @@ webrtc = "0.13"
 # audiopus = { version = "0.3.0-rc.0" }  # Removed: unused dependency that causes Docker build failures
 # cpal = "0.15"  # Removed: unused dependency that causes CI failures
 # WebRTC signaling and peer connection
-tokio-tungstenite = "0.21"
+tokio-tungstenite = "0.28"
 url = "2.5"
 rand = "0.8"
 log = "0.4"
