@@ -38,7 +38,7 @@ webrtc = "0.13"
 # WebRTC signaling and peer connection
 tokio-tungstenite = "0.21"
 url = "2.5"
-rand = "0.8"
+rand = "0.9"
 log = "0.4"
 
 # Optional YARA validation support
