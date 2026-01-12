@@ -101,11 +101,12 @@ impl FileCounts {
 }
 
 /// Chunking strategy for processing files in vector stores
-#[derive(Debug, Clone, PartialEq, Ser, De)]
+#[derive(Debug, Clone, PartialEq, Ser, De, Default)]
 #[serde(tag = "type")]
 pub enum ChunkingStrategy {
     /// Automatic chunking with default settings
     #[serde(rename = "auto")]
+    #[default]
     Auto,
     /// Static chunking with fixed parameters
     #[serde(rename = "static")]
@@ -115,12 +116,6 @@ pub enum ChunkingStrategy {
         /// Number of tokens to overlap between chunks
         chunk_overlap_tokens: u32,
     },
-}
-
-impl Default for ChunkingStrategy {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 impl ChunkingStrategy {

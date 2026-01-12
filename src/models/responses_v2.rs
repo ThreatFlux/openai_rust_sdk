@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, HashMap};
 // -----------------------------------------------------------------------------
 
 /// Enumeration of high-level response statuses returned by the Responses API
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ser, De)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ser, De, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ResponseStatus {
     /// The response completed successfully
@@ -29,17 +29,12 @@ pub enum ResponseStatus {
     /// The response failed with an error
     Failed,
     /// The response is still being generated
+    #[default]
     InProgress,
     /// The response is queued for processing
     Queued,
     /// The response completed but is missing data
     Incomplete,
-}
-
-impl Default for ResponseStatus {
-    fn default() -> Self {
-        Self::InProgress
-    }
 }
 
 /// Error structure returned when a response fails

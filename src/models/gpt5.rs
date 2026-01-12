@@ -43,7 +43,7 @@ pub mod models {
 }
 
 /// Reasoning effort levels for GPT-5 models
-#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ReasoningEffort {
     /// Very few reasoning tokens for fastest time-to-first-token
@@ -51,33 +51,23 @@ pub enum ReasoningEffort {
     /// Favors speed and fewer tokens (default for o3-like behavior)
     Low,
     /// Balanced reasoning (default)
+    #[default]
     Medium,
     /// More thorough reasoning for complex tasks
     High,
 }
 
-impl Default for ReasoningEffort {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
-
 /// Verbosity levels for GPT-5 output
-#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Verbosity {
     /// Concise answers with minimal commentary
     Low,
     /// Balanced output (default)
+    #[default]
     Medium,
     /// Thorough explanations and detailed responses
     High,
-}
-
-impl Default for Verbosity {
-    fn default() -> Self {
-        Self::Medium
-    }
 }
 
 /// Reasoning configuration for GPT-5 models
