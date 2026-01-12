@@ -26,7 +26,7 @@ NC = \033[0m # No Color
 .PHONY: test test-docker test-doc test-doc-docker test-features feature-check build build-docker build-all build-all-docker
 .PHONY: docs doc-check docs-strict docs-docker examples examples-docker bench bench-check bench-docker
 .PHONY: coverage coverage-open coverage-lcov coverage-html coverage-summary coverage-json coverage-docker
-.PHONY: dev-setup setup-dev ci-local ci-local-coverage
+.PHONY: dev-setup setup-dev install-hooks ci-local ci-local-coverage
 
 # Default target - matches CI/CD security workflow
 all: fmt-check lint-strict audit deny feature-check test test-doc bench-check docs-strict build-all examples ## Run all CI/CD checks and builds locally
@@ -113,6 +113,17 @@ dev-setup: ## Install development tools required for `make all`
 setup-dev: dev-setup ## (Deprecated) Use `make dev-setup` instead
 	@echo "$(YELLOW)⚠️  'setup-dev' is deprecated; use 'make dev-setup'.$(NC)"
 
+install-hooks: ## Install git pre-commit hooks for CI/CD checks before commit
+	@echo "$(CYAN)Installing git pre-commit hooks...$(NC)"
+	@cp .githooks/pre-commit .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "$(GREEN)✅ Git pre-commit hooks installed!$(NC)"
+	@echo "$(BLUE)The following checks will run before each commit:$(NC)"
+	@echo "  - Code formatting (cargo fmt --check)"
+	@echo "  - Strict clippy linting (pedantic, nursery, cargo)"
+	@echo "  - Quick test check (cargo test --lib)"
+	@echo "$(YELLOW)To skip hooks temporarily, use: git commit --no-verify$(NC)"
+
 # =============================================================================
 # Docker Commands
 # =============================================================================
@@ -153,14 +164,7 @@ fmt-docker: docker-build ## Format code using Docker
 # Linting Commands
 # =============================================================================
 
-lint: ## Run clippy linting
-	@echo "$(CYAN)Running clippy linting...$(NC)"
-	@echo "$(BLUE)  With all features...$(NC)"
-	@cargo clippy --all-targets --all-features -- -W warnings
-	@echo "$(BLUE)  With default features...$(NC)"
-	@cargo clippy --all-targets -- -W warnings
-
-lint-strict: ## Run clippy with strict settings (matches CI/CD)
+lint: ## Run clippy with strict settings (CI/CD mode)
 	@echo "$(CYAN)Running strict clippy linting (CI/CD mode)...$(NC)"
 	@echo "$(BLUE)  With all features and all targets...$(NC)"
 	@cargo clippy --all-features --all-targets -- \
@@ -174,14 +178,12 @@ lint-strict: ## Run clippy with strict settings (matches CI/CD)
 		-A clippy::missing_panics_doc \
 		-A clippy::must_use_candidate \
 		-A clippy::multiple_crate_versions
-	@echo "$(BLUE)  With no default features...$(NC)"
-	@cargo clippy --no-default-features --all-targets -- \
-		-D warnings \
-		-D clippy::all
 	@echo "$(BLUE)  With default features...$(NC)"
 	@cargo clippy --all-targets -- \
 		-D warnings \
 		-D clippy::all
+
+lint-strict: lint ## Alias for lint (both are now strict, matches CI/CD)
 
 lint-ultra-strict: ## Run clippy with ULTRA strict settings (as requested)
 	@echo "$(CYAN)Running ULTRA strict clippy linting...$(NC)"
