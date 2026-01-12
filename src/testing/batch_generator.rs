@@ -153,7 +153,7 @@ impl BatchJobGenerator {
     fn get_test_suite_prompts(suite_name: &str) -> Result<Vec<&'static str>> {
         PromptsRegistry::get_prompts(suite_name)
             .map(<[&str]>::to_vec)
-            .ok_or_else(|| anyhow::anyhow!("Unknown test suite: {}", suite_name))
+            .ok_or_else(|| anyhow::anyhow!("Unknown test suite: {suite_name}"))
     }
 
     /// Creates batch job requests from prompts

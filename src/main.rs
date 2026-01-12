@@ -44,7 +44,7 @@ enum Commands {
 #[cfg(feature = "yara")]
 fn handle_validate_rule(file: &PathBuf, verbose: bool) -> Result<()> {
     let rule_content = openai_rust_sdk::helpers::read_string_sync(file)
-        .map_err(|e| anyhow::anyhow!("Failed to read file: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to read file: {e}"))?;
     let validator = YaraValidator::new();
 
     match validator.validate_rule(&rule_content) {
