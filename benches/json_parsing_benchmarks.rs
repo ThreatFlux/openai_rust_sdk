@@ -4,12 +4,14 @@
 //! the SDK for API communication and data storage.
 
 #[cfg(feature = "yara")]
-use criterion::{black_box, BenchmarkId};
+use criterion::BenchmarkId;
 use criterion::{criterion_group, criterion_main, Criterion};
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
+#[cfg(feature = "yara")]
+use std::hint::black_box;
 #[cfg(feature = "yara")]
 use std::time::Duration;
 #[cfg(feature = "yara")]

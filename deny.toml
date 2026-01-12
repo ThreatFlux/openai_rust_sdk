@@ -91,7 +91,8 @@ ignore = [
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
     "MIT",
-    "Apache-2.0", 
+    "MIT-0",  # MIT No Attribution - required for borrow-or-share (jsonschema dependency)
+    "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
@@ -102,6 +103,7 @@ allow = [
     "Unlicense",
     "MPL-2.0",  # Required for webpki-roots (rustls dependency)
     "CDLA-Permissive-2.0",  # Required for webpki-roots in newer reqwest
+    "OpenSSL",  # Required for aws-lc-sys (rustls dependency)
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the

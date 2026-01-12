@@ -29,14 +29,14 @@ impl JsonSchema {
 
     /// Validate data against this schema
     pub fn validate(&self, data: &Value) -> Result<()> {
-        let compiled = jsonschema::JSONSchema::compile(&self.schema)
+        let validator = jsonschema::validator_for(&self.schema)
             .map_err(|e| OpenAIError::invalid_request(format!("Failed to compile schema: {e}")))?;
 
-        if let Err(errors) = compiled.validate(data) {
-            let error_messages: Vec<String> = errors.map(|e| e.to_string()).collect();
+        let errors: Vec<String> = validator.iter_errors(data).map(|e| e.to_string()).collect();
+        if !errors.is_empty() {
             return Err(OpenAIError::invalid_request(format!(
                 "Schema validation failed: {}",
-                error_messages.join(", ")
+                errors.join(", ")
             )));
         }
 
