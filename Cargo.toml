@@ -18,7 +18,7 @@ anyhow = "1.0"
 thiserror = "2.0"
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
 clap = { version = "4.5", features = ["derive"] }
-uuid = { version = "1.19", features = ["v4"] }
+uuid = { version = "1.20", features = ["v4"] }
 tokio-stream = "0.1"
 eventsource-stream = "0.2"
 futures = "0.3"
