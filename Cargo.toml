@@ -18,7 +18,7 @@ anyhow = "1.0"
 thiserror = "2.0"
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
 clap = { version = "4.5", features = ["derive"] }
-uuid = { version = "1.19", features = ["v4"] }
+uuid = { version = "1.20", features = ["v4"] }
 tokio-stream = "0.1"
 eventsource-stream = "0.2"
 futures = "0.3"
@@ -42,7 +42,7 @@ rand = "0.9"
 log = "0.4"
 
 # Optional YARA validation support
-yara-x = { version = "1.11", optional = true }
+yara-x = { version = "1.12", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
