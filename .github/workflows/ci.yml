@@ -37,16 +37,16 @@ jobs:
     name: Quick Check
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: stable
           components: rustfmt, clippy
       
       - name: Cache cargo registry
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809  # v4.2.4
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: |
             ~/.cargo/registry
@@ -82,7 +82,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.rust == 'nightly' }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       # Free up disk space on GitHub runners
       - name: Free Disk Space (Ubuntu)
@@ -105,7 +105,7 @@ jobs:
           df -h
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: ${{ matrix.rust }}
       
@@ -127,7 +127,7 @@ jobs:
           choco install openssl
       
       - name: Cache cargo build
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809  # v4.2.4
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: target
           key: ${{ runner.os }}-${{ matrix.rust }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
@@ -164,7 +164,7 @@ jobs:
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
-        uses: taiki-e/install-action@5c27e59d8c472d2a91731d8b5d7fe040fad53387  # v2.58.18
+        uses: taiki-e/install-action@cfdb446e391c69574ebc316dfb7d7849ec12b940  # v2.68.8
         with:
           tool: cargo-llvm-cov
       
@@ -174,7 +174,7 @@ jobs:
       
       - name: Upload coverage to Codecov
         if: matrix.coverage
-        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00  # v5.5.0
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de  # v5.5.2
         with:
           files: lcov.info
           fail_ci_if_error: false
@@ -186,10 +186,10 @@ jobs:
     name: Minimum Supported Rust Version
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install MSRV toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: stable
       
@@ -207,10 +207,10 @@ jobs:
     runs-on: self-hosted
     needs: quick-check
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: stable
       
@@ -220,7 +220,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809  # v4.2.4
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: target
           key: ${{ runner.os }}-feature-checks-${{ hashFiles('**/Cargo.lock') }}
@@ -248,10 +248,10 @@ jobs:
     runs-on: self-hosted
     needs: quick-check
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: stable
       
@@ -261,7 +261,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809  # v4.2.4
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: target
           key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
@@ -277,10 +277,10 @@ jobs:
     runs-on: self-hosted
     needs: quick-check
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: stable
       
@@ -306,10 +306,10 @@ jobs:
     needs: [test, feature-checks]
     if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'integration-test')
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b  # v1
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
         with:
           toolchain: stable
       
