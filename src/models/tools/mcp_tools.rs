@@ -37,6 +37,7 @@ pub enum McpApproval {
     Sensitive,
 }
 
+/// Default approval behavior for MCP tools when omitted by callers.
 fn default_approval() -> McpApproval {
     McpApproval::Sensitive
 }

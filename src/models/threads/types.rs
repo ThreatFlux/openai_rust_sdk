@@ -66,6 +66,7 @@ pub struct MessageFile {
 }
 
 // Default object functions
+/// Default object type for thread deletion responses.
 fn default_thread_deletion_object() -> String {
     "thread.deleted".to_string()
 }

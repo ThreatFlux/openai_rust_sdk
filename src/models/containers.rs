@@ -161,6 +161,7 @@ pub struct ContainerFile {
     pub executable: bool,
 }
 
+/// Default serde helper that enables read/write flags when omitted.
 fn default_true() -> bool {
     true
 }
