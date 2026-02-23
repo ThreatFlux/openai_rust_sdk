@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.4.2] - 2026-02-23
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix: patch time dependency for RUSTSEC-2026-0009 (7be675e)
+- fix: document private serde default helpers for clippy (cd92721)
+
+#### 🔧 Other Changes
+- chore: upgrade deps to latest stable and bump MSRV (8ca80cd)
+- chore: add MIT license (bc87977)
+- chore(deps): update major dependencies (8cc98e4)
+- chore(deps): update minor/patch dependency versions (98ed59b)
+- chore: add strict linting and git pre-commit hooks (5d00720)
+- chore: bump version to 1.4.1 and fix clippy pedantic warnings (cbf9658)
+- chore(deps): update reqwest to 0.13 and yara-x to 1.11 (18b78ea)
+- chore(deps): bump the minor-and-patch group across 1 directory with 16 updates (6dc3fd8)
+- refactor: rework tool choice serialization (f74ed04)
+- chore: fix clippy pedantic warnings (fa76fcc)
+
+### 📊 Statistics
+
+- **Version**: 1.4.1 → 1.4.2
+- **Date**: 2026-02-23
+- **Commits**: 12
+- **Contributors**: 2
+
+
 ## [1.4.0] - 2025-10-10
 
 
