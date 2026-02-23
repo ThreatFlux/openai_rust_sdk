@@ -4,8 +4,13 @@
 [advisories]
 # Ignore vulnerabilities that are in dependencies we can't control
 ignore = [
-    # RSA timing vulnerability in yara-x dependency
+    # RSA timing vulnerability in yara-x transitive dependency (rsa 0.9.x)
+    # Fix requires rsa 0.10.0 stable + yara-x adoption; low practical risk
+    # (used only for PE authenticode signature verification, not decryption)
     "RUSTSEC-2023-0071",
     # Instant is unmaintained - used by wiremock test dependency
     "RUSTSEC-2024-0384",
+    # Bincode unmaintained - transitive dependency through yara-x
+    # yara-x has not yet migrated away from bincode; no direct fix available
+    "RUSTSEC-2025-0141",
 ]
