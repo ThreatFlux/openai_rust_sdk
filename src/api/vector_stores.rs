@@ -614,6 +614,70 @@ impl VectorStoresApi {
         self.http_client.get_with_query(&path, &query_params).await
     }
 
+    /// Search a vector store for relevant chunks
+    ///
+    /// # Arguments
+    ///
+    /// * `vector_store_id` - The ID of the vector store to search
+    /// * `query` - The search query
+    /// * `max_num_results` - Optional maximum number of results to return
+    /// * `filters` - Optional filters as a JSON value
+    pub async fn search_vector_store(
+        &self,
+        vector_store_id: impl Into<String>,
+        query: &str,
+        max_num_results: Option<u32>,
+        filters: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value> {
+        let vector_store_id = vector_store_id.into();
+        let path = format!("/v1/vector_stores/{vector_store_id}/search");
+        let mut body = serde_json::json!({ "query": query });
+        if let Some(max) = max_num_results {
+            body["max_num_results"] = serde_json::json!(max);
+        }
+        if let Some(f) = filters {
+            body["filters"] = f;
+        }
+        self.http_client.post(&path, &body).await
+    }
+
+    /// Update a vector store file's attributes
+    ///
+    /// # Arguments
+    ///
+    /// * `vector_store_id` - The ID of the vector store
+    /// * `file_id` - The ID of the file to update
+    /// * `attributes` - The attributes to update as a JSON object
+    pub async fn update_vector_store_file(
+        &self,
+        vector_store_id: impl Into<String>,
+        file_id: impl Into<String>,
+        attributes: serde_json::Value,
+    ) -> Result<VectorStoreFile> {
+        let vector_store_id = vector_store_id.into();
+        let file_id = file_id.into();
+        let path = endpoints::vector_stores::file_by_id(&vector_store_id, &file_id);
+        let body = serde_json::json!({ "attributes": attributes });
+        self.http_client.post(&path, &body).await
+    }
+
+    /// Retrieve the content of a vector store file
+    ///
+    /// # Arguments
+    ///
+    /// * `vector_store_id` - The ID of the vector store
+    /// * `file_id` - The ID of the file
+    pub async fn retrieve_vector_store_file_content(
+        &self,
+        vector_store_id: impl Into<String>,
+        file_id: impl Into<String>,
+    ) -> Result<serde_json::Value> {
+        let vector_store_id = vector_store_id.into();
+        let file_id = file_id.into();
+        let path = format!("/v1/vector_stores/{vector_store_id}/files/{file_id}/content");
+        self.http_client.get(&path).await
+    }
+
     /// Convenience method to wait for a vector store to be ready
     ///
     /// This method polls the vector store status until it's completed, failed, or cancelled.

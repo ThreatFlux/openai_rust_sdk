@@ -24,7 +24,7 @@ jobs:
   # Validate and prepare release
   prepare:
     name: Prepare Release
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       version: ${{ steps.version.outputs.version }}
       upload_url: ${{ steps.check_release.outputs.exists == 'true' && steps.check_release.outputs.upload_url || steps.create_release.outputs.upload_url }}
@@ -111,14 +111,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: self-hosted
             target: x86_64-unknown-linux-gnu
             artifact_name: openai-rust-sdk-linux-amd64
-          - os: ubuntu-latest
+          - os: self-hosted
             target: x86_64-unknown-linux-musl
             artifact_name: openai-rust-sdk-linux-musl-amd64
             use_cross: true
-          - os: ubuntu-latest
+          - os: self-hosted
             target: aarch64-unknown-linux-gnu
             artifact_name: openai-rust-sdk-linux-arm64
             use_cross: true
@@ -142,7 +142,7 @@ jobs:
           targets: ${{ matrix.target }}
       
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'self-hosted'
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev pkg-config
@@ -252,7 +252,7 @@ jobs:
   publish-crate:
     name: Publish to crates.io
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -284,7 +284,7 @@ jobs:
   docker:
     name: Build and Push Docker Images
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -342,7 +342,7 @@ jobs:
   signatures:
     name: Generate Signatures
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -362,7 +362,7 @@ jobs:
   docs:
     name: Update Documentation
     needs: [prepare, publish-crate]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
         with:

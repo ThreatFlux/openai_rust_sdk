@@ -86,6 +86,17 @@ pub struct ListModelsResponse {
     pub data: Vec<Model>,
 }
 
+/// Response from deleting a fine-tuned model
+#[derive(Debug, Clone, Ser, De)]
+pub struct ModelDeleteResponse {
+    /// The model identifier that was deleted
+    pub id: String,
+    /// Object type
+    pub object: String,
+    /// Whether the model was successfully deleted
+    pub deleted: bool,
+}
+
 /// Detailed information about model capabilities
 #[derive(Debug, Clone)]
 pub struct ModelCapabilities {

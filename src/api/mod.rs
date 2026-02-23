@@ -52,6 +52,19 @@ pub mod threads;
 /// Vector stores API for RAG and knowledge management
 pub mod vector_stores;
 
+/// Administration API for managing users, invites, projects, and more
+pub mod admin;
+/// Conversations API for conversation and item management
+pub mod conversations;
+/// Evals API for evaluation management and runs
+pub mod evals;
+/// Skills API for reusable skill management and versioning
+pub mod skills;
+/// Uploads API for multipart large file uploads
+pub mod uploads;
+/// Videos (Sora) API for AI video generation
+pub mod videos;
+
 // Re-export specific items to avoid naming conflicts
 pub use assistants::*;
 // Audio exports - explicitly list to avoid conflict with threads::types
@@ -84,3 +97,11 @@ pub use streaming::{FunctionStream, ResponseStream, ResponseStreamExt, Streaming
 pub use threads::types as thread_types;
 pub use threads::{client::ThreadsApi, files as thread_files, messages, operations};
 pub use vector_stores::*;
+
+// New API clients
+pub use admin::AdminApi;
+pub use conversations::ConversationsApi;
+pub use evals::EvalsApi;
+pub use skills::SkillsApi;
+pub use uploads::UploadsApi;
+pub use videos::VideosApi;

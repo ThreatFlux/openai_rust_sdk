@@ -5,14 +5,20 @@ pub mod common_builder;
 /// Shared traits and implementations to eliminate model duplication
 pub mod shared_traits;
 
-/// Assistants models for AI assistant creation and management  
+/// Administration API models for managing users, invites, projects, and more
+pub mod admin;
+/// Assistants models for AI assistant creation and management
 pub mod assistants;
 /// Audio models for text-to-speech, transcription, and translation
 pub mod audio;
 /// Container management models for Code Interpreter
 pub mod containers;
+/// Conversations API models for conversation and item management
+pub mod conversations;
 /// Embeddings models for vector representations
 pub mod embeddings;
+/// Evals models for evaluation management and runs
+pub mod evals;
 /// Files models for file upload, management, and retrieval
 pub mod files;
 /// Fine-tuning models for custom model training and management
@@ -38,15 +44,34 @@ pub mod responses;
 pub mod responses_v2;
 /// Runs models for assistant execution and run steps management
 pub mod runs;
+/// Skills API models for reusable skill management and versioning
+pub mod skills;
 /// Threads models for conversation thread and message management
 pub mod threads;
 /// Comprehensive tools support (web search, file search, MCP, etc.)
 pub mod tools;
+/// Uploads models for multipart large file uploads
+pub mod uploads;
 /// Vector stores models for RAG and knowledge management
 pub mod vector_stores;
+/// Videos (Sora) models for AI video generation
+pub mod videos;
 
 // Re-export commonly used types while avoiding conflicts
 // For conflicting types, users should import from specific modules
+
+// Admin API
+pub use admin::{
+    AuditLog, AuditLogList, CreateInviteRequest, CreateProjectRequest,
+    CreateProjectServiceAccountRequest, CreateProjectUserRequest, Invite, InviteDeleteResponse,
+    InviteList, ListAdminParams, ListAuditLogsParams, Project, ProjectApiKey,
+    ProjectApiKeyDeleteResponse, ProjectApiKeyList, ProjectList, ProjectRateLimit,
+    ProjectRateLimitList, ProjectServiceAccount, ProjectServiceAccountCreateResponse,
+    ProjectServiceAccountDeleteResponse, ProjectServiceAccountList, ProjectUser,
+    ProjectUserDeleteResponse, ProjectUserList, UpdateProjectRateLimitRequest,
+    UpdateProjectRequest, UpdateProjectUserRequest, UpdateUserRequest, UsageBucket, UsageResponse,
+    User as AdminUser, UserDeleteResponse, UserList,
+};
 
 // Assistants API
 pub use assistants::{
@@ -66,8 +91,22 @@ pub use audio::{
 // Containers API
 pub use containers::*;
 
+// Conversations API
+pub use conversations::{
+    Conversation, ConversationDeleteResponse, ConversationItem, ConversationItemList,
+    CreateConversationItemRequest, CreateConversationRequest, ListConversationItemsParams,
+    UpdateConversationRequest,
+};
+
 // Embeddings API
 pub use embeddings::*;
+
+// Evals API
+pub use evals::{
+    CreateEvalRequest, CreateEvalRunRequest, Eval, EvalDeleteResponse, EvalList, EvalRun,
+    EvalRunList, EvalRunOutputItem, EvalRunOutputItemList, ListEvalRunOutputItemsParams,
+    ListEvalRunsParams, ListEvalsParams, UpdateEvalRequest,
+};
 
 // Files API
 pub use files::{
@@ -140,6 +179,13 @@ pub use runs::{
     SubmitToolOutputsRequest, ToolOutput, Usage as RunUsage,
 };
 
+// Skills API
+pub use skills::{
+    CreateSkillRequest, CreateSkillVersionRequest, ListSkillVersionsParams, ListSkillsParams,
+    Skill, SkillContent, SkillDeleteResponse, SkillList, SkillVersion, SkillVersionContent,
+    SkillVersionList, UpdateSkillRequest,
+};
+
 // Threads API
 pub use threads::{
     Annotation, DeletionStatus, FileCitation, FilePathInfo, ImageFile, ListMessageFilesResponse,
@@ -154,6 +200,15 @@ pub use tools::{
     EnhancedTool, EnhancedToolChoice, FileSearchBuilder, FileSearchConfig, FunctionBuilder,
     FunctionTool, ImageGenerationConfig, ImageGenerationToolBuilder, McpApproval, McpBuilder,
     McpTool, SearchFilters, SpecificToolChoice, ToolBuilder, WebSearchBuilder, WebSearchConfig,
+};
+
+// Uploads API
+pub use uploads::{CompleteUploadRequest, CreateUploadRequest, Upload, UploadPart, UploadStatus};
+
+// Videos (Sora) API
+pub use videos::{
+    CreateVideoRequest, ListVideosParams, Video, VideoDeleteResponse, VideoError, VideoList,
+    VideoStatus,
 };
 
 // Vector Stores API

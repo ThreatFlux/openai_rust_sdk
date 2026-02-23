@@ -16,7 +16,7 @@ jobs:
   # Comprehensive linting
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -61,7 +61,7 @@ jobs:
   # Code complexity and maintainability
   complexity:
     name: Code Complexity
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -99,7 +99,7 @@ jobs:
   # Documentation quality
   docs-quality:
     name: Documentation Quality
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -139,7 +139,7 @@ jobs:
   # Test coverage
   coverage:
     name: Test Coverage
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -194,7 +194,7 @@ jobs:
   # Mutation testing
   mutation:
     name: Mutation Testing
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'pull_request'
     continue-on-error: true
     steps:
@@ -227,7 +227,7 @@ jobs:
   # Performance regression check
   bench-check:
     name: Benchmark Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -281,7 +281,7 @@ jobs:
   # Dependency analysis
   deps-analysis:
     name: Dependency Analysis
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -319,7 +319,7 @@ jobs:
   # Code duplication check
   duplication:
     name: Code Duplication
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
@@ -337,7 +337,7 @@ jobs:
   # Spell check
   spellcheck:
     name: Spell Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -355,7 +355,7 @@ jobs:
   # Summary job
   quality-gate:
     name: Quality Gate
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [lint, complexity, docs-quality, coverage, deps-analysis]
     if: always()
     steps:

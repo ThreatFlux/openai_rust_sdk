@@ -26,7 +26,7 @@ jobs:
   # Build and test Docker image
   build:
     name: Build Docker Image
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -155,7 +155,7 @@ jobs:
   scan:
     name: Security Scan
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       security-events: write
@@ -233,7 +233,7 @@ jobs:
   test:
     name: Test Docker Image
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         platform: [linux/amd64, linux/arm64]
@@ -340,7 +340,7 @@ jobs:
     name: Sign Container Image
     needs: [build, scan, test]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -377,7 +377,7 @@ jobs:
   sbom:
     name: Generate SBOM
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
       packages: write
@@ -438,7 +438,7 @@ jobs:
     name: Update Docker Hub Description
     needs: [build, sign]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     continue-on-error: true  # Don't fail the workflow if Docker Hub update fails
     steps:
       - name: Checkout repository
@@ -468,7 +468,7 @@ jobs:
   # Summary
   docker-success:
     name: Docker Build Success
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [build, scan, test]
     if: always()
     steps:

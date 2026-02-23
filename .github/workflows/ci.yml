@@ -35,7 +35,7 @@ jobs:
   # Quick format and lint check
   quick-check:
     name: Quick Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -67,7 +67,7 @@ jobs:
     needs: quick-check
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [self-hosted, macos-latest, windows-latest]
         rust: [stable, beta, nightly]
         exclude:
           # Reduce matrix for faster CI
@@ -76,7 +76,7 @@ jobs:
           - os: windows-latest
             rust: beta
         include:
-          - os: ubuntu-latest
+          - os: self-hosted
             rust: stable
             coverage: true
     runs-on: ${{ matrix.os }}
@@ -86,7 +86,7 @@ jobs:
       
       # Free up disk space on GitHub runners
       - name: Free Disk Space (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'self-hosted'
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be  # v1.3.1
         with:
           tool-cache: false
@@ -110,7 +110,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
       
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'self-hosted'
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev pkg-config
@@ -184,7 +184,7 @@ jobs:
   # Minimum supported Rust version check
   msrv:
     name: Minimum Supported Rust Version
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -204,7 +204,7 @@ jobs:
   # Feature combination testing
   feature-checks:
     name: Feature Checks
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: quick-check
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
@@ -245,7 +245,7 @@ jobs:
   # Benchmarks
   bench:
     name: Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: quick-check
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
@@ -274,7 +274,7 @@ jobs:
   # Documentation build
   docs:
     name: Documentation
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: quick-check
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
@@ -302,7 +302,7 @@ jobs:
   # Integration tests (only on main branch or release PRs)
   integration:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [test, feature-checks]
     if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'integration-test')
     steps:
@@ -328,7 +328,7 @@ jobs:
   # Summary job for branch protection
   ci-success:
     name: CI Success
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [quick-check, test, msrv, feature-checks, bench, docs]
     if: always()
     steps:

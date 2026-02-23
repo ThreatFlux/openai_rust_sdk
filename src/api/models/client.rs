@@ -5,8 +5,9 @@
 use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
 use crate::error::Result;
+use crate::http_delete;
 use crate::http_get;
-use crate::models::models::{ListModelsResponse, Model};
+use crate::models::models::{ListModelsResponse, Model, ModelDeleteResponse};
 
 /// Models API client for accessing `OpenAI` model information
 pub struct ModelsApi {
@@ -44,4 +45,5 @@ impl ModelsApi {
     // Generate HTTP client methods using macro
     http_get!(list_models, "/v1/models", ListModelsResponse);
     http_get!(retrieve_model, "/v1/models/{}", model_id: impl AsRef<str>, Model);
+    http_delete!(delete_model, "/v1/models/{}", model_id: &str, ModelDeleteResponse);
 }

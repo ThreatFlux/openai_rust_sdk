@@ -479,6 +479,30 @@ impl FineTuningApi {
             .await
     }
 
+    /// Pause a fine-tuning job
+    ///
+    /// Pauses a running fine-tuning job. The job can be resumed later.
+    pub async fn pause_fine_tuning_job(
+        &self,
+        fine_tuning_job_id: impl Into<String>,
+    ) -> Result<FineTuningJob> {
+        let fine_tuning_job_id = fine_tuning_job_id.into();
+        let endpoint = format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/pause");
+        self.http_client.post(&endpoint, &()).await
+    }
+
+    /// Resume a paused fine-tuning job
+    ///
+    /// Resumes a previously paused fine-tuning job.
+    pub async fn resume_fine_tuning_job(
+        &self,
+        fine_tuning_job_id: impl Into<String>,
+    ) -> Result<FineTuningJob> {
+        let fine_tuning_job_id = fine_tuning_job_id.into();
+        let endpoint = format!("/v1/fine_tuning/jobs/{fine_tuning_job_id}/resume");
+        self.http_client.post(&endpoint, &()).await
+    }
+
     /// Create a fine-tuning job and wait for it to complete
     ///
     /// This is a convenience method that combines job creation with monitoring.

@@ -45,11 +45,24 @@
 //! - **`OpenAI` API Client**: Full-featured client with streaming support
 //! - **Chat Completions**: Support for role-based conversations and prompt templates
 //! - **Streaming Support**: Real-time streaming responses with Server-Sent Events
+//! - **Responses API**: Modern `/v1/responses` endpoint with streaming and input items
+//! - **Assistants & Threads**: Create assistants, manage threads, messages, and runs
+//! - **Fine-Tuning**: Job management with pause/resume support
+//! - **Vector Stores**: RAG/knowledge management with file search and content retrieval
+//! - **Uploads**: Multipart large file uploads with part management
+//! - **Evals**: Evaluation creation, runs, and output item inspection
+//! - **Videos (Sora)**: AI video generation via the Sora API
+//! - **Conversations**: Conversation and item (message) management
+//! - **Skills**: Reusable skill creation, versioning, and content management
+//! - **Admin**: Organization administration — users, invites, projects, API keys, rate limits, audit logs, and usage
+//! - **Images (DALL-E)**: Image generation, editing, and variations
+//! - **Audio**: Text-to-speech, transcription, and translation
+//! - **Embeddings**: Vector representations for text
+//! - **Moderations**: Content policy classification
+//! - **Batch API**: Asynchronous batch job processing
 //! - **YARA Rule Validation**: Complete validation pipeline using the yara-x engine
-//! - **`OpenAI` Batch API Integration**: Generate and manage batch jobs for rule creation
 //! - **Comprehensive Testing**: Unit tests, integration tests, and performance benchmarks
 //! - **Error Handling**: Robust error handling with detailed validation results
-//! - **Performance Metrics**: Compilation time, memory usage, and rule complexity analysis
 //!
 //! ## Quick Start - `OpenAI` API
 
@@ -104,7 +117,7 @@
 //! ## Modules
 //!
 //! - [`client`]: Main `OpenAI` client with all API functionality
-//! - [`api`]: Individual API modules (responses, streaming)
+//! - [`api`]: Individual API modules — responses, assistants, fine-tuning, vector stores, uploads, evals, videos, conversations, skills, admin, and more
 //! - [`models`]: Data models for requests and responses
 //! - [`testing`]: YARA validation and testing functionality
 //! - [`error`]: Error types and handling
@@ -153,8 +166,9 @@ pub mod testing;
 pub use api::batch::BatchApi;
 pub use api::streaming::StreamingApi;
 pub use api::{
-    AssistantsApi, CustomToolsApi, FineTuningApi, FunctionsApi, RealtimeAudioApi, ResponsesApi,
-    RunsApi, ThreadsApi, VectorStoresApi,
+    AdminApi, AssistantsApi, ConversationsApi, CustomToolsApi, EvalsApi, FineTuningApi,
+    FunctionsApi, RealtimeAudioApi, ResponsesApi, RunsApi, SkillsApi, ThreadsApi, UploadsApi,
+    VectorStoresApi, VideosApi,
 };
 pub use builders::{FunctionBuilder, ObjectSchemaBuilder};
 pub use client::{from_env, from_env_with_base_url, ChatBuilder, OpenAIClient};

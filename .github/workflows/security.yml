@@ -12,7 +12,7 @@ jobs:
   # Security audit for dependencies
   audit:
     name: Security Audit
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -43,7 +43,7 @@ jobs:
   # Dependency license check
   license-check:
     name: License Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -104,7 +104,7 @@ jobs:
   # SARIF/CodeQL scanning
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       CARGO_TERM_COLOR: always
     permissions:
@@ -139,7 +139,7 @@ jobs:
   # Semgrep scanning
   semgrep:
     name: Semgrep Security Scan
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       security-events: write
     steps:
@@ -162,7 +162,7 @@ jobs:
   # Supply chain security
   supply-chain:
     name: Supply Chain Security
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -198,7 +198,7 @@ jobs:
   # Secret scanning
   secrets:
     name: Secret Scanning
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
         with:
@@ -220,7 +220,7 @@ jobs:
   # OWASP dependency check
   owasp:
     name: OWASP Dependency Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       
@@ -250,7 +250,7 @@ jobs:
   # Container scanning (if Docker image exists)
   container-scan:
     name: Container Security Scan
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
@@ -293,7 +293,7 @@ jobs:
   # Security scorecard
   scorecard:
     name: Security Scorecard
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       security-events: write

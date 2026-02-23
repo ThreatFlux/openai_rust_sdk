@@ -143,6 +143,30 @@ impl ResponsesApiV2 {
             .map_err(OpenAIError::from)
     }
 
+    /// Compact a response (server-side context compaction)
+    ///
+    /// Reduces the size of a stored response's context while preserving key information.
+    pub async fn compact_response(
+        &self,
+        response_id: impl AsRef<str>,
+        background: Option<bool>,
+    ) -> Result<ResponseObject> {
+        let url = format!("/v1/responses/{}/compact", response_id.as_ref());
+        let mut body = serde_json::json!({});
+        if let Some(bg) = background {
+            body["background"] = serde_json::json!(bg);
+        }
+        self.http_client.post(&url, &body).await
+    }
+
+    /// Count input tokens for a response
+    ///
+    /// Returns the number of tokens that would be consumed by the given input.
+    pub async fn count_input_tokens(&self, response_id: impl AsRef<str>) -> Result<Value> {
+        let url = format!("/v1/responses/{}/input_tokens/count", response_id.as_ref());
+        self.http_client.post(&url, &Value::Null).await
+    }
+
     /// List input items used to generate a response
     pub async fn list_response_input_items(
         &self,
