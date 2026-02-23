@@ -2,7 +2,7 @@
 name = "openai_rust_sdk"
 version = "1.4.1"
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.89"
 description = "Comprehensive OpenAI API SDK for Rust with YARA rule validation"
 license = "MIT"
 repository = "https://github.com/threatflux/openai_rust_sdk"
@@ -13,45 +13,45 @@ authors = ["Wyatt Roersma", "Claude Code"]
 [dependencies]
 tokio = { version = "1.49", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-anyhow = "1.0"
-thiserror = "2.0"
-reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
-clap = { version = "4.5", features = ["derive"] }
-uuid = { version = "1.19", features = ["v4"] }
-tokio-stream = "0.1"
-eventsource-stream = "0.2"
-futures = "0.3"
-chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0.149"
+anyhow = "1.0.102"
+thiserror = "2.0.18"
+reqwest = { version = "0.13.2", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
+clap = { version = "4.5.60", features = ["derive"] }
+uuid = { version = "1.21.0", features = ["v4"] }
+tokio-stream = "0.1.18"
+eventsource-stream = "0.2.3"
+futures = "0.3.32"
+chrono = { version = "0.4.43", features = ["serde"] }
 indexmap = { version = "2.13", features = ["serde"] }
-jsonschema = "0.38"
-async-stream = "0.3"
-bytes = "1.11"
-base64 = "0.22"
-const_format = "0.2"
-paste = "1.0"
+jsonschema = "0.42.1"
+async-stream = "0.3.6"
+bytes = "1.11.1"
+base64 = "0.22.1"
+const_format = "0.2.35"
+paste = "1.0.15"
 # WebRTC dependencies for real-time audio
-webrtc = "0.14"
+webrtc = "0.17.1"
 # Audio processing
 # audiopus = { version = "0.3.0-rc.0" }  # Removed: unused dependency that causes Docker build failures
 # cpal = "0.15"  # Removed: unused dependency that causes CI failures
 # WebRTC signaling and peer connection
-tokio-tungstenite = "0.28"
-url = "2.5"
-rand = "0.9"
-log = "0.4"
+tokio-tungstenite = "0.28.0"
+url = "2.5.8"
+rand = "0.10.0"
+log = "0.4.29"
 
 # Optional YARA validation support
-yara-x = { version = "1.11", optional = true }
+yara-x = { version = "1.13.0", optional = true }
 
 [dev-dependencies]
-tokio-test = "0.4"
-tempfile = "3.24"
-pretty_assertions = "1.0"
-criterion = { version = "0.8", features = ["html_reports"] }
-mockito = "1.7"
+tokio-test = "0.4.5"
+tempfile = "3.25.0"
+pretty_assertions = "1.4.1"
+criterion = { version = "0.8.2", features = ["html_reports"] }
+mockito = "1.7.2"
 wiremock = "=0.6.5"
-httpmock = "0.8"
+httpmock = "0.8.3"
 
 [features]
 default = []
