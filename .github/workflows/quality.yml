@@ -154,7 +154,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cfdb446e391c69574ebc316dfb7d7849ec12b940  # v2.68.8
+        uses: taiki-e/install-action@d6e286fa45544157a02d45a43742857ebbc25d12  # v2.68.16
         with:
           tool: cargo-llvm-cov
       
@@ -178,7 +178,7 @@ jobs:
           awk '{if ($1 < 60) {print "❌ Coverage is below 60%: " $1 "%"; exit 1} else {print "✅ Coverage: " $1 "%"}}'
       
       - name: Upload coverage reports
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: coverage-report
           path: coverage/
@@ -218,7 +218,7 @@ jobs:
           cargo mutants --no-shuffle --timeout 60 --jobs 2 || true
       
       - name: Upload mutation report
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: mutation-report
           path: mutants.out/
@@ -271,7 +271,7 @@ jobs:
           echo "*Note: Detailed Criterion reports are generated in target/criterion*" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload benchmark artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: benchmark-results
           path: target/criterion
