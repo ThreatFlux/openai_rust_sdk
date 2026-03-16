@@ -165,7 +165,7 @@ jobs:
       
       - name: Download image artifact
         if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3  # v8.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: docker-image
           path: /tmp
@@ -246,7 +246,7 @@ jobs:
       
       - name: Download image artifact
         if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3  # v8.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: docker-image
           path: /tmp
@@ -347,7 +347,7 @@ jobs:
       id-token: write
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad  # v4.0.0
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22  # v4.1.0
       
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2  # v4.0.0
@@ -387,7 +387,7 @@ jobs:
       
       - name: Download image artifact
         if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3  # v8.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: docker-image
           path: /tmp
@@ -411,7 +411,7 @@ jobs:
           docker pull ${{ needs.build.outputs.image }} || echo "Warning: Could not pull image"
       
       - name: Generate SBOM with Syft
-        uses: anchore/sbom-action@17ae1740179002c89186b61233e0f892c3118b11  # v0.23.0
+        uses: anchore/sbom-action@57aae528053a48a3f6235f2d9461b05fbcb7366d  # v0.23.1
         with:
           image: ${{ needs.build.outputs.image }}
           artifact-name: sbom-spdx.json
