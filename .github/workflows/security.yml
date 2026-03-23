@@ -205,7 +205,7 @@ jobs:
           fetch-depth: 0  # Fetch all history for secret scanning
       
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@c3e599b7163e8198a55467f3133db0e7b2a492cb  # v3.93.7
+        uses: trufflesecurity/trufflehog@6c64db94d5b2e09d7e0948fb6bd3166cc6fffbc7  # v3.94.0
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.after }}
@@ -278,7 +278,7 @@ jobs:
         if: always() && hashFiles('trivy-results.sarif') != ''
       
       - name: Run Grype scanner
-        uses: anchore/scan-action@7037fa011853d5a11690026fb85feee79f4c946c  # v7.3.2
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2  # v7.4.0
         with:
           image: 'openai-rust-sdk:scan'
           fail-build: false
