@@ -46,7 +46,7 @@ jobs:
           components: rustfmt, clippy
       
       - name: Cache cargo registry
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
         with:
           path: |
             ~/.cargo/registry
@@ -127,7 +127,7 @@ jobs:
           choco install openssl
       
       - name: Cache cargo build
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
         with:
           path: target
           key: ${{ runner.os }}-${{ matrix.rust }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
@@ -164,7 +164,7 @@ jobs:
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
-        uses: taiki-e/install-action@a37010ded18ff788be4440302bd6830b1ae50d8b  # v2.68.25
+        uses: taiki-e/install-action@06203676c62f0d3c765be3f2fcfbebbcb02d09f5  # v2.69.6
         with:
           tool: cargo-llvm-cov
       
@@ -174,7 +174,7 @@ jobs:
       
       - name: Upload coverage to Codecov
         if: matrix.coverage
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de  # v5.5.2
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad  # v5.5.3
         with:
           files: lcov.info
           fail_ci_if_error: false
@@ -220,7 +220,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
         with:
           path: target
           key: ${{ runner.os }}-feature-checks-${{ hashFiles('**/Cargo.lock') }}
@@ -261,7 +261,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
         with:
           path: target
           key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
