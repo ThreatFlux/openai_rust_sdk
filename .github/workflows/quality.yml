@@ -8,6 +8,8 @@ on:
   schedule:
     - cron: '30 2 * * 1'  # Weekly on Monday at 2:30 AM UTC
 
+permissions: read-all
+
 concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true

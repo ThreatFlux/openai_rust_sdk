@@ -22,10 +22,7 @@ on:
           - minor
           - major
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+permissions: read-all
 
 concurrency:
   group: auto-release-${{ github.ref }}
@@ -35,6 +32,8 @@ jobs:
   check-for-release:
     name: Check if Release Needed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
@@ -177,12 +176,15 @@ jobs:
     needs: check-for-release
     if: needs.check-for-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
@@ -361,6 +363,8 @@ jobs:
     needs: [check-for-release, create-release]
     if: needs.check-for-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
