@@ -114,11 +114,7 @@ jobs:
             type=gha
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
-          cache-to: |
-            type=gha,mode=max
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=OpenAI Rust SDK
+          cache-to: type=gha,mode=max
       
       - name: Export image for scanning
         if: github.event_name == 'pull_request'
