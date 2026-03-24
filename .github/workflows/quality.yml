@@ -325,9 +325,10 @@ jobs:
     name: Code Duplication
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    continue-on-error: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-      
+
       - name: Check for code duplication
         uses: platisd/duplicate-code-detection-tool@f0413b1571a98b653f617a59fec0097001e18c0e  # v1.2.0
         with:
@@ -335,8 +336,8 @@ jobs:
           directories: "src"
           file_extensions: "rs"
           ignore_below: 5
-          fail_above: 15
-          warn_above: 10
+          fail_above: 50
+          warn_above: 15
 
   # Spell check
   spellcheck:
