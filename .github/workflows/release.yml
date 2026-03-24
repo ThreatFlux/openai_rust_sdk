@@ -16,6 +16,8 @@ on:
         type: boolean
         default: false
 
+permissions: read-all
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
@@ -29,6 +31,8 @@ jobs:
   prepare:
     name: Prepare Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       upload_url: ${{ steps.check_release.outputs.exists == 'true' && steps.check_release.outputs.upload_url || steps.create_release.outputs.upload_url }}
@@ -120,6 +124,8 @@ jobs:
   build:
     name: Build Release Artifacts
     needs: prepare
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -265,6 +271,8 @@ jobs:
     name: Publish to crates.io
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -297,6 +305,9 @@ jobs:
     name: Build and Push Docker Images
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -355,6 +366,8 @@ jobs:
     name: Generate Signatures
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -375,6 +388,8 @@ jobs:
     name: Update Documentation
     needs: [prepare, publish-crate]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:

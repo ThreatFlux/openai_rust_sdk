@@ -8,6 +8,8 @@ on:
   schedule:
     - cron: '15 3 * * 1'  # Weekly on Monday at 3:15 AM UTC
 
+permissions: read-all
+
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
@@ -119,10 +121,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           languages: 'rust'
           queries: security-and-quality
+          config-file: .github/codeql/codeql-config.yml
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
@@ -138,7 +141,7 @@ jobs:
         run: cargo build --all-features
       
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
 
   # Semgrep scanning
   semgrep:
@@ -246,7 +249,7 @@ jobs:
           retention-days: 30
       
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           sarif_file: reports/dependency-check-report.sarif
         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
@@ -274,9 +277,10 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
       
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           sarif_file: 'trivy-results.sarif'
         if: always() && hashFiles('trivy-results.sarif') != ''
@@ -289,7 +293,7 @@ jobs:
           severity-cutoff: high
       
       - name: Upload Grype results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           sarif_file: results.sarif
         if: always() && hashFiles('results.sarif') != ''
@@ -317,6 +321,6 @@ jobs:
           publish_results: true
       
       - name: Upload results to code scanning
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           sarif_file: scorecard.sarif
