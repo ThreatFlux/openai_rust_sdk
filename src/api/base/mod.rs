@@ -24,7 +24,7 @@ pub mod utilities; // Legacy module for backward compatibility
 
 // Re-export the main client and commonly used items
 pub use client::HttpClient;
-pub use config::{validate_request, ClientConfig, Validate, DEFAULT_BASE_URL};
+pub use config::{ClientConfig, DEFAULT_BASE_URL, Validate, validate_request};
 pub use error::{map_parse_error, map_request_error};
 
 // Re-export for backward compatibility

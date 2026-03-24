@@ -15,7 +15,7 @@
 use std::env;
 use std::io::{self, Write};
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use futures::StreamExt;
 use openai_rust_sdk::{
     client::OpenAIClient,

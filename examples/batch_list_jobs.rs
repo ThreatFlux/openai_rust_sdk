@@ -152,16 +152,14 @@ fn display_request_statistics(counts: &openai_rust_sdk::api::batch::BatchRequest
 
 /// Display metadata if present
 fn display_metadata(metadata: &Option<serde_json::Value>) {
-    if let Some(metadata) = metadata {
-        if metadata.is_object() {
-            if let Some(obj) = metadata.as_object() {
-                if !obj.is_empty() {
-                    println!("\n   📎 Metadata:");
-                    for (key, value) in obj {
-                        println!("      {key}: {value}");
-                    }
-                }
-            }
+    if let Some(metadata) = metadata
+        && metadata.is_object()
+        && let Some(obj) = metadata.as_object()
+        && !obj.is_empty()
+    {
+        println!("\n   📎 Metadata:");
+        for (key, value) in obj {
+            println!("      {key}: {value}");
         }
     }
 }

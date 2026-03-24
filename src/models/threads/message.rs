@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use super::builders::MetadataBuilder;
 use super::content::MessageContent;
-use super::types::{default_message_object, MessageFile, MessageRole, SortOrder};
+use super::types::{MessageFile, MessageRole, SortOrder, default_message_object};
 use super::validation::common::{
     validate_content_length, validate_file_ids_count, validate_metadata,
 };

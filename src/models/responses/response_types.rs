@@ -4,7 +4,7 @@ use serde::{self, Deserialize, Serialize};
 
 use super::{
     schema_types::SchemaValidationResult,
-    usage_types::{default_model, default_object_type, ToolCall, Usage},
+    usage_types::{ToolCall, Usage, default_model, default_object_type},
 };
 
 /// Output content for a response
@@ -133,12 +133,12 @@ impl ResponseResult {
     /// Calculate the cache hit rate as a percentage
     #[must_use]
     pub fn cache_hit_rate(&self) -> f32 {
-        if let Some(usage) = &self.usage {
-            if usage.prompt_tokens > 0 {
-                let cached = self.cached_tokens() as f32;
-                let total = usage.prompt_tokens as f32;
-                return (cached / total) * 100.0;
-            }
+        if let Some(usage) = &self.usage
+            && usage.prompt_tokens > 0
+        {
+            let cached = self.cached_tokens() as f32;
+            let total = usage.prompt_tokens as f32;
+            return (cached / total) * 100.0;
         }
         0.0
     }

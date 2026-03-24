@@ -37,7 +37,7 @@
 //!     .build();
 //! ```
 
-use crate::{impl_fine_tuning_params, impl_status_enum, impl_status_methods, De, Ser};
+use crate::{De, Ser, impl_fine_tuning_params, impl_status_enum, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 

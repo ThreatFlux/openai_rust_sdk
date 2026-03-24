@@ -18,9 +18,9 @@ use std::collections::HashMap;
 
 mod common;
 use common::{
-    assert_builder_fails_with_message, create_full_fine_tuning_request,
+    TEST_API_KEY, assert_builder_fails_with_message, create_full_fine_tuning_request,
     create_minimal_fine_tuning_request, create_test_api_client, create_test_api_client_with_url,
-    test_serialization_only, test_serialization_round_trip, TEST_API_KEY,
+    test_serialization_only, test_serialization_round_trip,
 };
 
 /// Helper function to create a test fine-tuning job request

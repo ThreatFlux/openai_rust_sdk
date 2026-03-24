@@ -22,11 +22,11 @@ use openai_rust_sdk::{
     testing::BatchJobGenerator,
 };
 use std::env;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 /// Initialize the batch processing environment and API
-fn initialize_batch_environment(
-) -> Result<(String, BatchJobGenerator, std::path::PathBuf), Box<dyn std::error::Error>> {
+fn initialize_batch_environment()
+-> Result<(String, BatchJobGenerator, std::path::PathBuf), Box<dyn std::error::Error>> {
     let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
         "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
     })?;

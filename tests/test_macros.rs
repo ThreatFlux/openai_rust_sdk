@@ -21,7 +21,7 @@ macro_rules! generate_api_test_suite {
         mod api_tests {
             use super::*;
             use $crate::common::{
-                create_test_api_client, create_test_api_client_with_url, TEST_API_KEY,
+                TEST_API_KEY, create_test_api_client, create_test_api_client_with_url,
             };
 
             #[test]

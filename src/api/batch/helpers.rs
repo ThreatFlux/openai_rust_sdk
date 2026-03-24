@@ -86,10 +86,10 @@ impl<'a> BatchHelpers<'a> {
         }
 
         let yara_content = self.extract_yara_content_from_response(&parsed);
-        if let (Some(id), Some(content)) = (custom_id, yara_content) {
-            if let Some(yara_rule) = YaraProcessor::extract_yara_rule(&content) {
-                return Ok(Some(YaraRuleInfo::new(id.to_string(), yara_rule)));
-            }
+        if let (Some(id), Some(content)) = (custom_id, yara_content)
+            && let Some(yara_rule) = YaraProcessor::extract_yara_rule(&content)
+        {
+            return Ok(Some(YaraRuleInfo::new(id.to_string(), yara_rule)));
         }
 
         Ok(None)

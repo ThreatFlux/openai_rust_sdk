@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use super::builders::MetadataBuilder;
 use super::message::MessageRequest;
-use super::types::{default_thread_object, SortOrder};
+use super::types::{SortOrder, default_thread_object};
 use super::validation::common::validate_metadata;
 
 /// A conversation thread that can contain multiple messages

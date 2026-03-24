@@ -5,7 +5,7 @@
 
 #[cfg(feature = "yara")]
 use criterion::BenchmarkId;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
 #[cfg(feature = "yara")]

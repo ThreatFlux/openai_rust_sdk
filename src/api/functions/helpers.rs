@@ -1,7 +1,7 @@
 use crate::error::Result;
 use crate::models::functions::{FunctionCall, FunctionCallOutput};
 use crate::models::responses::ResponseRequest;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::client::{FunctionCallEvent, FunctionsApi};
 

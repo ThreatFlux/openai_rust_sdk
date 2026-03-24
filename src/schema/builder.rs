@@ -223,10 +223,10 @@ impl SchemaBuilder {
         }
 
         // Add to required array
-        if let Some(Value::Array(required)) = self.schema.get_mut("required") {
-            if !required.iter().any(|v| v.as_str() == Some(&name)) {
-                required.push(Value::String(name));
-            }
+        if let Some(Value::Array(required)) = self.schema.get_mut("required")
+            && !required.iter().any(|v| v.as_str() == Some(&name))
+        {
+            required.push(Value::String(name));
         }
 
         self

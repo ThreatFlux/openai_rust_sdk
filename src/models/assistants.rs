@@ -181,30 +181,30 @@ impl AssistantRequest {
 
     /// Validate name length
     fn validate_name(&self) -> Result<(), String> {
-        if let Some(name) = &self.name {
-            if name.len() > 256 {
-                return Err("Assistant name cannot exceed 256 characters".to_string());
-            }
+        if let Some(name) = &self.name
+            && name.len() > 256
+        {
+            return Err("Assistant name cannot exceed 256 characters".to_string());
         }
         Ok(())
     }
 
     /// Validate description length
     fn validate_description(&self) -> Result<(), String> {
-        if let Some(description) = &self.description {
-            if description.len() > 512 {
-                return Err("Assistant description cannot exceed 512 characters".to_string());
-            }
+        if let Some(description) = &self.description
+            && description.len() > 512
+        {
+            return Err("Assistant description cannot exceed 512 characters".to_string());
         }
         Ok(())
     }
 
     /// Validate instructions length
     fn validate_instructions(&self) -> Result<(), String> {
-        if let Some(instructions) = &self.instructions {
-            if instructions.len() > 32768 {
-                return Err("Assistant instructions cannot exceed 32768 characters".to_string());
-            }
+        if let Some(instructions) = &self.instructions
+            && instructions.len() > 32768
+        {
+            return Err("Assistant instructions cannot exceed 32768 characters".to_string());
         }
         Ok(())
     }

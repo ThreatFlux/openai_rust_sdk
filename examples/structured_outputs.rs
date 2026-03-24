@@ -212,14 +212,16 @@ fn create_metrics_section(result: &ValidationResult) -> serde_json::Value {
 
 #[cfg(feature = "yara")]
 fn create_pattern_tests_section(result: &ValidationResult) -> serde_json::Value {
-    json!(result
-        .pattern_tests
-        .iter()
-        .map(|test| json!({
-            "pattern_id": test.pattern_id, "test_data": test.test_data,
-            "matched": test.matched, "match_details": test.match_details
-        }))
-        .collect::<Vec<_>>())
+    json!(
+        result
+            .pattern_tests
+            .iter()
+            .map(|test| json!({
+                "pattern_id": test.pattern_id, "test_data": test.test_data,
+                "matched": test.matched, "match_details": test.match_details
+            }))
+            .collect::<Vec<_>>()
+    )
 }
 
 #[cfg(feature = "yara")]

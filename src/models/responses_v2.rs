@@ -11,7 +11,7 @@ use crate::models::tools::{EnhancedTool, EnhancedToolChoice};
 use crate::schema::SchemaBuilder;
 use crate::{De, Ser};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, HashMap};
 
 // -----------------------------------------------------------------------------
@@ -1063,10 +1063,10 @@ fn ensure_function_metadata(
     if !map.contains_key("parameters") {
         map.insert("parameters".into(), parameters.clone());
     }
-    if let Some(strict) = strict {
-        if !map.contains_key("strict") {
-            map.insert("strict".into(), Value::Bool(strict));
-        }
+    if let Some(strict) = strict
+        && !map.contains_key("strict")
+    {
+        map.insert("strict".into(), Value::Bool(strict));
     }
 }
 
@@ -1099,10 +1099,10 @@ fn convert_request_tool(tool: &Tool) -> serde_json::Result<Value> {
                         Value::String(custom_tool.description.clone()),
                     );
                 }
-                if let Some(grammar) = &custom_tool.grammar {
-                    if !map.contains_key("grammar") {
-                        map.insert("grammar".into(), serde_json::to_value(grammar)?);
-                    }
+                if let Some(grammar) = &custom_tool.grammar
+                    && !map.contains_key("grammar")
+                {
+                    map.insert("grammar".into(), serde_json::to_value(grammar)?);
                 }
             }
         }
@@ -1377,30 +1377,30 @@ fn extract_call_from_item(item: &ResponseItem, index: usize) -> Option<ParsedCal
 
     let mut payloads: Vec<Value> = Vec::new();
 
-    if let Some(value) = item.extra.get("tool_call") {
-        if value.is_object() {
-            payloads.push(value.clone());
-        }
+    if let Some(value) = item.extra.get("tool_call")
+        && value.is_object()
+    {
+        payloads.push(value.clone());
     }
 
-    if let Some(value) = item.extra.get("function_call") {
-        if value.is_object() {
-            payloads.push(value.clone());
-        }
+    if let Some(value) = item.extra.get("function_call")
+        && value.is_object()
+    {
+        payloads.push(value.clone());
     }
 
-    if let Some(value) = item.extra.get("call") {
-        if value.is_object() {
-            payloads.push(value.clone());
-        }
+    if let Some(value) = item.extra.get("call")
+        && value.is_object()
+    {
+        payloads.push(value.clone());
     }
 
-    if let Some(value) = item.extra.get("function") {
-        if value.is_object() {
-            let mut map = Map::new();
-            map.insert("function".to_string(), value.clone());
-            payloads.push(Value::Object(map));
-        }
+    if let Some(value) = item.extra.get("function")
+        && value.is_object()
+    {
+        let mut map = Map::new();
+        map.insert("function".to_string(), value.clone());
+        payloads.push(Value::Object(map));
     }
 
     if !item.extra.is_empty() {
@@ -1429,18 +1429,17 @@ fn parse_call_payload(
 ) -> Option<ParsedCall> {
     let map = payload.as_object()?;
 
-    if let Some(function_map) = map.get("function").and_then(|v| v.as_object()) {
-        if let Some(name) = function_map.get("name").and_then(|v| v.as_str()) {
-            let (arguments_value, arguments_text) =
-                normalize_arguments(function_map.get("arguments"));
-            let identifier = select_identifier(item, map, Some(function_map), fallback_index);
-            return Some(ParsedCall {
-                id: identifier,
-                name: name.to_string(),
-                arguments_value,
-                arguments_text,
-            });
-        }
+    if let Some(function_map) = map.get("function").and_then(|v| v.as_object())
+        && let Some(name) = function_map.get("name").and_then(|v| v.as_str())
+    {
+        let (arguments_value, arguments_text) = normalize_arguments(function_map.get("arguments"));
+        let identifier = select_identifier(item, map, Some(function_map), fallback_index);
+        return Some(ParsedCall {
+            id: identifier,
+            name: name.to_string(),
+            arguments_value,
+            arguments_text,
+        });
     }
 
     if let Some(name) = map.get("name").and_then(|v| v.as_str()) {

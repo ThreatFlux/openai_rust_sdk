@@ -45,10 +45,10 @@ pub fn validate_dall_e_2(request: &ImageGenerationRequest) -> Result<(), String>
 
 /// Validate DALL-E 3 image count parameter
 fn validate_dall_e_3_image_count(request: &ImageGenerationRequest) -> Result<(), String> {
-    if let Some(n) = request.n {
-        if n != 1 {
-            return Err(errors::DALL_E_3_SINGLE_IMAGE.to_string());
-        }
+    if let Some(n) = request.n
+        && n != 1
+    {
+        return Err(errors::DALL_E_3_SINGLE_IMAGE.to_string());
     }
     Ok(())
 }

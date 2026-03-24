@@ -1,6 +1,6 @@
 //! Response structures for the moderations API
 
-use super::{constants::CATEGORY_MAPPINGS, CategoryScores, ModerationCategories};
+use super::{CategoryScores, ModerationCategories, constants::CATEGORY_MAPPINGS};
 use crate::{De, Ser};
 
 /// Response from moderations API

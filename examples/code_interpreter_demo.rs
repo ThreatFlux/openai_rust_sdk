@@ -52,12 +52,12 @@ async fn demo_auto_mode(responses_api: &ResponsesApi) -> Result<(), Box<dyn std:
             println!("✅ Auto Mode Response:");
             println!("{}", response.output_text());
 
-            if let Some(first_choice) = response.choices.first() {
-                if let Some(tool_calls) = &first_choice.message.tool_calls {
-                    println!("\n📁 Files created during execution:");
-                    for call in tool_calls {
-                        println!("  - {}: {}", call.name, call.id);
-                    }
+            if let Some(first_choice) = response.choices.first()
+                && let Some(tool_calls) = &first_choice.message.tool_calls
+            {
+                println!("\n📁 Files created during execution:");
+                for call in tool_calls {
+                    println!("  - {}: {}", call.name, call.id);
                 }
             }
         }
@@ -231,10 +231,10 @@ fn display_execution_results(
         println!("\n📝 Output:\n{stdout}");
     }
 
-    if let Some(stderr) = &execution_result.stderr {
-        if !stderr.is_empty() {
-            println!("\n⚠️ Errors:\n{stderr}");
-        }
+    if let Some(stderr) = &execution_result.stderr
+        && !stderr.is_empty()
+    {
+        println!("\n⚠️ Errors:\n{stderr}");
     }
 
     if !execution_result.created_files.is_empty() {
@@ -335,14 +335,13 @@ async fn demo_multi_step_analysis(
             println!("✅ Analysis Response:");
             println!("{}", response.output_text());
 
-            if let Some(first_choice) = response.choices.first() {
-                if let Some(tool_calls) = &first_choice.message.tool_calls {
-                    if !tool_calls.is_empty() {
-                        println!("\n📚 Citations:");
-                        for (i, call) in tool_calls.iter().enumerate() {
-                            println!("  [{}] {} - {}", i + 1, call.name, call.id);
-                        }
-                    }
+            if let Some(first_choice) = response.choices.first()
+                && let Some(tool_calls) = &first_choice.message.tool_calls
+                && !tool_calls.is_empty()
+            {
+                println!("\n📚 Citations:");
+                for (i, call) in tool_calls.iter().enumerate() {
+                    println!("  [{}] {} - {}", i + 1, call.name, call.id);
                 }
             }
         }

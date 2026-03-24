@@ -66,10 +66,10 @@ async fn test_minimal_response(gpt5_api: &GPT5Api, input: &ResponseInput) {
     {
         Ok(response) => {
             println!("✅ Minimal response successful!");
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    println!("   Response: {content}");
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+            {
+                println!("   Response: {content}");
             }
             println!("   Model: {}", response.model);
         }
@@ -138,10 +138,10 @@ async fn test_complex_response(gpt5_api: &GPT5Api) {
     {
         Ok(response) => {
             println!("✅ Complex response successful!");
-            if let Some(choice) = response.choices.first() {
-                if choice.message.content.is_some() {
-                    println!("   Response received (verbose mode)");
-                }
+            if let Some(choice) = response.choices.first()
+                && choice.message.content.is_some()
+            {
+                println!("   Response received (verbose mode)");
             }
         }
         Err(e) => {
@@ -163,12 +163,11 @@ async fn test_coding_response(gpt5_api: &GPT5Api) {
     {
         Ok(response) => {
             println!("✅ Coding response successful!");
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    if content.contains("def") || content.contains("python") {
-                        println!("   Code response detected");
-                    }
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+                && (content.contains("def") || content.contains("python"))
+            {
+                println!("   Code response detected");
             }
         }
         Err(e) => {

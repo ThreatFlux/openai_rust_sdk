@@ -1,5 +1,5 @@
 use super::message_types::ImageDetail;
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 
 /// Supported image formats for validation
 #[derive(Debug, Clone, PartialEq)]

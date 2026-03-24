@@ -430,7 +430,10 @@ fn get_demo_message_configs() -> Vec<DemoMessageConfig> {
 ### Supporting Data:
 The analysis is based on data from files referenced in your request. See citations [1] and [2] for detailed metrics.",
             file_ids: &[],
-            metadata: &[("response_type", "structured_analysis"), ("format", "markdown")],
+            metadata: &[
+                ("response_type", "structured_analysis"),
+                ("format", "markdown"),
+            ],
             description: "Structured analysis response",
             emoji: "📊",
         },

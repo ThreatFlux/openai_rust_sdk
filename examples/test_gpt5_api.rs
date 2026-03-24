@@ -11,7 +11,7 @@ use openai_rust_sdk::{
     api::gpt5::GPT5Api,
     error::Result,
     models::{
-        gpt5::{models, ReasoningEffort, Verbosity},
+        gpt5::{ReasoningEffort, Verbosity, models},
         responses::{Message, MessageContentInput, MessageRole, ResponseInput},
     },
 };
@@ -33,10 +33,10 @@ async fn demo_basic_request(gpt5_api: &GPT5Api) {
     {
         Ok(response) => {
             println!("✅ Basic request successful!");
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    println!("   Response: {content}");
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+            {
+                println!("   Response: {content}");
             }
             println!("   Model: {}", response.model);
         }
@@ -72,10 +72,10 @@ async fn demo_fast_response(gpt5_api: &GPT5Api) {
     {
         Ok(response) => {
             println!("✅ Fast response successful!");
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    println!("   Response: {content}");
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+            {
+                println!("   Response: {content}");
             }
         }
         Err(e) => {
@@ -119,15 +119,15 @@ async fn demo_reasoning_levels(gpt5_api: &GPT5Api) {
                 if let Some(usage) = &response.usage {
                     println!("      Tokens used: {}", usage.total_tokens);
                 }
-                if let Some(choice) = response.choices.first() {
-                    if let Some(content) = &choice.message.content {
-                        let preview = if content.len() > 100 {
-                            format!("{}...", &content[..100])
-                        } else {
-                            content.clone()
-                        };
-                        println!("      Response preview: {preview}");
-                    }
+                if let Some(choice) = response.choices.first()
+                    && let Some(content) = &choice.message.content
+                {
+                    let preview = if content.len() > 100 {
+                        format!("{}...", &content[..100])
+                    } else {
+                        content.clone()
+                    };
+                    println!("      Response preview: {preview}");
                 }
             }
             Err(e) => {
@@ -164,15 +164,15 @@ async fn demo_complex_reasoning(gpt5_api: &GPT5Api) {
                 println!("   Prompt tokens: {}", usage.prompt_tokens);
                 println!("   Completion tokens: {}", usage.completion_tokens);
             }
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    let preview = if content.len() > 200 {
-                        format!("{}...", &content[..200])
-                    } else {
-                        content.clone()
-                    };
-                    println!("   Response preview:\n   {preview}");
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+            {
+                let preview = if content.len() > 200 {
+                    format!("{}...", &content[..200])
+                } else {
+                    content.clone()
+                };
+                println!("   Response preview:\n   {preview}");
             }
         }
         Err(e) => {
@@ -199,10 +199,10 @@ async fn demo_coding_task(gpt5_api: &GPT5Api) {
     {
         Ok(response) => {
             println!("✅ Coding response successful!");
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    println!("   Generated code:\n{content}");
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+            {
+                println!("   Generated code:\n{content}");
             }
         }
         Err(e) => {
@@ -229,15 +229,15 @@ async fn demo_frontend_development(gpt5_api: &GPT5Api) {
     {
         Ok(response) => {
             println!("✅ Frontend response successful!");
-            if let Some(choice) = response.choices.first() {
-                if let Some(content) = &choice.message.content {
-                    let preview = if content.len() > 300 {
-                        format!("{}...", &content[..300])
-                    } else {
-                        content.clone()
-                    };
-                    println!("   Generated component preview:\n{preview}");
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(content) = &choice.message.content
+            {
+                let preview = if content.len() > 300 {
+                    format!("{}...", &content[..300])
+                } else {
+                    content.clone()
+                };
+                println!("   Generated component preview:\n{preview}");
             }
         }
         Err(e) => {
@@ -301,10 +301,10 @@ async fn execute_first_conversation_turn(
 
 fn print_first_response_success(response: &openai_rust_sdk::models::responses::ResponseResult) {
     println!("✅ First conversation turn successful!");
-    if let Some(choice) = response.choices.first() {
-        if let Some(content) = &choice.message.content {
-            println!("   First response: {content}");
-        }
+    if let Some(choice) = response.choices.first()
+        && let Some(content) = &choice.message.content
+    {
+        println!("   First response: {content}");
     }
 }
 
@@ -340,11 +340,11 @@ fn create_followup_messages() -> Vec<Message> {
 
 fn print_followup_response_success(response: &openai_rust_sdk::models::responses::ResponseResult) {
     println!("✅ Conversation continuation successful!");
-    if let Some(choice) = response.choices.first() {
-        if let Some(content) = &choice.message.content {
-            let preview = create_content_preview(content);
-            println!("   Followup response: {preview}");
-        }
+    if let Some(choice) = response.choices.first()
+        && let Some(content) = &choice.message.content
+    {
+        let preview = create_content_preview(content);
+        println!("   Followup response: {preview}");
     }
 }
 

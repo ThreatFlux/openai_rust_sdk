@@ -236,10 +236,10 @@ impl TestRunner {
         {
             Ok(response) => {
                 self.print_success("Image generation successful!");
-                if let Some(image) = response.data.first() {
-                    if let Some(url) = &image.url {
-                        println!("   Image URL: {url}");
-                    }
+                if let Some(image) = response.data.first()
+                    && let Some(url) = &image.url
+                {
+                    println!("   Image URL: {url}");
                 }
             }
             Err(e) => {
@@ -334,10 +334,10 @@ fn create_invalid_request() -> ResponseRequest {
 }
 
 fn print_chat_response(response: &openai_rust_sdk::models::responses::ResponseResult) {
-    if let Some(choice) = response.choices.first() {
-        if let Some(content) = &choice.message.content {
-            println!("   Response: {content}");
-        }
+    if let Some(choice) = response.choices.first()
+        && let Some(content) = &choice.message.content
+    {
+        println!("   Response: {content}");
     }
     println!("   Model: {}", response.model);
     if let Some(usage) = &response.usage {

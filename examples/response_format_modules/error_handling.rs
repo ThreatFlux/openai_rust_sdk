@@ -1,7 +1,7 @@
 //! Error handling and validation failure demonstrations
 
 use openai_rust_sdk::{api::ResponsesApi, models::responses::JsonSchemaSpec};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Create a user validation schema for testing error cases
 pub fn create_user_validation_schema() -> Value {

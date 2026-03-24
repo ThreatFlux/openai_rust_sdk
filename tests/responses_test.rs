@@ -4,13 +4,13 @@
 //! These tests verify the response handling, API integration patterns, and data flow
 //! for the `OpenAI` batch API integration.
 
-use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
-#[cfg(not(feature = "yara"))]
-use openai_rust_sdk::testing::BatchJobGenerator;
-#[cfg(feature = "yara")]
-use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]
 use openai_rust_sdk::ValidationResult;
+#[cfg(not(feature = "yara"))]
+use openai_rust_sdk::testing::BatchJobGenerator;
+use openai_rust_sdk::testing::batch_generator::BatchJobRequest;
+#[cfg(feature = "yara")]
+use openai_rust_sdk::testing::{BatchJobGenerator, YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]
 use std::collections::HashMap;
 use tempfile::NamedTempFile;
@@ -390,10 +390,12 @@ fn test_batch_request_response_correlation() {
 
     for (request, response) in request_response_pairs {
         assert_eq!(request.custom_id, response.custom_id);
-        assert!(response.response.choices[0]
-            .message
-            .content
-            .contains("rule"));
+        assert!(
+            response.response.choices[0]
+                .message
+                .content
+                .contains("rule")
+        );
 
         // Verify the generated rule name correlates with request ID
         let rule_content = &response.response.choices[0].message.content;

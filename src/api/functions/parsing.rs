@@ -1,6 +1,6 @@
 use crate::constants::endpoints;
 use crate::error::{OpenAIError, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::client::{FunctionConfig, FunctionsApi};
 use super::extraction::parse_tool_calls;

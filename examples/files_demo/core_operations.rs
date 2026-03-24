@@ -1,6 +1,6 @@
 //! Core file operations: upload, list, retrieve, download
 
-use crate::files_demo::utilities::{upload_file_with_logging, DemoFiles};
+use crate::files_demo::utilities::{DemoFiles, upload_file_with_logging};
 use openai_rust_sdk::api::files::FilesApi;
 use openai_rust_sdk::models::files::{File, FilePurpose, ListFilesParams, SortOrder};
 use std::path::Path;

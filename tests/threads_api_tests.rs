@@ -290,9 +290,11 @@ fn test_thread_request_validation_metadata_key_length() {
 
     let result = request.validate();
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .contains("key cannot exceed 64 characters"));
+    assert!(
+        result
+            .unwrap_err()
+            .contains("key cannot exceed 64 characters")
+    );
 }
 
 #[test]
@@ -303,9 +305,11 @@ fn test_thread_request_validation_metadata_value_length() {
 
     let result = request.validate();
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .contains("value cannot exceed 512 characters"));
+    assert!(
+        result
+            .unwrap_err()
+            .contains("value cannot exceed 512 characters")
+    );
 }
 
 #[test]
@@ -317,9 +321,11 @@ fn test_message_request_validation_content_length() {
         .build();
 
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .contains("content cannot exceed 32,768 characters"));
+    assert!(
+        result
+            .unwrap_err()
+            .contains("content cannot exceed 32,768 characters")
+    );
 }
 
 #[test]

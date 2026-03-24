@@ -72,14 +72,14 @@ async fn generate_hd_landscape_image(api: &ImagesApi) -> Result<()> {
     match api.create_image(&request).await {
         Ok(response) => {
             println!("✅ HD image generated successfully!");
-            if let Some(first_image) = response.first_image() {
-                if first_image.has_b64_json() {
-                    println!("   Received base64 encoded image data");
-                    println!(
-                        "   Base64 data length: ~{} characters",
-                        first_image.get_b64_json().unwrap_or("").len()
-                    );
-                }
+            if let Some(first_image) = response.first_image()
+                && first_image.has_b64_json()
+            {
+                println!("   Received base64 encoded image data");
+                println!(
+                    "   Base64 data length: ~{} characters",
+                    first_image.get_b64_json().unwrap_or("").len()
+                );
             }
         }
         Err(e) => {

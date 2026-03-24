@@ -1,6 +1,6 @@
 //! Advanced file operations: bulk operations, statistics, error handling
 
-use crate::files_demo::utilities::{human_readable_size, DemoFiles};
+use crate::files_demo::utilities::{DemoFiles, human_readable_size};
 use openai_rust_sdk::api::files::FilesApi;
 use openai_rust_sdk::models::files::{FilePurpose, FileUploadRequest};
 

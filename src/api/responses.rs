@@ -126,10 +126,12 @@ impl ResponsesApi {
         match content {
             crate::models::responses::MessageContentInput::Text(text) => json!(text),
             crate::models::responses::MessageContentInput::Array(contents) => {
-                json!(contents
-                    .iter()
-                    .map(|c| self.convert_message_content_item(c))
-                    .collect::<Vec<_>>())
+                json!(
+                    contents
+                        .iter()
+                        .map(|c| self.convert_message_content_item(c))
+                        .collect::<Vec<_>>()
+                )
             }
         }
     }

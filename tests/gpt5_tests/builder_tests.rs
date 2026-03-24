@@ -6,7 +6,7 @@ mod gpt5_request_builder_tests {
     use openai_rust_sdk::api::gpt5::GPT5RequestBuilder;
     use openai_rust_sdk::error::OpenAIError;
     use openai_rust_sdk::models::functions::ToolChoice;
-    use openai_rust_sdk::models::gpt5::{models, ReasoningEffort, Verbosity};
+    use openai_rust_sdk::models::gpt5::{ReasoningEffort, Verbosity, models};
 
     #[test]
     fn test_builder_default_creation() {

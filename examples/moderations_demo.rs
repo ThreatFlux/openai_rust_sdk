@@ -13,11 +13,7 @@ use std::env;
 
 /// Helper function to display safety status
 fn display_safety_status(is_safe: bool) -> &'static str {
-    if is_safe {
-        "Safe"
-    } else {
-        "Flagged"
-    }
+    if is_safe { "Safe" } else { "Flagged" }
 }
 
 /// Example 1: Single text moderation
