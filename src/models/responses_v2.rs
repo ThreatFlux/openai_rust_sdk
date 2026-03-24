@@ -1935,6 +1935,67 @@ mod tests {
         let fragments = item.text_fragments();
         assert_eq!(fragments, vec!["Hello".to_string()]);
     }
+
+    #[test]
+    fn extract_call_from_item_with_function_key() {
+        let mut extra = HashMap::new();
+        extra.insert(
+            "function".to_string(),
+            json!({"name": "greet", "arguments": "{\"who\":\"world\"}"}),
+        );
+        let item = ResponseItem {
+            item_type: "function_call".to_string(),
+            id: None,
+            status: None,
+            role: None,
+            content: Vec::new(),
+            extra,
+        };
+        let call = extract_call_from_item(&item, 0).expect("should parse");
+        assert_eq!(call.name, "greet");
+    }
+
+    #[test]
+    fn extract_call_from_item_with_call_key() {
+        let mut extra = HashMap::new();
+        extra.insert(
+            "call".to_string(),
+            json!({"name": "search", "arguments": "{}"}),
+        );
+        let item = ResponseItem {
+            item_type: "tool_call".to_string(),
+            id: None,
+            status: None,
+            role: None,
+            content: Vec::new(),
+            extra,
+        };
+        let call = extract_call_from_item(&item, 1).expect("should parse");
+        assert_eq!(call.name, "search");
+    }
+
+    #[test]
+    fn ensure_function_metadata_sets_strict() {
+        let mut map = Map::new();
+        map.insert("type".into(), json!("function"));
+        ensure_function_metadata(
+            &mut map,
+            "test_fn",
+            "desc",
+            &json!({"type": "object"}),
+            Some(true),
+        );
+        assert_eq!(map.get("strict"), Some(&json!(true)));
+        assert_eq!(map.get("name"), Some(&json!("test_fn")));
+    }
+
+    #[test]
+    fn ensure_function_metadata_skips_strict_when_none() {
+        let mut map = Map::new();
+        ensure_function_metadata(&mut map, "fn", "desc", &json!({}), None);
+        assert!(!map.contains_key("strict"));
+        assert_eq!(map.get("name"), Some(&json!("fn")));
+    }
 }
 
 // -----------------------------------------------------------------------------

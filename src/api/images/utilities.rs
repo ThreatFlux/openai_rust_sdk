@@ -201,3 +201,36 @@ impl ImageRecommendationUtils {
         base_cost * f64::from(count)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_supported_format_returns_true_for_png() {
+        assert!(ImageSupportUtils::is_supported_format("photo.png"));
+    }
+
+    #[test]
+    fn is_supported_format_returns_true_for_jpg() {
+        assert!(ImageSupportUtils::is_supported_format("photo.JPG"));
+    }
+
+    #[test]
+    fn is_supported_format_returns_false_for_unknown() {
+        assert!(!ImageSupportUtils::is_supported_format("photo.bmp"));
+    }
+
+    #[test]
+    fn is_supported_format_returns_false_for_no_extension() {
+        assert!(!ImageSupportUtils::is_supported_format("photo"));
+    }
+
+    #[test]
+    fn validate_image_edit_requires_png() {
+        let result = ImageUtils::validate_image_requirements("edit", "test.jpg");
+        assert!(result.is_err());
+        let result = ImageUtils::validate_image_requirements("edit", "test.png");
+        assert!(result.is_ok());
+    }
+}

@@ -123,3 +123,59 @@ pub fn response_format_to_json(format: &ResponseFormat) -> Option<Value> {
         })),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_to_json_with_text() {
+        let content = MessageContentInput::Text("hello".to_string());
+        let json = content_to_json(&content);
+        assert_eq!(json, json!("hello"));
+    }
+
+    #[test]
+    fn content_to_json_with_array() {
+        let content = MessageContentInput::Array(vec![MessageContent::Text {
+            text: "hi".to_string(),
+        }]);
+        let json = content_to_json(&content);
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["type"], "text");
+        assert_eq!(arr[0]["text"], "hi");
+    }
+
+    #[test]
+    fn content_to_json_with_image() {
+        use crate::models::responses::message_types::ImageUrl;
+        let content = MessageContentInput::Array(vec![MessageContent::Image {
+            image_url: ImageUrl {
+                url: "https://example.com/img.png".to_string(),
+                detail: Some(ImageDetail::High),
+            },
+        }]);
+        let json = content_to_json(&content);
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr[0]["type"], "image_url");
+        assert_eq!(arr[0]["image_url"]["detail"], "high");
+    }
+
+    #[test]
+    fn add_optional_params_sets_fields() {
+        let mut request = json!({"model": "gpt-4"});
+        let params = OptionalParams {
+            temperature: Some(0.5),
+            max_tokens: Some(100),
+            top_p: None,
+            frequency_penalty: None,
+            presence_penalty: None,
+            stream: Some(true),
+        };
+        add_optional_params(&mut request, &params);
+        assert_eq!(request["temperature"], json!(0.5));
+        assert_eq!(request["max_tokens"], json!(100));
+        assert_eq!(request["stream"], json!(true));
+    }
+}

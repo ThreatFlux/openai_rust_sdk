@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '15 3 * * 1'  # Weekly on Monday at 3:15 AM UTC
 
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Security audit for dependencies
   audit:
