@@ -149,3 +149,55 @@ impl ResponseResult {
         self.cached_tokens() > 0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::responses::usage_types::PromptTokenDetails;
+
+    fn response_with_usage(prompt_tokens: u32, cached_tokens: u32) -> ResponseResult {
+        ResponseResult {
+            id: None,
+            object: String::new(),
+            created: 0,
+            model: String::new(),
+            choices: Vec::new(),
+            usage: Some(Usage {
+                prompt_tokens,
+                completion_tokens: 0,
+                total_tokens: prompt_tokens,
+                prompt_tokens_details: Some(PromptTokenDetails {
+                    cached_tokens,
+                    audio_tokens: None,
+                }),
+                completion_tokens_details: None,
+            }),
+        }
+    }
+
+    #[test]
+    fn cache_hit_rate_with_cached_tokens() {
+        let resp = response_with_usage(100, 50);
+        let rate = resp.cache_hit_rate();
+        assert!((rate - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn cache_hit_rate_zero_when_no_usage() {
+        let resp = ResponseResult {
+            id: None,
+            object: String::new(),
+            created: 0,
+            model: String::new(),
+            choices: Vec::new(),
+            usage: None,
+        };
+        assert_eq!(resp.cache_hit_rate(), 0.0);
+    }
+
+    #[test]
+    fn cache_hit_rate_zero_when_zero_prompt_tokens() {
+        let resp = response_with_usage(0, 0);
+        assert_eq!(resp.cache_hit_rate(), 0.0);
+    }
+}
