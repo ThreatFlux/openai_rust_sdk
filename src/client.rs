@@ -6,8 +6,8 @@ use crate::api::responses_v2::{
 use crate::api::streaming::ResponseStream;
 use crate::api::streaming::StreamingApi;
 use crate::api::{
-    common::{ApiClientConstructors, StandardListParams},
     ResponsesApi,
+    common::{ApiClientConstructors, StandardListParams},
 };
 use crate::error::Result;
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool, ToolChoice};
@@ -15,7 +15,7 @@ use crate::models::responses::{
     Message, MessageRole, ResponseInput, ResponseRequest, ResponseResult,
 };
 use crate::models::responses_v2::{
-    from_legacy_request, to_legacy_response, CreateResponseRequest, Instructions, ResponseObject,
+    CreateResponseRequest, Instructions, ResponseObject, from_legacy_request, to_legacy_response,
 };
 
 /// Main `OpenAI` client that provides access to all APIs
@@ -647,8 +647,11 @@ mod tests {
     fn test_from_env_with_custom_base_url() {
         let _guard = ENV_LOCK.lock().expect("lock poisoned");
 
-        std::env::set_var("OPENAI_API_KEY", "test-key");
-        std::env::set_var("OPENAI_BASE_URL", "https://example-proxy.test/v1");
+        // SAFETY: test runs under ENV_LOCK so no concurrent env access.
+        unsafe {
+            std::env::set_var("OPENAI_API_KEY", "test-key");
+            std::env::set_var("OPENAI_BASE_URL", "https://example-proxy.test/v1");
+        }
 
         let client = from_env().expect("client creation failed");
         assert_eq!(
@@ -656,7 +659,10 @@ mod tests {
             "https://example-proxy.test/v1"
         );
 
-        std::env::remove_var("OPENAI_API_KEY");
-        std::env::remove_var("OPENAI_BASE_URL");
+        // SAFETY: test runs under ENV_LOCK so no concurrent env access.
+        unsafe {
+            std::env::remove_var("OPENAI_API_KEY");
+            std::env::remove_var("OPENAI_BASE_URL");
+        }
     }
 }

@@ -1,6 +1,6 @@
 //! Example schemas for different use cases
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Helper function to create example schemas for different use cases

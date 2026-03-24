@@ -1,7 +1,7 @@
 //! Legacy utilities module - deprecated, use specific modules instead
 
 // Re-export all utility functions from their new locations for backward compatibility
-pub use crate::api::base::config::{validate_request, Validate};
+pub use crate::api::base::config::{Validate, validate_request};
 pub use crate::api::base::error::{
     handle_error_response_with_json, handle_simple_error_response, map_parse_error,
     map_request_error,

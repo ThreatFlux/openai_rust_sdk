@@ -11,7 +11,7 @@ fn main() {
 }
 
 #[cfg(feature = "yara")]
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 #[cfg(feature = "yara")]
 use openai_rust_sdk::testing::{YaraTestCases, YaraValidator};
 #[cfg(feature = "yara")]

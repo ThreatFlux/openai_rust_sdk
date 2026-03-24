@@ -53,7 +53,7 @@
 //! # });
 //! ```
 
-use crate::api::base::{validate_request, HttpClient};
+use crate::api::base::{HttpClient, validate_request};
 use crate::api::common::ApiClientConstructors;
 use crate::api::shared_utilities::FormBuilder;
 use crate::constants::endpoints;

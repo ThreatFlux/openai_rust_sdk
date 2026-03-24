@@ -75,12 +75,12 @@ impl ImageUtils {
         match operation {
             "edit" | "variation" => {
                 // These operations require PNG format and square images
-                if let Some(ext) = path.extension() {
-                    if ext.to_str().unwrap_or("").to_lowercase() != "png" {
-                        return Err(OpenAIError::invalid_request(
-                            "Image edits and variations require PNG format",
-                        ));
-                    }
+                if let Some(ext) = path.extension()
+                    && ext.to_str().unwrap_or("").to_lowercase() != "png"
+                {
+                    return Err(OpenAIError::invalid_request(
+                        "Image edits and variations require PNG format",
+                    ));
                 }
             }
             _ => {}
@@ -102,10 +102,10 @@ impl ImageSupportUtils {
 
     /// Validate image file format
     pub fn is_supported_format(file_path: impl AsRef<Path>) -> bool {
-        if let Some(extension) = file_path.as_ref().extension() {
-            if let Some(ext_str) = extension.to_str() {
-                return Self::supported_input_formats().contains(&ext_str.to_lowercase().as_str());
-            }
+        if let Some(extension) = file_path.as_ref().extension()
+            && let Some(ext_str) = extension.to_str()
+        {
+            return Self::supported_input_formats().contains(&ext_str.to_lowercase().as_str());
         }
         false
     }

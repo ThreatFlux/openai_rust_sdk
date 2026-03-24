@@ -1,6 +1,6 @@
 use crate::api::base::HttpClient;
 use crate::api::common::{
-    build_list_query_params, ApiClientConstructors, ListQueryParams, StandardListParams,
+    ApiClientConstructors, ListQueryParams, StandardListParams, build_list_query_params,
 };
 use crate::api::shared_utilities::EnumConverter;
 use crate::error::{ApiErrorResponse, OpenAIError, Result};
@@ -89,10 +89,10 @@ impl ResponsesApiV2 {
         include: Option<Vec<String>>,
     ) -> Result<ResponseObject> {
         let mut query: Vec<(String, String)> = Vec::new();
-        if let Some(include) = include {
-            if !include.is_empty() {
-                query.push(("include".into(), include.join(",")));
-            }
+        if let Some(include) = include
+            && !include.is_empty()
+        {
+            query.push(("include".into(), include.join(",")));
         }
         let url = self
             .http_client

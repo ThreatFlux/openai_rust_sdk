@@ -63,10 +63,10 @@ impl VoiceActivityDetector {
         if is_speech {
             self.last_speech_time = Some(Instant::now());
             self.is_speaking = true;
-        } else if let Some(last_speech) = self.last_speech_time {
-            if last_speech.elapsed().as_millis() > u128::from(self.config.silence_duration_ms) {
-                self.is_speaking = false;
-            }
+        } else if let Some(last_speech) = self.last_speech_time
+            && last_speech.elapsed().as_millis() > u128::from(self.config.silence_duration_ms)
+        {
+            self.is_speaking = false;
         }
 
         VoiceActivityResult {

@@ -5,7 +5,7 @@ use openai_rust_sdk::{
     api::ResponsesApi,
     models::responses::{JsonSchemaSpec, ResponseRequest},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Create a strict schema for API response validation
 pub fn create_strict_schema() -> Value {

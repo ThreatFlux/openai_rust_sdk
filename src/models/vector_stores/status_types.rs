@@ -4,7 +4,7 @@
 //! including statuses for vector stores, files, and batch operations.
 
 use crate::models::shared_traits::StatusEnum;
-use crate::{impl_status_enum, De, Ser};
+use crate::{De, Ser, impl_status_enum};
 use serde::{self, Deserialize, Serialize};
 
 /// Status of a vector store

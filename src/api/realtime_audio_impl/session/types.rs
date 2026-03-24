@@ -7,9 +7,9 @@ use crate::models::realtime_audio::{
     AudioBuffer, RealtimeEvent, RealtimeSessionConfig, WebRtcConnectionState, WebRtcStats,
 };
 use chrono::{DateTime, Utc};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::sync::{Mutex, mpsc};
 use webrtc::data_channel::RTCDataChannel;
 use webrtc::peer_connection::RTCPeerConnection;
 use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;

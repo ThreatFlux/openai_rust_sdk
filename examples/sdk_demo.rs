@@ -13,6 +13,7 @@ async fn main() {
 
 #[cfg(feature = "yara")]
 use openai_rust_sdk::{
+    OpenAIClient,
     api::{
         functions::{FunctionConfig, FunctionsApi},
         gpt5::{GPT5Api, GPT5RequestBuilder},
@@ -26,7 +27,6 @@ use openai_rust_sdk::{
     },
     schema::builder::SchemaBuilder,
     testing::yara_validator::{ValidationResult, YaraValidator},
-    OpenAIClient,
 };
 
 #[cfg(feature = "yara")]
@@ -284,11 +284,11 @@ fn demo_schema_building() {
         if let Some(schema_type) = schema_value.get("type") {
             println!("   Schema type: {}", schema_type);
         }
-        if let Some(properties) = schema_value.get("properties") {
-            if let Some(obj) = properties.as_object() {
-                let keys: Vec<String> = obj.keys().cloned().collect();
-                println!("   Properties: {}", keys.join(", "));
-            }
+        if let Some(properties) = schema_value.get("properties")
+            && let Some(obj) = properties.as_object()
+        {
+            let keys: Vec<String> = obj.keys().cloned().collect();
+            println!("   Properties: {}", keys.join(", "));
         }
     }
 }

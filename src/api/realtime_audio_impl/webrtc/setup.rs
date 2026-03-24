@@ -6,10 +6,10 @@ use crate::error::{OpenAIError, Result};
 use crate::models::realtime_audio::RealtimeSessionResponse;
 use log::info;
 use std::sync::Arc;
-use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::data_channel::RTCDataChannel;
-use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;
+use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::track::track_local::TrackLocal;
+use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;
 
 use super::super::{client::RealtimeAudioApi, session::RealtimeSession};
 use super::connection::map_webrtc_connection_state;
@@ -83,10 +83,10 @@ impl RealtimeAudioApi {
         data_channel.on_message(Box::new(move |msg| {
             let session_for_events = session_for_events.clone();
             Box::pin(async move {
-                if let Some(session) = session_for_events.upgrade() {
-                    if let Err(e) = session.handle_data_channel_message(msg).await {
-                        log::error!("Failed to handle data channel message: {e}");
-                    }
+                if let Some(session) = session_for_events.upgrade()
+                    && let Err(e) = session.handle_data_channel_message(msg).await
+                {
+                    log::error!("Failed to handle data channel message: {e}");
                 }
             })
         }));

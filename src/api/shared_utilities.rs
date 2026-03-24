@@ -389,12 +389,12 @@ impl RequestValidator {
 
     /// Validate temperature range
     pub fn validate_temperature(temperature: Option<f32>) -> Result<()> {
-        if let Some(temp) = temperature {
-            if !(0.0..=2.0).contains(&temp) {
-                return Err(OpenAIError::InvalidRequest(
-                    "Temperature must be between 0.0 and 2.0".to_string(),
-                ));
-            }
+        if let Some(temp) = temperature
+            && !(0.0..=2.0).contains(&temp)
+        {
+            return Err(OpenAIError::InvalidRequest(
+                "Temperature must be between 0.0 and 2.0".to_string(),
+            ));
         }
         Ok(())
     }

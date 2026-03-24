@@ -7,7 +7,7 @@
 //! - Schema builders for creating complex validation schemas
 //! - Type-safe parsing of structured responses
 
-use openai_rust_sdk::api::{common::ApiClientConstructors, ResponsesApi};
+use openai_rust_sdk::api::{ResponsesApi, common::ApiClientConstructors};
 use std::env;
 
 mod response_format_modules;

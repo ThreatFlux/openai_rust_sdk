@@ -2,8 +2,8 @@ use futures::StreamExt;
 use openai_rust_sdk::{
     client::OpenAIClient,
     models::{
-        responses_v2::{CreateResponseRequest, ResponseStreamEvent},
         ResponsesApiServiceTier as ServiceTier,
+        responses_v2::{CreateResponseRequest, ResponseStreamEvent},
     },
 };
 

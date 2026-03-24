@@ -212,11 +212,11 @@ async fn process_batch_stream<S, F>(stream: S) -> Result<()>
 where
     S: futures::Stream<Item = F>,
     F: std::future::Future<
-        Output = Result<(
-            String,
-            openai_rust_sdk::testing::yara_validator::ValidationResult,
-        )>,
-    >,
+            Output = Result<(
+                String,
+                openai_rust_sdk::testing::yara_validator::ValidationResult,
+            )>,
+        >,
 {
     let mut processed = 0;
     let mut valid_responses = 0;

@@ -2,7 +2,7 @@
 
 use crate::api::base::config::ClientConfig;
 use crate::error::{OpenAIError, Result};
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
+use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 
 /// Common HTTP client for all OpenAI API operations

@@ -42,10 +42,10 @@ impl AudioApi {
 
     /// Validate audio file format
     pub fn is_supported_format(file_path: impl AsRef<Path>) -> bool {
-        if let Some(extension) = file_path.as_ref().extension() {
-            if let Some(ext_str) = extension.to_str() {
-                return Self::supported_input_formats().contains(&ext_str.to_lowercase().as_str());
-            }
+        if let Some(extension) = file_path.as_ref().extension()
+            && let Some(ext_str) = extension.to_str()
+        {
+            return Self::supported_input_formats().contains(&ext_str.to_lowercase().as_str());
         }
         false
     }

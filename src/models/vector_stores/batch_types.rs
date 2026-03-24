@@ -5,7 +5,7 @@
 
 use crate::models::vector_stores::common_types::{ChunkingStrategy, FileCounts, StatusChecker};
 use crate::models::vector_stores::status_types::VectorStoreFileBatchStatus;
-use crate::{impl_status_methods, De, Ser};
+use crate::{De, Ser, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 
 /// A vector store file batch represents a batch operation on multiple files

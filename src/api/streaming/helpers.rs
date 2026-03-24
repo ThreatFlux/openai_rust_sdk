@@ -1,7 +1,7 @@
 //! Helper functions and utilities for streaming operations
 
 // Re-export functions from other modules for backward compatibility
-pub use crate::api::streaming::stream_operations::{collect_stream_response, ResponseStreamExt};
+pub use crate::api::streaming::stream_operations::{ResponseStreamExt, collect_stream_response};
 pub use crate::api::streaming::utilities::{
     chunk_to_events, process_stream_event, to_streaming_json,
 };

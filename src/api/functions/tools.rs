@@ -1,6 +1,6 @@
 use crate::error::{OpenAIError, Result};
 use crate::models::functions::{FunctionCall, FunctionCallOutput, Tool};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::client::FunctionsApi;
 

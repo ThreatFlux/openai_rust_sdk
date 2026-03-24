@@ -7,7 +7,7 @@ use crate::models::vector_stores::common_types::{
     ChunkingStrategy, StatusChecker, VectorStoreFileError,
 };
 use crate::models::vector_stores::status_types::VectorStoreFileStatus;
-use crate::{impl_status_methods, De, Ser};
+use crate::{De, Ser, impl_status_methods};
 use serde::{self, Deserialize, Serialize};
 
 /// A vector store file represents the association between a file and a vector store

@@ -48,8 +48,8 @@ pub mod utilities;
 // Re-export main types and functions for convenience
 pub use client::StreamingApi;
 pub use helpers::{
-    chunk_to_events, collect_stream_response, process_stream_event, to_streaming_json,
-    ResponseStreamExt,
+    ResponseStreamExt, chunk_to_events, collect_stream_response, process_stream_event,
+    to_streaming_json,
 };
 pub use processor::FunctionStreamProcessor;
 pub use types::{

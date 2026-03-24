@@ -10,11 +10,11 @@
 
 use futures::StreamExt;
 use openai_rust_sdk::{
+    ChatBuilder, Message, OpenAIClient,
     api::functions::FunctionConfig,
     api::streaming::FunctionStreamEvent,
     builders::FunctionBuilder,
     models::functions::{CustomTool, FunctionCallOutput, Tool, ToolChoice},
-    ChatBuilder, Message, OpenAIClient,
 };
 use serde_json::json;
 

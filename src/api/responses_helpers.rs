@@ -4,7 +4,7 @@
 use crate::models::responses::{
     ImageDetail, MessageContent, MessageContentInput, MessageRole, ResponseFormat,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Lookup table for role conversions - optimized for performance
 const ROLE_LOOKUP: &[(MessageRole, &str)] = &[
@@ -27,10 +27,12 @@ pub fn content_to_json(content: &MessageContentInput) -> Value {
     match content {
         MessageContentInput::Text(text) => json!(text),
         MessageContentInput::Array(contents) => {
-            json!(contents
-                .iter()
-                .map(content_item_to_json)
-                .collect::<Vec<_>>())
+            json!(
+                contents
+                    .iter()
+                    .map(content_item_to_json)
+                    .collect::<Vec<_>>()
+            )
         }
     }
 }

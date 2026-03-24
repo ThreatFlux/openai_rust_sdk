@@ -10,7 +10,7 @@ use openai_rust_sdk::api::realtime_audio::{
 use openai_rust_sdk::models::realtime_audio::*;
 
 mod common;
-use common::{test_serialization_only, test_serialization_round_trip, TEST_API_KEY};
+use common::{TEST_API_KEY, test_serialization_only, test_serialization_round_trip};
 
 #[tokio::test]
 async fn test_realtime_audio_api_creation() {
