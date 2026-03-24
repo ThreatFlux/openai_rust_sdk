@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.5.0] - 2026-03-24
+
+
+### 🚀 What's Changed
+
+#### ✨ Features
+- feat: upgrade to Rust 1.94.0 / edition 2024 with latest deps (efd1c4f)
+- feat: add uploads, evals, videos, conversations, skills, and admin APIs; use self-hosted runners (ab6a4ee)
+
+#### 🐛 Bug Fixes
+- fix(ci): use PR-based release flow to respect branch protection (#58) (56bfb44)
+- fix(ci): add test coverage, use GitHub runners, add concurrency groups (#57) (ec0ebef)
+- fix: add nosemgrep annotations for required unsafe env var blocks (a5c8737)
+- fix(ci): avoid self-hosted runners for pull request workflows (9ca03ad)
+- fix: pin qlora-paste to 1.0.17 for Docker rustc 1.90 compatibility (0687b37)
+- fix: replace unmaintained paste with qlora-paste and suppress transitive advisories (573e0bb)
+- fix: install gh CLI on self-hosted runner for auto-release and release workflows (ca3b553)
+
+#### 🔧 Other Changes
+- ci(deps): bump the actions group across 1 directory with 9 updates (5dea359)
+- ci(deps): bump the actions group across 1 directory with 11 updates (90f5cf6)
+- chore(deps): bump the minor-and-patch group across 1 directory with 4 updates (f585c32)
+- chore(deps): bump jsonschema from 0.42.1 to 0.44.0 (b35d293)
+- ci(deps): bump the actions group across 1 directory with 22 updates (655e07e)
+
+### 📊 Statistics
+
+- **Version**: 1.4.2 → 1.5.0
+- **Date**: 2026-03-24
+- **Commits**: 14
+- **Contributors**: 2
+
+
 ## [1.4.2] - 2026-02-23
 
 
