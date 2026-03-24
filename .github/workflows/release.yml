@@ -16,6 +16,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -24,7 +28,7 @@ jobs:
   # Validate and prepare release
   prepare:
     name: Prepare Release
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       upload_url: ${{ steps.check_release.outputs.exists == 'true' && steps.check_release.outputs.upload_url || steps.create_release.outputs.upload_url }}
@@ -119,14 +123,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: self-hosted
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: openai-rust-sdk-linux-amd64
-          - os: self-hosted
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact_name: openai-rust-sdk-linux-musl-amd64
             use_cross: true
-          - os: self-hosted
+          - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: openai-rust-sdk-linux-arm64
             use_cross: true
@@ -150,7 +154,7 @@ jobs:
           targets: ${{ matrix.target }}
       
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'self-hosted'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev pkg-config
@@ -260,7 +264,7 @@ jobs:
   publish-crate:
     name: Publish to crates.io
     needs: [prepare, build]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -292,7 +296,7 @@ jobs:
   docker:
     name: Build and Push Docker Images
     needs: [prepare, build]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -350,7 +354,7 @@ jobs:
   signatures:
     name: Generate Signatures
     needs: [prepare, build]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -370,7 +374,7 @@ jobs:
   docs:
     name: Update Documentation
     needs: [prepare, publish-crate]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:

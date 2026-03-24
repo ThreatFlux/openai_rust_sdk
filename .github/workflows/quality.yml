@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '30 2 * * 1'  # Weekly on Monday at 2:30 AM UTC
 
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -16,7 +20,7 @@ jobs:
   # Comprehensive linting
   lint:
     name: Lint
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -61,7 +65,7 @@ jobs:
   # Code complexity and maintainability
   complexity:
     name: Code Complexity
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -99,7 +103,7 @@ jobs:
   # Documentation quality
   docs-quality:
     name: Documentation Quality
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -139,7 +143,7 @@ jobs:
   # Test coverage
   coverage:
     name: Test Coverage
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -194,7 +198,7 @@ jobs:
   # Mutation testing
   mutation:
     name: Mutation Testing
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     continue-on-error: true
     steps:
@@ -227,7 +231,7 @@ jobs:
   # Performance regression check
   bench-check:
     name: Benchmark Check
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -281,7 +285,7 @@ jobs:
   # Dependency analysis
   deps-analysis:
     name: Dependency Analysis
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -319,7 +323,7 @@ jobs:
   # Code duplication check
   duplication:
     name: Code Duplication
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -337,7 +341,7 @@ jobs:
   # Spell check
   spellcheck:
     name: Spell Check
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -355,7 +359,7 @@ jobs:
   # Summary job
   quality-gate:
     name: Quality Gate
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [lint, complexity, docs-quality, coverage, deps-analysis]
     if: always()
     steps:
