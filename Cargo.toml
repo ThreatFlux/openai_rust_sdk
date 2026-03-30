@@ -18,7 +18,7 @@ anyhow = "1.0.102"
 thiserror = "2.0.18"
 reqwest = { version = "0.13.2", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
 clap = { version = "4.6.0", features = ["derive"] }
-uuid = { version = "1.22.0", features = ["v4"] }
+uuid = { version = "1.23.0", features = ["v4"] }
 tokio-stream = "0.1.18"
 eventsource-stream = "0.2.3"
 futures = "0.3.32"
@@ -29,7 +29,7 @@ async-stream = "0.3.6"
 bytes = "1.11.1"
 base64 = "0.22.1"
 const_format = "0.2.35"
-paste = { package = "qlora-paste", version = "1.0.17" }
+paste = { package = "qlora-paste", version = "1.0.20" }
 # WebRTC dependencies for real-time audio
 webrtc = "0.17.1"
 # WebRTC signaling and peer connection
