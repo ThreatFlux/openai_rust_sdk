@@ -17,6 +17,8 @@ on:
     - cron: '0 4 * * 1'  # Weekly on Monday at 4 AM UTC
   workflow_dispatch:
 
+permissions: read-all
+
 concurrency:
   group: docker-${{ github.ref }}
   cancel-in-progress: true
@@ -196,10 +198,11 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           vuln-type: 'os,library'
+          trivyignores: '.trivyignore'
         continue-on-error: true
       
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           sarif_file: 'trivy-results.sarif'
         if: always() && hashFiles('trivy-results.sarif') != ''
@@ -214,7 +217,7 @@ jobs:
         continue-on-error: true
       
       - name: Upload Grype results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
         with:
           sarif_file: results.sarif
         if: always() && hashFiles('results.sarif') != ''

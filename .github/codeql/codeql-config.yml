@@ -1,0 +1,6 @@
+name: "CodeQL Configuration"
+
+paths-ignore:
+  - target
+  - target/**
+  - "**/*.lock"
