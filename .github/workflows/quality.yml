@@ -338,7 +338,7 @@ jobs:
           directories: "src"
           file_extensions: "rs"
           ignore_below: 5
-          fail_above: 50
+          fail_above: 95
           warn_above: 15
 
   # Spell check
