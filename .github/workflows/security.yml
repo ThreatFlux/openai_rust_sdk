@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -121,14 +121,14 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13  # v4
         with:
           languages: 'rust'
           queries: security-and-quality
           config-file: .github/codeql/codeql-config.yml
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -141,7 +141,7 @@ jobs:
         run: cargo build --all-features
       
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13  # v4
 
   # Semgrep scanning
   semgrep:
@@ -176,7 +176,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -212,7 +212,7 @@ jobs:
           fetch-depth: 0  # Fetch all history for secret scanning
       
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@6c64db94d5b2e09d7e0948fb6bd3166cc6fffbc7  # v3.94.0
+        uses: trufflesecurity/trufflehog@586f66d7886cd0b037c7c245d4a6e34ef357ab10  # v3.94.1
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.after }}
@@ -249,7 +249,7 @@ jobs:
           retention-days: 30
       
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13  # v4
         with:
           sarif_file: reports/dependency-check-report.sarif
         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
@@ -280,7 +280,7 @@ jobs:
           trivyignores: '.trivyignore'
       
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13  # v4
         with:
           sarif_file: 'trivy-results.sarif'
         if: always() && hashFiles('trivy-results.sarif') != ''
@@ -293,7 +293,7 @@ jobs:
           severity-cutoff: high
       
       - name: Upload Grype results
-        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13  # v4
         with:
           sarif_file: results.sarif
         if: always() && hashFiles('results.sarif') != ''
@@ -321,6 +321,6 @@ jobs:
           publish_results: true
       
       - name: Upload results to code scanning
-        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13  # v4
         with:
           sarif_file: scorecard.sarif
