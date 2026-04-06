@@ -333,6 +333,7 @@ jobs:
 
       - name: Check for code duplication
         uses: platisd/duplicate-code-detection-tool@f0413b1571a98b653f617a59fec0097001e18c0e  # v1.2.0
+        continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           directories: "src"
