@@ -2212,9 +2212,9 @@ dependencies = [
 
 [[package]]
 name = "intaglio"
-version = "1.13.2"
+version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4271d1532513fd3671b4a768fc5f189d5365621d2fb844cfb341ef4b67afaff"
+checksum = "4e062125b1cb1523e2032c12f3a5bac6947ccd1f8c0a8aae96f63609fe0e34ee"
 
 [[package]]
 name = "interceptor"
