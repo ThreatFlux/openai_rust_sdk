@@ -11,19 +11,19 @@ categories = ["development-tools", "api-bindings"]
 authors = ["Wyatt Roersma", "Claude Code"]
 
 [dependencies]
-tokio = { version = "1.50.0", features = ["full"] }
+tokio = { version = "1.51.0", features = ["full"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 anyhow = "1.0.102"
 thiserror = "2.0.18"
 reqwest = { version = "0.13.2", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
 clap = { version = "4.6.0", features = ["derive"] }
-uuid = { version = "1.22.0", features = ["v4"] }
+uuid = { version = "1.23.0", features = ["v4"] }
 tokio-stream = "0.1.18"
 eventsource-stream = "0.2.3"
 futures = "0.3.32"
 chrono = { version = "0.4.44", features = ["serde"] }
-indexmap = { version = "2.13.0", features = ["serde"] }
+indexmap = { version = "2.13.1", features = ["serde"] }
 jsonschema = "0.45.0"
 async-stream = "0.3.6"
 bytes = "1.11.1"
