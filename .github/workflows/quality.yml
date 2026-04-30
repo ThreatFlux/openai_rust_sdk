@@ -201,8 +201,7 @@ jobs:
   mutation:
     name: Mutation Testing
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
@@ -326,8 +325,7 @@ jobs:
   duplication:
     name: Code Duplication
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
