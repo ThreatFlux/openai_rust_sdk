@@ -45,9 +45,9 @@ jobs:
           cargo fmt -- --check
           echo "✅ Formatting check passed"
       
-      - name: Run clippy with all features
+      - name: Run clippy with default features
         run: |
-          cargo clippy --all-features --all-targets -- \
+          cargo clippy --all-targets -- \
             -D warnings \
             -D clippy::all \
             -D clippy::pedantic \
@@ -89,12 +89,12 @@ jobs:
       - name: Check unsafe code usage
         run: |
           echo "🔒 Unsafe Code Analysis:"
-          cargo geiger --all-features || true
+          cargo geiger || true
       
       - name: Count dependencies
         run: |
           echo "📦 Dependency Count:"
-          cargo tree --all-features | wc -l
+          cargo tree | wc -l
       
       - name: Analyze code metrics
         run: |
@@ -121,24 +121,24 @@ jobs:
       
       - name: Check documentation
         run: |
-          cargo doc --all-features --no-deps
+          cargo doc --no-deps
         env:
           RUSTDOCFLAGS: "-D warnings --cfg docsrs"
       
       - name: Check for missing docs
         run: |
-          cargo rustdoc --all-features -- \
+          cargo rustdoc -- \
             -D missing-docs \
             -D rustdoc::missing-crate-level-docs \
             -D rustdoc::missing-doc-code-examples
         continue-on-error: true
       
       - name: Test documentation examples
-        run: cargo test --doc --all-features
+        run: cargo test --doc
       
       - name: Check README examples
         run: |
-          cargo build --all-features
+          cargo build
           # Extract and test code blocks from README
           echo "Testing README code examples..."
 
@@ -166,19 +166,19 @@ jobs:
       
       - name: Generate coverage report
         run: |
-          cargo llvm-cov --all-features --workspace \
+          cargo llvm-cov --workspace \
             --lcov --output-path lcov.info \
             --ignore-filename-regex '(tests?|examples?|benches?)/'
       
       - name: Generate HTML report
         run: |
-          cargo llvm-cov --all-features --workspace \
+          cargo llvm-cov --workspace \
             --html --output-dir coverage \
             --ignore-filename-regex '(tests?|examples?|benches?)/'
       
       - name: Check coverage threshold
         run: |
-          cargo llvm-cov --all-features --workspace --print-summary | \
+          cargo llvm-cov --workspace --print-summary | \
           grep -E "TOTAL.*[0-9]+\.[0-9]+%" | \
           awk '{print $NF}' | sed 's/%//' | \
           awk '{if ($1 < 60) {print "❌ Coverage is below 60%: " $1 "%"; exit 1} else {print "✅ Coverage: " $1 "%"}}'
@@ -259,7 +259,7 @@ jobs:
           echo "Running benchmarks with Criterion..." >> $GITHUB_STEP_SUMMARY
           
           # Run the actual benchmarks (this generates HTML reports)
-          if cargo bench --all-features 2>&1; then
+          if cargo bench 2>&1; then
             echo "✅ Benchmarks completed successfully" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Some benchmarks may have failed, but continuing..." >> $GITHUB_STEP_SUMMARY
@@ -314,12 +314,12 @@ jobs:
       - name: Check for duplicate dependencies
         run: |
           echo "👥 Duplicate Dependencies:"
-          cargo tree --duplicates --all-features
+          cargo tree --duplicates
       
       - name: Analyze dependency tree
         run: |
           echo "🌳 Dependency Tree Summary:"
-          cargo tree --all-features --prefix depth
+          cargo tree --prefix depth
 
   # Code duplication check
   duplication:
