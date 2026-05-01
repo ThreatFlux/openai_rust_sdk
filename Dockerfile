@@ -111,5 +111,5 @@ LABEL org.opencontainers.image.documentation="https://github.com/threatflux/open
 # Additional ThreatFlux-specific labels
 LABEL com.threatflux.category="AI/ML SDK"
 LABEL com.threatflux.capabilities="openai,batch-processing,yara-validation"
-LABEL com.threatflux.rust.version="1.85.0"
+LABEL com.threatflux.rust.version="1.95.0"
 LABEL com.threatflux.rust.edition="2024"
