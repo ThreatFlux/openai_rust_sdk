@@ -22,6 +22,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # Install build dependencies
+USER root
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
@@ -51,6 +52,7 @@ RUN cargo build --release --all-features
 FROM debian:bookworm-slim
 
 # Install runtime dependencies
+USER root
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
