@@ -1,6 +1,8 @@
-# Dependency cache stage using cargo-chef
-FROM lukemathwalker/cargo-chef:latest-rust-slim AS chef
+# Dependency cache stage using the ThreatFlux Rust template image
+FROM docker.io/threatflux/rust-cicd-template:base-rust-latest AS chef
 WORKDIR /app
+
+RUN cargo install cargo-chef
 
 # Plan the build (generate recipe.json)
 FROM chef AS planner
