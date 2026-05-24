@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup.sh \
     && echo "6c30b75a75b28a96fd913a037c8581b580080b6ee9b8169a3c0feb1af7fe8caf  /tmp/rustup.sh" | sha256sum -c - \
-    && sh /tmp/rustup.sh -s -- -y --no-modify-path --default-toolchain ${RUST_TOOLCHAIN} --profile minimal \
+    && sh /tmp/rustup.sh -y --no-modify-path --default-toolchain ${RUST_TOOLCHAIN} --profile minimal \
     && rm -f /tmp/rustup.sh
 RUN cargo install cargo-chef
 
