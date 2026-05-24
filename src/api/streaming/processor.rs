@@ -58,13 +58,11 @@ impl FunctionStreamProcessor {
     pub(crate) fn process_content_delta(
         choice: &crate::models::responses::StreamChoice,
     ) -> Option<Vec<FunctionStreamEvent>> {
-        if let Some(content) = &choice.delta.content {
-            Some(vec![FunctionStreamEvent::ContentDelta {
+        choice.delta.content.as_ref().map(|content| {
+            vec![FunctionStreamEvent::ContentDelta {
                 content: content.clone(),
-            }])
-        } else {
-            None
-        }
+            }]
+        })
     }
 
     /// Process tool calls from choice

@@ -207,23 +207,30 @@ jobs:
   secrets:
     name: Secret Scanning
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0  # Fetch all history for secret scanning
       
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@37b77001d0174ebec2fcca2bd83ff83a6d45a3ab  # v3.95.3
+        uses: trufflesecurity/trufflehog@17456f8c7d042d8c82c9a8ca9e937231f9f42e26  # v3.95.2
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.after }}
           extra_args: --debug --only-verified
       
       - name: Gitleaks
+        if: env.GITLEAKS_LICENSE != ''
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}}
+          GITLEAKS_LICENSE: ${{ env.GITLEAKS_LICENSE }}
+
+      - name: Skip Gitleaks when license is unavailable
+        if: env.GITLEAKS_LICENSE == ''
+        run: echo "Skipping Gitleaks because GITLEAKS_LICENSE is not configured for this run."
           
   # OWASP dependency check
   owasp:
