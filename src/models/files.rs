@@ -281,15 +281,11 @@ impl FileUploadRequest {
 
         // Validate file extension for certain purposes
         match self.purpose {
-            FilePurpose::FineTune => {
-                if !self.filename.ends_with(".jsonl") {
-                    return Err("Fine-tuning files must be in JSONL format".to_string());
-                }
+            FilePurpose::FineTune if !self.filename.ends_with(".jsonl") => {
+                return Err("Fine-tuning files must be in JSONL format".to_string());
             }
-            FilePurpose::Batch => {
-                if !self.filename.ends_with(".jsonl") {
-                    return Err("Batch files must be in JSONL format".to_string());
-                }
+            FilePurpose::Batch if !self.filename.ends_with(".jsonl") => {
+                return Err("Batch files must be in JSONL format".to_string());
             }
             FilePurpose::Vision => {
                 let valid_extensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];

@@ -74,7 +74,7 @@ impl FunctionsApi {
         }
 
         let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
+            .timeout(std::time::Duration::from_mins(2))
             .build()
             .map_err(crate::network_err!("Failed to create HTTP client: {}"))?;
 
