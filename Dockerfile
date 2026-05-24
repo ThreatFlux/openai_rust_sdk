@@ -1,5 +1,5 @@
 # Dependency cache stage using the ThreatFlux Rust template image
-FROM docker.io/threatflux/rust-cicd-template:base-rust-latest@sha256:dd3de246f3b8bba11b8591fc23542a3017cbe42fa36cbcd8df0a97abbc091b0c AS chef
+FROM docker.io/threatflux/rust-cicd-template:base-rust-latest AS chef
 WORKDIR /app
 
 RUN cargo install cargo-chef
