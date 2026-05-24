@@ -4,14 +4,22 @@
 # Use buildkit inline cache for better layer caching
 # syntax=docker/dockerfile:1.4
 
-# Dependency cache stage using cargo-chef
+# Dependency cache stage using cargo-chef for CI
 FROM lukemathwalker/cargo-chef:latest-rust-slim AS chef
 WORKDIR /app
+USER root
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     build-essential \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+RUN cargo install cargo-chef
 
 # Plan the build (generate recipe.json)
 FROM chef AS planner

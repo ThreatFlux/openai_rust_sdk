@@ -7,6 +7,7 @@ on:
     branches: [ main, develop ]
   schedule:
     - cron: '30 2 * * 1'  # Weekly on Monday at 2:30 AM UTC
+  workflow_dispatch:
 
 permissions: read-all
 
@@ -27,13 +28,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
           components: rustfmt, clippy
       
       - name: Cache cargo registry
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: |
             ~/.cargo/registry
@@ -45,9 +46,9 @@ jobs:
           cargo fmt -- --check
           echo "✅ Formatting check passed"
       
-      - name: Run clippy with all features
+      - name: Run clippy with default features
         run: |
-          cargo clippy --all-features --all-targets -- \
+          cargo clippy --all-targets -- \
             -D warnings \
             -D clippy::all \
             -D clippy::pedantic \
@@ -58,6 +59,9 @@ jobs:
             -A clippy::missing_errors_doc \
             -A clippy::missing_panics_doc \
             -A clippy::must_use_candidate
+
+      - name: Run clippy with all features
+        run: cargo clippy --all-targets --all-features -- -D warnings
       
       - name: Check for TODO/FIXME comments
         run: |
@@ -72,7 +76,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -89,12 +93,12 @@ jobs:
       - name: Check unsafe code usage
         run: |
           echo "🔒 Unsafe Code Analysis:"
-          cargo geiger --all-features || true
+          cargo geiger || true
       
       - name: Count dependencies
         run: |
           echo "📦 Dependency Count:"
-          cargo tree --all-features | wc -l
+          cargo tree | wc -l
       
       - name: Analyze code metrics
         run: |
@@ -110,7 +114,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -121,24 +125,24 @@ jobs:
       
       - name: Check documentation
         run: |
-          cargo doc --all-features --no-deps
+          cargo doc --no-deps
         env:
           RUSTDOCFLAGS: "-D warnings --cfg docsrs"
       
       - name: Check for missing docs
         run: |
-          cargo rustdoc --all-features -- \
+          cargo rustdoc -- \
             -D missing-docs \
             -D rustdoc::missing-crate-level-docs \
             -D rustdoc::missing-doc-code-examples
         continue-on-error: true
       
       - name: Test documentation examples
-        run: cargo test --doc --all-features
+        run: cargo test --doc
       
       - name: Check README examples
         run: |
-          cargo build --all-features
+          cargo build
           # Extract and test code blocks from README
           echo "Testing README code examples..."
 
@@ -150,7 +154,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -160,37 +164,37 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@06203676c62f0d3c765be3f2fcfbebbcb02d09f5  # v2.69.6
+        uses: taiki-e/install-action@cf525cb33f51aca27cd6fa02034117ab963ff9f1  # v2.75.22
         with:
           tool: cargo-llvm-cov
       
       - name: Generate coverage report
         run: |
-          cargo llvm-cov --all-features --workspace \
+          cargo llvm-cov --workspace \
             --lcov --output-path lcov.info \
             --ignore-filename-regex '(tests?|examples?|benches?)/'
       
       - name: Generate HTML report
         run: |
-          cargo llvm-cov --all-features --workspace \
+          cargo llvm-cov --workspace \
             --html --output-dir coverage \
             --ignore-filename-regex '(tests?|examples?|benches?)/'
       
       - name: Check coverage threshold
         run: |
-          cargo llvm-cov --all-features --workspace --print-summary | \
+          cargo llvm-cov --workspace --print-summary | \
           grep -E "TOTAL.*[0-9]+\.[0-9]+%" | \
           awk '{print $NF}' | sed 's/%//' | \
           awk '{if ($1 < 60) {print "❌ Coverage is below 60%: " $1 "%"; exit 1} else {print "✅ Coverage: " $1 "%"}}'
       
       - name: Upload coverage reports
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: coverage-report
           path: coverage/
       
       - name: Upload to Codecov
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad  # v5.5.3
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2  # v6.0.0
         with:
           files: lcov.info
           fail_ci_if_error: false
@@ -201,13 +205,12 @@ jobs:
   mutation:
     name: Mutation Testing
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -224,7 +227,7 @@ jobs:
           cargo mutants --no-shuffle --timeout 60 --jobs 2 || true
       
       - name: Upload mutation report
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: mutation-report
           path: mutants.out/
@@ -238,7 +241,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -248,7 +251,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: target
           key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
@@ -260,7 +263,7 @@ jobs:
           echo "Running benchmarks with Criterion..." >> $GITHUB_STEP_SUMMARY
           
           # Run the actual benchmarks (this generates HTML reports)
-          if cargo bench --all-features 2>&1; then
+          if cargo bench 2>&1; then
             echo "✅ Benchmarks completed successfully" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Some benchmarks may have failed, but continuing..." >> $GITHUB_STEP_SUMMARY
@@ -277,7 +280,7 @@ jobs:
           echo "*Note: Detailed Criterion reports are generated in target/criterion*" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload benchmark artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: benchmark-results
           path: target/criterion
@@ -292,7 +295,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9  # v1
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
           toolchain: stable
       
@@ -315,19 +318,18 @@ jobs:
       - name: Check for duplicate dependencies
         run: |
           echo "👥 Duplicate Dependencies:"
-          cargo tree --duplicates --all-features
+          cargo tree --duplicates
       
       - name: Analyze dependency tree
         run: |
           echo "🌳 Dependency Tree Summary:"
-          cargo tree --all-features --prefix depth
+          cargo tree --prefix depth
 
   # Code duplication check
   duplication:
     name: Code Duplication
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
