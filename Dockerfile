@@ -1,7 +1,16 @@
 # Dependency cache stage using the ThreatFlux Rust template image
 FROM docker.io/threatflux/rust-cicd-template:base-rust-latest AS chef
+ARG RUST_TOOLCHAIN=stable
+ENV RUSTUP_HOME=/opt/rustup \
+    CARGO_HOME=/opt/cargo \
+    PATH=/opt/cargo/bin:$PATH
 WORKDIR /app
+USER root
 
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --default-toolchain ${RUST_TOOLCHAIN} --profile minimal
 RUN cargo install cargo-chef
 
 # Plan the build (generate recipe.json)
