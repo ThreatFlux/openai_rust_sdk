@@ -1482,7 +1482,7 @@ fn normalize_arguments(raw: Option<&Value>) -> (Value, String) {
 fn normalize_arguments_value(value: Value) -> Value {
     match value {
         Value::String(ref s) => {
-            serde_json::from_str::<Value>(s).unwrap_or(Value::String(s.clone()))
+            serde_json::from_str::<Value>(s).unwrap_or_else(|_| Value::String(s.clone()))
         }
         other => other,
     }

@@ -52,7 +52,7 @@ jobs:
           components: rustfmt, clippy
       
       - name: Cache cargo registry
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: |
             ~/.cargo/registry
@@ -65,7 +65,9 @@ jobs:
         run: cargo fmt -- --check
       
       - name: Run clippy
-        run: cargo clippy --all-features --all-targets -- -D warnings
+        run: |
+          cargo clippy --all-targets -- -D warnings
+          cargo clippy --all-targets --all-features -- -D warnings
 
   # Test matrix across different OS and Rust versions
   test:
@@ -133,7 +135,7 @@ jobs:
           choco install openssl
       
       - name: Cache cargo build
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: target
           key: ${{ runner.os }}-${{ matrix.rust }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
@@ -141,17 +143,17 @@ jobs:
             ${{ runner.os }}-${{ matrix.rust }}-cargo-build-
       
       - name: Build
-        run: cargo build --all-features --verbose
+        run: cargo build --verbose
       
       - name: Run tests
-        run: cargo test --all-features --verbose
+        run: cargo test --verbose
         env:
           RUST_TEST_THREADS: 2
       
       - name: Run doc tests (split for disk space)
         run: |
           # Run doc tests in smaller batches to reduce disk usage
-          cargo test --doc --all-features
+          cargo test --doc
       
       - name: Clean up test artifacts (Unix)
         if: matrix.os != 'windows-latest'
@@ -170,13 +172,13 @@ jobs:
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
-        uses: taiki-e/install-action@e9e8e031bcd90cdbe8ac6bb1d376f8596e587fbf  # v2.70.2
+        uses: taiki-e/install-action@7be9fd86bd1707236395105d6e9329dd1511a7e1  # v2.79.0
         with:
           tool: cargo-llvm-cov
       
       - name: Generate coverage
         if: matrix.coverage
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
       
       - name: Upload coverage to Codecov
         if: matrix.coverage
@@ -205,7 +207,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Check MSRV
-        run: cargo check --all-features
+        run: cargo check
 
   # Feature combination testing
   feature-checks:
@@ -226,7 +228,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: target
           key: ${{ runner.os }}-feature-checks-${{ hashFiles('**/Cargo.lock') }}
@@ -236,7 +238,10 @@ jobs:
       - name: Check no default features
         run: cargo check --no-default-features
       
-      - name: Check all features
+      - name: Check optional YARA feature
+        run: cargo check --no-default-features --features yara
+
+      - name: Check full feature set
         run: cargo check --all-features
       
       - name: Check each feature
@@ -267,7 +272,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Cache cargo build
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: target
           key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
@@ -275,7 +280,7 @@ jobs:
             ${{ runner.os }}-bench-
       
       - name: Run benchmarks
-        run: cargo bench --no-run --all-features
+        run: cargo bench --no-run
 
   # Documentation build
   docs:
@@ -296,13 +301,13 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Build documentation
-        run: cargo doc --all-features --no-deps
+        run: cargo doc --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
       
       - name: Check for broken links
         run: |
-          cargo doc --all-features --no-deps
+          cargo doc --no-deps
           ! grep -r "unresolved link" target/doc/*.html || exit 0
 
   # Integration tests (only on main branch or release PRs)
@@ -326,7 +331,7 @@ jobs:
       
       - name: Run integration tests
         run: |
-          cargo test --test '*' --all-features
+          cargo test --test '*'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         continue-on-error: true  # Don't fail if API key is not set
