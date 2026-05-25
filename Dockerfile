@@ -2,6 +2,15 @@
 FROM lukemathwalker/cargo-chef:latest-rust-slim AS chef
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+RUN cargo install cargo-chef
+
 # Plan the build (generate recipe.json)
 FROM chef AS planner
 COPY Cargo.toml Cargo.lock ./
@@ -20,6 +29,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # Install build dependencies
+USER root
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
@@ -49,6 +59,7 @@ RUN cargo build --release --all-features
 FROM debian:bookworm-slim
 
 # Install runtime dependencies
+USER root
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
@@ -107,5 +118,5 @@ LABEL org.opencontainers.image.documentation="https://github.com/threatflux/open
 # Additional ThreatFlux-specific labels
 LABEL com.threatflux.category="AI/ML SDK"
 LABEL com.threatflux.capabilities="openai,batch-processing,yara-validation"
-LABEL com.threatflux.rust.version="1.85.0"
+LABEL com.threatflux.rust.version="1.95.0"
 LABEL com.threatflux.rust.edition="2024"

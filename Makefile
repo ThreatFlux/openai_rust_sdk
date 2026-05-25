@@ -130,8 +130,8 @@ install-hooks: ## Install git pre-commit hooks for CI/CD checks before commit
 
 docker-build: ## Build Docker image for consistent environment
 	@echo "$(CYAN)Building Docker image...$(NC)"
-	@echo 'FROM rust:1.75-alpine\n\
-RUN apk add --no-cache pkgconfig openssl-dev musl-dev\n\
+	@echo 'FROM docker.io/threatflux/rust-cicd-template:base-rust-latest\n\
+RUN apt-get update && apt-get install -y pkg-config libssl-dev build-essential curl git\n\
 RUN rustup component add rustfmt clippy\n\
 RUN cargo install cargo-audit cargo-llvm-cov\n\
 WORKDIR /workspace\n\
