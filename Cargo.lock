@@ -440,6 +440,7 @@ checksum = "1bc2832c24239b0141d5674bb9174f9d68a8b5b3f2753311927c172ca46f7e9c"
 dependencies = [
  "funty",
  "radium",
+ "serde",
  "tap",
  "wyz",
 ]
@@ -1127,9 +1128,9 @@ checksum = "9d87f75bbe32ee10609201e09e818537df81c3acb436be2b78f47cc85d139475"
 
 [[package]]
 name = "darling"
-version = "0.20.11"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc7f46116c46ff9ab3eb1597a45688b6715c6e628b5c133e288e709a29bcb4ee"
+checksum = "25ae13da2f202d56bd7f91c25fba009e7717a1e4a1cc98a76d844b65ae912e9d"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -1137,11 +1138,10 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.20.11"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d00b9596d185e565c2207a0b01f8bd1a135483d02d9b7b0a54b11da8d53412e"
+checksum = "9865a50f7c335f53564bb694ef660825eb8610e0a53d3e11bf1b0d3df31e03b0"
 dependencies = [
- "fnv",
  "ident_case",
  "proc-macro2",
  "quote",
@@ -1151,9 +1151,9 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.20.11"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
+checksum = "ac3984ec7bd6cfa798e62b4a642426a5be0e68f9401cfc2a01e3fa9ea2fcdb8d"
 dependencies = [
  "darling_core",
  "quote",
@@ -2209,9 +2209,9 @@ dependencies = [
 
 [[package]]
 name = "intaglio"
-version = "1.14.0"
+version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c37f733ee758fb92c8e280b9f2712e3469321447c41f72e60222d37e01fc1b38"
+checksum = "8eca9188c1b20836bb561bc09bb2f54e9ca99b271031b5f3ff183a00c08c98c8"
 
 [[package]]
 name = "interceptor"
@@ -2456,9 +2456,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.29"
+version = "0.4.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+checksum = "616ec5685824bcc94416c6d4a7a446eea774a31efd7062c8480ba6fd06d7a6e5"
 
 [[package]]
 name = "logos"
@@ -3591,9 +3591,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.13.3"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
+checksum = "219c5811de6525e5416c7d5d53bb656d3afdbc6c5af816e0802bcfa42dbdc1c3"
 dependencies = [
  "base64",
  "bytes",
@@ -4723,9 +4723,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.1"
+version = "1.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
+checksum = "d258b83ceec21034727ecee8c382cfa6c3e133699b0742c64571814fb420c9f7"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
@@ -5791,9 +5791,9 @@ checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "yara-x"
-version = "1.16.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6331ceb153230853dd2d0f2dc1e05e21ffa8b9b683bf7fd5cbd8c469bd28bdbc"
+checksum = "b53bd070da0bb85da8d91d943ef34536092567ce340b38f487f04017f202c9d6"
 dependencies = [
  "annotate-snippets",
  "anyhow",
@@ -5859,9 +5859,9 @@ dependencies = [
 
 [[package]]
 name = "yara-x-macros"
-version = "1.16.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb91fd95a7284f36513ece2ad09c7226af4093c8e0f6052c51943bbf877768ad"
+checksum = "eff2e4994394cb743155ee2a560e19cbc42e8e829593a8c1faa02e3ddc897638"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -5871,9 +5871,9 @@ dependencies = [
 
 [[package]]
 name = "yara-x-parser"
-version = "1.16.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9505add0a82252c8016730a92471ec1b33a26943cb300fa22efaca4165eee02b"
+checksum = "0750e3c54507bd3bcf1e0e54419308371d32f20a3aee86ac6909a48420250a9c"
 dependencies = [
  "ascii_tree",
  "bitflags 2.11.1",
@@ -5889,9 +5889,9 @@ dependencies = [
 
 [[package]]
 name = "yara-x-proto"
-version = "1.16.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a60a957ada6d583373dbc0d644f10735383ab92f666ae1cc91f7b982d4b6a153"
+checksum = "dca87838f8e4179cad1266e4b833cc91ab4fe8414391557886df4d92dac018ef"
 dependencies = [
  "protobuf",
  "protobuf-codegen",
