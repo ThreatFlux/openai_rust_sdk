@@ -28,6 +28,9 @@ concurrency:
   group: auto-release-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  RUST_VERSION: 1.96.0
+
 jobs:
   check-for-release:
     name: Check if Release Needed
@@ -193,7 +196,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Update version in Cargo.toml
         run: |
@@ -373,7 +376,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Cache cargo registry
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
