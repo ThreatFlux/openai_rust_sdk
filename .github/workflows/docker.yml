@@ -25,6 +25,7 @@ env:
   DOCKERHUB_REGISTRY: docker.io
   DOCKERHUB_NAMESPACE: ${{ vars.RUST_TEMPLATE_DOCKERHUB_NAMESPACE || 'threatflux' }}
   DOCKER_BUILDKIT: 1
+  DOCKER_PLATFORMS: ${{ vars.RUST_TEMPLATE_DOCKER_PLATFORMS || 'linux/amd64' }}
   BINARY_NAME: ${{ vars.RUST_TEMPLATE_BINARY_NAME || 'openai_rust_sdk' }}
   BINARY_PACKAGE: ${{ vars.RUST_TEMPLATE_BINARY_PACKAGE || '' }}
   CLI_NAME: ${{ vars.RUST_TEMPLATE_CLI_NAME || 'openai-rust-sdk' }}
@@ -68,8 +69,13 @@ jobs:
       - name: Select build platforms
         id: platforms
         run: |
-          echo "value=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
-          echo "needs_qemu=true" >> "$GITHUB_OUTPUT"
+          PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64}"
+          echo "value=${PLATFORMS}" >> "$GITHUB_OUTPUT"
+          if echo "${PLATFORMS}" | grep -Eq 'linux/(arm64|arm/v[0-9]+)'; then
+            echo "needs_qemu=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_qemu=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up QEMU
         if: steps.platforms.outputs.needs_qemu == 'true'
