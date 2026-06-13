@@ -25,6 +25,11 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  RUST_VERSION: 1.96.0
+  BINARY_NAME: openai_rust_sdk
+  BINARY_PACKAGE: ""
+  CLI_NAME: openai-rust-sdk
+  SBOM_MANIFEST_PATH: Cargo.toml
 
 jobs:
   # Validate and prepare release
@@ -156,7 +161,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.target }}
       
       - name: Install dependencies (Ubuntu)
@@ -279,7 +284,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Install dependencies
         run: |
@@ -358,6 +363,14 @@ jobs:
             VERSION=${{ needs.prepare.outputs.version }}
             BUILD_DATE=${{ github.event.repository.updated_at }}
             VCS_REF=${{ github.sha }}
+            BINARY_NAME=${{ env.BINARY_NAME }}
+            BINARY_PACKAGE=${{ env.BINARY_PACKAGE }}
+            CLI_NAME=${{ env.CLI_NAME }}
+            SBOM_MANIFEST_PATH=${{ env.SBOM_MANIFEST_PATH }}
+            OCI_IMAGE_TITLE=OpenAI Rust SDK
+            OCI_IMAGE_DESCRIPTION=Comprehensive OpenAI API SDK for Rust with YARA rule validation
+            OCI_IMAGE_VENDOR=ThreatFlux
+            OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -398,7 +411,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Generate API documentation
         run: |

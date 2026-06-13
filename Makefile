@@ -1,291 +1,293 @@
-# Batch OpenAI SDK - Makefile
-# Comprehensive build and test automation following ThreatFlux standards
+# ThreatFlux Rust Project Makefile
+# Standardized build, test, and development commands for openai_rust_sdk.
 
-# Docker configuration
-DOCKER_IMAGE = batch-openai
-DOCKER_TAG = latest
-DOCKER_FULL_NAME = $(DOCKER_IMAGE):$(DOCKER_TAG)
+CARGO ?= cargo
+RUST_MSRV ?= 1.96.0
+RUST_TOOLCHAIN ?= 1.96.0
 
-# Rust configuration
-CARGO_FEATURES_DEFAULT = 
-CARGO_FEATURES_ALL = --all-features
-CARGO_FEATURES_NONE = --no-default-features
+DOCKER_IMAGE ?= openai-rust-sdk
+DOCKER_TAG ?= latest
+GITHUB_OWNER ?= $(shell git config --get remote.origin.url | sed -E 's#(git@github.com:|https://github.com/)##; s#/.+##' | tr '[:upper:]' '[:lower:]')
+DOCKER_REGISTRY ?= ghcr.io/$(if $(GITHUB_OWNER),$(GITHUB_OWNER),local)
+BINARY_NAME ?= openai_rust_sdk
+BINARY_PACKAGE ?=
+CLI_NAME ?= openai-rust-sdk
+SBOM_MANIFEST_PATH ?= Cargo.toml
+PUBLISH_PACKAGES ?= openai_rust_sdk
 
-# Colors for output
-RED = \033[0;31m
-GREEN = \033[0;32m
-YELLOW = \033[0;33m
-BLUE = \033[0;34m
-PURPLE = \033[0;35m
-CYAN = \033[0;36m
-WHITE = \033[0;37m
-NC = \033[0m # No Color
+CLIPPY_FLAGS := -D warnings \
+	-D clippy::all \
+	-D clippy::pedantic \
+	-D clippy::nursery \
+	-D clippy::cargo \
+	-A clippy::multiple_crate_versions \
+	-A clippy::module_name_repetitions \
+	-A clippy::missing_errors_doc \
+	-A clippy::missing_panics_doc \
+	-A clippy::must_use_candidate
 
-.PHONY: help all all-coverage all-docker all-docker-coverage clean docker-build docker-clean
-.PHONY: fmt fmt-check fmt-docker lint lint-strict lint-ultra-strict lint-docker audit audit-docker deny deny-docker codedup
-.PHONY: test test-docker test-doc test-doc-docker test-features feature-check build build-docker build-all build-all-docker
-.PHONY: docs doc-check docs-strict docs-docker examples examples-docker bench bench-check bench-docker
-.PHONY: coverage coverage-open coverage-lcov coverage-html coverage-summary coverage-json coverage-docker
-.PHONY: dev-setup setup-dev install-hooks ci-local ci-local-coverage
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+BLUE := \033[0;34m
+CYAN := \033[0;36m
+NC := \033[0m
 
-# Default target - matches CI/CD security workflow
-all: fmt-check lint-strict audit deny feature-check test test-doc bench-check docs-strict build-all examples ## Run all CI/CD checks and builds locally
+.DEFAULT_GOAL := help
 
-# Extended target with coverage
-all-coverage: fmt-check lint-strict audit deny feature-check test test-doc coverage docs-strict build-all examples ## Run all checks including coverage locally
-
-# Docker all-in-one target
-all-docker: docker-build ## Run all checks and builds in Docker container
-	@echo "$(CYAN)Running all checks in Docker container...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) sh -c " \
-		echo '$(BLUE)=== Formatting Check ===$(NC)' && \
-		cargo fmt --all -- --check && \
-		echo '$(BLUE)=== Linting ===$(NC)' && \
-		cargo clippy --all-targets --all-features -- -W warnings && \
-		cargo clippy --all-targets --no-default-features -- -W warnings && \
-		cargo clippy --all-targets -- -W warnings && \
-		echo '$(BLUE)=== Tests ===$(NC)' && \
-		echo '  With all features...' && \
-		cargo test --verbose --all-features && \
-		echo '  With default features...' && \
-		cargo test --verbose && \
-		echo '$(BLUE)=== Documentation ===$(NC)' && \
-		cargo doc --all-features --no-deps && \
-		echo '$(BLUE)=== Build ===$(NC)' && \
-		cargo build --all-features && \
-		echo '$(BLUE)=== Examples ===$(NC)' && \
-		cargo build --examples --all-features && \
-		echo '$(GREEN)✅ All checks passed!$(NC)' \
-	"
-
-# Docker all-in-one target with coverage
-all-docker-coverage: docker-build ## Run all checks including coverage in Docker container
-	@echo "$(CYAN)Running all checks with coverage in Docker container...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) sh -c " \
-		echo '$(BLUE)=== Formatting Check ===$(NC)' && \
-		cargo fmt --all -- --check && \
-		echo '$(BLUE)=== Linting ===$(NC)' && \
-		cargo clippy --all-targets --all-features -- -W warnings && \
-		echo '$(BLUE)=== Tests with Coverage ===$(NC)' && \
-		cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info && \
-		cargo llvm-cov --all-features --workspace --html && \
-		echo '$(BLUE)=== Documentation ===$(NC)' && \
-		cargo doc --all-features --no-deps && \
-		echo '$(BLUE)=== Build ===$(NC)' && \
-		cargo build --all-features && \
-		echo '$(BLUE)=== Examples ===$(NC)' && \
-		cargo build --examples --all-features && \
-		echo '$(GREEN)✅ All checks with coverage passed!$(NC)' \
-	"
-
-help: ## Show this help message
-	@echo "$(CYAN)Batch OpenAI SDK - Available Commands$(NC)"
+.PHONY: help
+help: ## Display this help message
+	@echo "$(CYAN)OpenAI Rust SDK - Available Commands$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Main Commands:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"; printf "  %-20s %s\n", "Target", "Description"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | grep -E "(all|help|setup|clean)" | grep -v docker
+	@echo "$(YELLOW)Toolchain:$(NC)"
+	@echo "  Rust MSRV:      $(GREEN)$(RUST_MSRV)$(NC)"
+	@echo "  Rust toolchain: $(GREEN)$(RUST_TOOLCHAIN)$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Local Development:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"; printf "  %-20s %s\n", "Target", "Description"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | grep -v -E "(all|help|setup|clean|docker)" | grep -v docker
+	@echo "$(YELLOW)Quick Start:$(NC)"
+	@echo "  $(GREEN)make dev-setup$(NC)       Install all development tools"
+	@echo "  $(GREEN)make template-check$(NC)  Validate bootstrap placeholders"
+	@echo "  $(GREEN)make ci$(NC)              Run all CI checks locally"
 	@echo ""
-	@echo "$(YELLOW)Docker Commands:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"; printf "  %-20s %s\n", "Target", "Description"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | grep docker
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 
-# =============================================================================
-# Setup and Installation
-# =============================================================================
-
-dev-setup: ## Install development tools required for `make all`
+.PHONY: dev-setup
+dev-setup: ## Install development tools
 	@echo "$(CYAN)Installing development tools...$(NC)"
-	@echo "$(BLUE)Checking for rustfmt...$(NC)"
-	@rustup component add rustfmt 2>/dev/null || echo "rustfmt already installed"
-	@echo "$(BLUE)Checking for clippy...$(NC)"
-	@rustup component add clippy 2>/dev/null || echo "clippy already installed"
-	@echo "$(BLUE)Checking for cargo-audit...$(NC)"
-	@cargo install cargo-audit 2>/dev/null || echo "cargo-audit already installed"
-	@echo "$(BLUE)Checking for cargo-deny...$(NC)"
-	@cargo install cargo-deny 2>/dev/null || echo "cargo-deny already installed"
-	@echo "$(BLUE)Checking for cargo-llvm-cov...$(NC)"
-	@cargo install cargo-llvm-cov 2>/dev/null || echo "cargo-llvm-cov already installed"
-	@echo "$(BLUE)Checking for jq (for feature checks)...$(NC)"
-	@command -v jq >/dev/null 2>&1 || echo "$(YELLOW)jq not installed. Install with: apt-get install jq (or brew install jq)$(NC)"
-	@echo "$(GREEN)✅ Development tools installed!$(NC)"
+	@rustup toolchain install $(RUST_TOOLCHAIN) --profile minimal >/dev/null 2>&1 || true
+	@rustup component add rustfmt clippy llvm-tools-preview 2>/dev/null || true
+	@cargo install cargo-llvm-cov --locked 2>/dev/null || echo "cargo-llvm-cov already installed"
+	@cargo install cargo-audit --locked 2>/dev/null || echo "cargo-audit already installed"
+	@cargo install cargo-deny --locked 2>/dev/null || echo "cargo-deny already installed"
+	@cargo install cargo-cyclonedx --locked 2>/dev/null || echo "cargo-cyclonedx already installed"
+	@cargo install cargo-hack --locked 2>/dev/null || echo "cargo-hack already installed"
+	@python3 -m pip install --user pre-commit 2>/dev/null || echo "pre-commit already available"
+	@echo "$(GREEN)Development tools installed!$(NC)"
 
-setup-dev: dev-setup ## (Deprecated) Use `make dev-setup` instead
-	@echo "$(YELLOW)⚠️  'setup-dev' is deprecated; use 'make dev-setup'.$(NC)"
+.PHONY: setup-dev
+setup-dev: dev-setup ## Alias: install development tools
 
-install-hooks: ## Install git pre-commit hooks for CI/CD checks before commit
-	@echo "$(CYAN)Installing git pre-commit hooks...$(NC)"
-	@cp .githooks/pre-commit .git/hooks/pre-commit
+.PHONY: install-hooks
+install-hooks: ## Install git hooks
+	@echo "$(CYAN)Installing git hooks...$(NC)"
+	@mkdir -p .git/hooks
+	@printf '#!/bin/sh\nmake pre-commit\n' > .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
-	@echo "$(GREEN)✅ Git pre-commit hooks installed!$(NC)"
-	@echo "$(BLUE)The following checks will run before each commit:$(NC)"
-	@echo "  - Code formatting (cargo fmt --check)"
-	@echo "  - Strict clippy linting (pedantic, nursery, cargo)"
-	@echo "  - Quick test check (cargo test --lib)"
-	@echo "$(YELLOW)To skip hooks temporarily, use: git commit --no-verify$(NC)"
+	@echo "$(GREEN)Git hooks installed!$(NC)"
 
-# =============================================================================
-# Docker Commands
-# =============================================================================
+.PHONY: build
+build: ## Build the project (debug)
+	@echo "$(CYAN)Building project...$(NC)"
+	@$(CARGO) build --all-features
+	@echo "$(GREEN)Build completed!$(NC)"
 
-docker-build: ## Build Docker image for consistent environment
-	@echo "$(CYAN)Building Docker image...$(NC)"
-	@echo 'FROM docker.io/threatflux/rust-cicd-template:base-rust-latest\n\
-RUN apt-get update && apt-get install -y pkg-config libssl-dev build-essential curl git\n\
-RUN rustup component add rustfmt clippy\n\
-RUN cargo install cargo-audit cargo-llvm-cov\n\
-WORKDIR /workspace\n\
-ENV CARGO_TERM_COLOR=always\n\
-ENV RUST_BACKTRACE=1\n\
-CMD ["cargo", "build"]' | docker build -t $(DOCKER_FULL_NAME) -
+.PHONY: build-release
+build-release: ## Build the project (release)
+	@echo "$(CYAN)Building release...$(NC)"
+	@if [ -n "$(BINARY_PACKAGE)" ]; then \
+		$(CARGO) build --release -p $(BINARY_PACKAGE) --bin $(BINARY_NAME) --all-features; \
+	else \
+		$(CARGO) build --release --bin $(BINARY_NAME) --all-features || $(CARGO) build --release --all-features; \
+	fi
+	@echo "$(GREEN)Release build completed!$(NC)"
 
-docker-clean: ## Clean Docker images and containers
-	@echo "$(CYAN)Cleaning Docker resources...$(NC)"
-	@docker rmi $(DOCKER_FULL_NAME) 2>/dev/null || true
-	@docker system prune -f
+.PHONY: check
+check: ## Check compilation without building
+	@echo "$(CYAN)Checking compilation...$(NC)"
+	@$(CARGO) check --all-features --all-targets
 
-# =============================================================================
-# Formatting Commands
-# =============================================================================
-
-fmt: ## Format code using rustfmt (includes examples)
+.PHONY: fmt
+fmt: ## Format code
 	@echo "$(CYAN)Formatting code...$(NC)"
-	@cargo fmt --all
+	@$(CARGO) fmt --all
+	@echo "$(GREEN)Formatting completed!$(NC)"
 
-fmt-check: ## Check code formatting without modifying files (includes examples)
-	@echo "$(CYAN)Checking code formatting...$(NC)"
-	@cargo fmt --all -- --check
+.PHONY: fmt-check
+fmt-check: ## Check code formatting
+	@echo "$(CYAN)Checking code format...$(NC)"
+	@$(CARGO) fmt --all -- --check
+	@echo "$(GREEN)Format check passed!$(NC)"
 
-fmt-docker: docker-build ## Format code using Docker
-	@echo "$(CYAN)Formatting code in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) cargo fmt --all
+.PHONY: lint
+lint: ## Run clippy linter
+	@echo "$(CYAN)Running clippy...$(NC)"
+	@$(CARGO) clippy --all-features --all-targets -- -D warnings
+	@echo "$(GREEN)Linting passed!$(NC)"
 
-# =============================================================================
-# Linting Commands
-# =============================================================================
+.PHONY: lint-strict
+lint-strict: ## Run clippy with strict flags
+	@echo "$(CYAN)Running strict clippy...$(NC)"
+	@$(CARGO) clippy --all-features --all-targets -- $(CLIPPY_FLAGS)
+	@echo "$(GREEN)Strict linting passed!$(NC)"
 
-lint: ## Run clippy with strict settings (CI/CD mode)
-	@echo "$(CYAN)Running strict clippy linting (CI/CD mode)...$(NC)"
-	@echo "$(BLUE)  With all features and all targets...$(NC)"
-	@cargo clippy --all-features --all-targets -- \
-		-D warnings \
-		-D clippy::all \
-		-D clippy::pedantic \
-		-D clippy::nursery \
-		-D clippy::cargo \
-		-A clippy::module_name_repetitions \
-		-A clippy::missing_errors_doc \
-		-A clippy::missing_panics_doc \
-		-A clippy::must_use_candidate \
-		-A clippy::multiple_crate_versions
-	@echo "$(BLUE)  With default features...$(NC)"
-	@cargo clippy --all-targets -- \
-		-D warnings \
-		-D clippy::all
+.PHONY: lint-fix
+lint-fix: ## Run clippy and apply fixes
+	@echo "$(CYAN)Applying clippy fixes...$(NC)"
+	@$(CARGO) clippy --all-features --all-targets --fix --allow-dirty --allow-staged -- -D warnings
+	@echo "$(GREEN)Fixes applied!$(NC)"
 
-lint-strict: lint ## Alias for lint (both are now strict, matches CI/CD)
-
-lint-ultra-strict: ## Run clippy with ULTRA strict settings (as requested)
-	@echo "$(CYAN)Running ULTRA strict clippy linting...$(NC)"
-	@echo "$(YELLOW)WARNING: This may produce many warnings due to very strict settings$(NC)"
-	@cargo clippy --all-features --all-targets -- \
-		-D warnings \
-		-D clippy::all \
-		-D clippy::pedantic \
-		-D clippy::nursery \
-		-D clippy::cargo \
-		-A clippy::module_name_repetitions \
-		-A clippy::missing_errors_doc \
-		-A clippy::missing_panics_doc \
-		-A clippy::must_use_candidate || \
-		echo "$(YELLOW)Ultra-strict linting found issues. Consider using 'make lint-strict' for CI/CD$(NC)"
-
-lint-docker: docker-build ## Run clippy linting in Docker
-	@echo "$(CYAN)Running clippy linting in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) sh -c "\
-		echo '$(BLUE)  With all features...$(NC)' && \
-		cargo clippy --all-targets --all-features -- -W warnings && \
-		echo '$(BLUE)  With default features...$(NC)' && \
-		cargo clippy --all-targets -- -W warnings"
-
-# =============================================================================
-# Security and Dependency Commands
-# =============================================================================
-
-audit: ## Run security audit
-	@echo "$(CYAN)Running security audit...$(NC)"
-	@cargo audit || echo "$(YELLOW)⚠️  Some vulnerabilities found. Review and update dependencies.$(NC)"
-
-audit-docker: docker-build ## Run security audit in Docker
-	@echo "$(CYAN)Running security audit in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) cargo audit
-
-deny: ## Run dependency validation (requires cargo-deny)
-	@echo "$(CYAN)Running dependency validation...$(NC)"
-	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny
-	@cargo deny check licenses || echo "$(YELLOW)⚠️  License issues found$(NC)"
-	@cargo deny check advisories || echo "$(YELLOW)⚠️  Security advisories found$(NC)"
-	@cargo deny check bans || echo "$(YELLOW)⚠️  Banned dependencies found$(NC)"
-
-deny-docker: docker-build ## Run dependency validation in Docker
-	@echo "$(CYAN)Running dependency validation in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) sh -c "cargo install cargo-deny && cargo deny check"
-
-codedup: ## Check for code duplication (estimated at ~4.3%)
-	@echo "$(CYAN)Checking code duplication...$(NC)"
-	@echo "$(GREEN)Current duplication: ~4.3% (Target: <3%)$(NC)"
-	@echo "$(BLUE)Major refactoring completed:$(NC)"
-	@echo "  - 13/19 APIs using HttpClient pattern"
-	@echo "  - ~1,200 lines of duplicate code eliminated"
-	@echo "  - 77% reduction from original 18%"
-
-# =============================================================================
-# Testing Commands
-# =============================================================================
-
+.PHONY: test
 test: ## Run all tests
 	@echo "$(CYAN)Running tests...$(NC)"
-	@echo "$(BLUE)  Running 528+ tests...$(NC)"
-	@cargo test --verbose
+	@$(CARGO) test --all-features
+	@echo "$(GREEN)Tests passed!$(NC)"
 
-test-docker: docker-build ## Run all tests in Docker
-	@echo "$(CYAN)Running tests in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) cargo test --verbose
+.PHONY: test-verbose
+test-verbose: ## Run tests with output
+	@echo "$(CYAN)Running tests (verbose)...$(NC)"
+	@$(CARGO) test --all-features -- --nocapture
 
+.PHONY: test-doc
 test-doc: ## Run documentation tests
-	@echo "$(CYAN)Running documentation tests...$(NC)"
-	@cargo test --doc --verbose
+	@echo "$(CYAN)Running doc tests...$(NC)"
+	@$(CARGO) test --doc --all-features
+	@echo "$(GREEN)Doc tests passed!$(NC)"
 
-test-doc-docker: docker-build ## Run documentation tests in Docker
-	@echo "$(CYAN)Running documentation tests in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) cargo test --doc --verbose
+.PHONY: test-features
+test-features: ## Test feature combinations
+	@echo "$(CYAN)Testing feature combinations...$(NC)"
+	@echo "$(BLUE)  No default features...$(NC)"
+	@$(CARGO) check --workspace --no-default-features
+	@echo "$(BLUE)  All features...$(NC)"
+	@$(CARGO) check --workspace --all-features
+	@echo "$(BLUE)  Default features only...$(NC)"
+	@$(CARGO) check --workspace
+	@echo "$(GREEN)Feature checks passed!$(NC)"
 
-test-features: ## Test with different feature combinations
-	@echo "$(CYAN)Testing different feature combinations...$(NC)"
-	@echo "$(BLUE)Testing with all features...$(NC)"
-	@cargo test --verbose --all-features
-	@echo "$(BLUE)Testing with default features only...$(NC)"
-	@cargo test --verbose
-	@echo "$(GREEN)✅ Feature combinations tested!$(NC)"
+.PHONY: feature-check
+feature-check: test-features ## Alias: test feature combinations
 
-feature-check: ## Check each feature individually (matches CI/CD)
-	@echo "$(CYAN)Checking feature combinations...$(NC)"
-	@echo "$(BLUE)Checking no default features...$(NC)"
-	@cargo check --no-default-features
-	@echo "$(BLUE)Checking all features...$(NC)"
-	@cargo check --all-features
-	@echo "$(BLUE)Checking each feature individually...$(NC)"
-	@cargo metadata --no-deps --format-version 1 | \
-	jq -r '.packages[0].features | keys[]' 2>/dev/null | \
-	while read feature; do \
-		echo "  Checking feature: $$feature"; \
-		cargo check --no-default-features --features "$$feature" || exit 1; \
-	done || echo "$(YELLOW)⚠️  jq not installed, skipping individual feature checks$(NC)"
+.PHONY: test-features-full
+test-features-full: ## Test full feature powerset
+	@echo "$(CYAN)Testing full feature powerset...$(NC)"
+	@cargo hack check --workspace --feature-powerset --no-dev-deps
+	@echo "$(GREEN)Feature powerset passed!$(NC)"
 
-test-api: ## Test specific API modules
+.PHONY: coverage
+coverage: ## Generate code coverage report
+	@echo "$(CYAN)Generating coverage...$(NC)"
+	@cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+	@echo "$(GREEN)Coverage report: lcov.info$(NC)"
+
+.PHONY: coverage-html
+coverage-html: ## Generate HTML coverage report
+	@echo "$(CYAN)Generating HTML coverage...$(NC)"
+	@cargo llvm-cov --all-features --workspace --html
+	@echo "$(GREEN)Report: target/llvm-cov/html/index.html$(NC)"
+
+.PHONY: coverage-summary
+coverage-summary: ## Show coverage summary
+	@echo "$(CYAN)Coverage summary:$(NC)"
+	@cargo llvm-cov --all-features --workspace --summary-only
+
+.PHONY: audit
+audit: ## Run security audit
+	@echo "$(CYAN)Running security audit...$(NC)"
+	@cargo audit
+	@echo "$(GREEN)Security audit passed!$(NC)"
+
+.PHONY: deny
+deny: ## Check licenses and advisories
+	@echo "$(CYAN)Running cargo-deny...$(NC)"
+	@cargo deny check
+	@echo "$(GREEN)Deny checks passed!$(NC)"
+
+.PHONY: sbom
+sbom: ## Generate a CycloneDX SBOM
+	@echo "$(CYAN)Generating SBOM...$(NC)"
+	@mkdir -p sbom
+	@rm -f sbom/*.json
+	@cargo cyclonedx --manifest-path $(SBOM_MANIFEST_PATH) --all-features --format json --spec-version 1.5 --override-filename $(BINARY_NAME)-sbom
+	@find . -maxdepth 4 -name '$(BINARY_NAME)-sbom.json' -exec mv {} sbom/ \;
+	@echo "$(GREEN)SBOM written to sbom/$(BINARY_NAME)-sbom.json$(NC)"
+
+.PHONY: security
+security: audit deny ## Run all security checks
+	@echo "$(GREEN)All security checks passed!$(NC)"
+
+.PHONY: docs
+docs: ## Build documentation
+	@echo "$(CYAN)Building documentation...$(NC)"
+	@RUSTDOCFLAGS="-D warnings" $(CARGO) doc --all-features --no-deps
+	@echo "$(GREEN)Documentation built!$(NC)"
+
+.PHONY: docs-open
+docs-open: ## Build and open documentation
+	@$(CARGO) doc --all-features --no-deps --open
+
+.PHONY: bench
+bench: ## Run benchmarks
+	@echo "$(CYAN)Running benchmarks...$(NC)"
+	@$(CARGO) bench --all-features
+
+.PHONY: bench-check
+bench-check: ## Check benchmarks compile
+	@echo "$(CYAN)Checking benchmarks...$(NC)"
+	@$(CARGO) bench --all-features --no-run
+	@echo "$(GREEN)Benchmarks compile!$(NC)"
+
+.PHONY: msrv
+msrv: ## Check minimum supported Rust version
+	@echo "$(CYAN)Checking MSRV ($(RUST_MSRV))...$(NC)"
+	@rustup toolchain install $(RUST_MSRV) --profile minimal >/dev/null 2>&1 || true
+	@rustup run $(RUST_MSRV) cargo check --workspace --all-features
+	@echo "$(GREEN)MSRV check passed!$(NC)"
+
+.PHONY: docker-build
+docker-build: ## Build Docker image
+	@echo "$(CYAN)Building Docker image...$(NC)"
+	@docker build \
+		--build-arg BINARY_NAME=$(BINARY_NAME) \
+		--build-arg BINARY_PACKAGE=$(BINARY_PACKAGE) \
+		--build-arg CLI_NAME=$(CLI_NAME) \
+		--build-arg SBOM_MANIFEST_PATH=$(SBOM_MANIFEST_PATH) \
+		-t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@echo "$(GREEN)Docker image built: $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)$(NC)"
+
+.PHONY: docker-push
+docker-push: ## Push Docker image to registry
+	@echo "$(CYAN)Pushing Docker image...$(NC)"
+	@docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+	@echo "$(GREEN)Docker image pushed!$(NC)"
+
+.PHONY: pre-commit
+pre-commit: fmt-check lint test-doc ## Pre-commit checks
+
+.PHONY: template-check
+template-check: ## Fail if template placeholders are still present
+	@echo "$(CYAN)Checking for template placeholders...$(NC)"
+	@python3 scripts/check_template_placeholders.py
+	@echo "$(GREEN)No unresolved template placeholders found!$(NC)"
+
+.PHONY: ci
+ci: template-check fmt-check lint test test-features docs security ## Full CI checks
+
+.PHONY: ci-quick
+ci-quick: template-check fmt-check lint check ## Quick CI checks
+
+.PHONY: ci-local
+ci-local: ci ## Alias: run local CI checks
+
+.PHONY: ci-local-coverage
+ci-local-coverage: fmt-check lint coverage-summary docs build ## Alias: run local CI checks with coverage
+
+.PHONY: all
+all: ci coverage bench-check ## Full validation suite
+
+.PHONY: release-check
+release-check: ## Check release readiness
+	@echo "$(CYAN)Checking release readiness...$(NC)"
+	@$(CARGO) check --all-features
+	@$(CARGO) test --all-features
+	@$(CARGO) clippy --all-features --all-targets -- -D warnings
+	@python3 scripts/check_template_placeholders.py
+	@echo "$(GREEN)Release readiness checks passed!$(NC)"
+
+.PHONY: test-api
+test-api: ## Test selected API modules
 	@echo "$(CYAN)Testing API modules...$(NC)"
 	@cargo test --test assistants_api_tests
-	@cargo test --test vector_stores_api_tests
+	@cargo test --test vector_stores_tests
 	@cargo test --test threads_api_tests
 	@cargo test --test fine_tuning_api_tests
 	@cargo test --test runs_api_tests
@@ -294,288 +296,77 @@ test-api: ## Test specific API modules
 	@cargo test --test batch_api_tests
 	@cargo test --test streaming_api_tests
 
-# =============================================================================
-# Build Commands
-# =============================================================================
-
-build: ## Build the project
-	@echo "$(CYAN)Building project...$(NC)"
-	@cargo build
-
-build-docker: docker-build ## Build the project in Docker
-	@echo "$(CYAN)Building project in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) cargo build
-
-build-all: ## Build with all features
-	@echo "$(CYAN)Building project with all features...$(NC)"
-	@cargo build --all-features
-
-build-all-docker: docker-build ## Build with all features in Docker
-	@echo "$(CYAN)Building project with all features in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
-		cargo build --all-features
-
-build-release: ## Build optimized release
-	@echo "$(CYAN)Building release...$(NC)"
-	@cargo build --release --all-features
-
-build-release-docker: docker-build ## Build optimized release in Docker
-	@echo "$(CYAN)Building release in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
-		cargo build --release --all-features
-
-# =============================================================================
-# Documentation Commands
-# =============================================================================
-
-docs: ## Generate documentation
-	@echo "$(CYAN)Generating documentation...$(NC)"
-	@cargo doc --all-features --no-deps
-
-doc-check: ## Check for missing documentation
-	@echo "$(CYAN)Checking for missing documentation...$(NC)"
-	@RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps 2>&1 | grep -q "warning" && \
-		(echo "$(RED)❌ Missing documentation found!$(NC)" && exit 1) || \
-		echo "$(GREEN)✅ All documentation present!$(NC)"
-
-docs-strict: ## Generate documentation with strict checks (matches CI/CD)
-	@echo "$(CYAN)Generating documentation with strict checks...$(NC)"
-	@RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps
-	@echo "$(BLUE)Checking for broken links...$(NC)"
-	@! grep -r "unresolved link" target/doc/*.html 2>/dev/null || echo "$(GREEN)✅ No broken links found$(NC)"
-
-docs-docker: docker-build ## Generate documentation in Docker
-	@echo "$(CYAN)Generating documentation in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
-		cargo doc --all-features --no-deps
-
-docs-open: docs ## Generate and open documentation
-	@echo "$(CYAN)Opening documentation...$(NC)"
-	@cargo doc --all-features --no-deps --open
-
-# =============================================================================
-# Examples and Benchmarks
-# =============================================================================
-
-examples: ## Build all examples (25+ examples)
-	@echo "$(CYAN)Building examples...$(NC)"
-	@cargo build --examples --all-features
-
-examples-docker: docker-build ## Build all examples in Docker
-	@echo "$(CYAN)Building examples in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
-		cargo build --examples --all-features
-
-run-example: ## Run a specific example (use EXAMPLE=name)
-	@echo "$(CYAN)Running example: $(EXAMPLE)$(NC)"
-	@cargo run --example $(EXAMPLE) --all-features
-
-bench: ## Run benchmarks
-	@echo "$(CYAN)Running benchmarks...$(NC)"
-	@cargo bench --all-features
-
-bench-check: ## Check that benchmarks compile (matches CI/CD)
-	@echo "$(CYAN)Checking benchmark compilation...$(NC)"
-	@cargo bench --no-run --all-features
-
-bench-docker: docker-build ## Run benchmarks in Docker
-	@echo "$(CYAN)Running benchmarks in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
-		cargo bench --all-features
-
-# =============================================================================
-# Coverage and Profiling
-# =============================================================================
-
-coverage: ## Generate test coverage report (currently ~65%)
-	@echo "$(CYAN)Generating coverage report...$(NC)"
-	@cargo llvm-cov --workspace --lcov --output-path lcov.info
-	@cargo llvm-cov --workspace --html
-	@echo "$(GREEN)✅ Coverage report generated (Current: ~65%, Target: 80%)$(NC)"
-	@echo "$(BLUE)HTML report: target/llvm-cov/html/index.html$(NC)"
-
-coverage-open: coverage ## Generate and open HTML coverage report
-	@echo "$(CYAN)Opening coverage report...$(NC)"
-	@open target/llvm-cov/html/index.html 2>/dev/null || \
-	 xdg-open target/llvm-cov/html/index.html 2>/dev/null || \
-	 echo "$(YELLOW)Please open target/llvm-cov/html/index.html manually$(NC)"
-
-coverage-lcov: ## Generate LCOV coverage report only
-	@echo "$(CYAN)Generating LCOV coverage report...$(NC)"
-	@cargo llvm-cov --workspace --lcov --output-path lcov.info
-	@echo "$(GREEN)✅ LCOV report generated at lcov.info$(NC)"
-
-coverage-html: ## Generate HTML coverage report only
-	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
-	@cargo llvm-cov --workspace --html
-	@echo "$(GREEN)✅ HTML report generated in target/llvm-cov/html/index.html$(NC)"
-
-coverage-summary: ## Show coverage summary
-	@echo "$(CYAN)Generating coverage summary...$(NC)"
-	@cargo llvm-cov --workspace --summary-only
-
-coverage-json: ## Generate JSON coverage report
-	@echo "$(CYAN)Generating JSON coverage report...$(NC)"
-	@cargo llvm-cov --workspace --json --output-path coverage.json
-	@echo "$(GREEN)✅ JSON report generated at coverage.json$(NC)"
-
-coverage-docker: docker-build ## Generate test coverage report in Docker
-	@echo "$(CYAN)Generating coverage report in Docker...$(NC)"
-	@docker run --rm -v "$(PWD):/workspace" $(DOCKER_FULL_NAME) \
-		sh -c "cargo llvm-cov --workspace --lcov --output-path lcov.info && \
-		       cargo llvm-cov --workspace --html"
-
-# =============================================================================
-# CI/Local Integration
-# =============================================================================
-
-ci-local: ## Run CI-like checks locally (full CI/CD simulation)
-	@echo "$(CYAN)Running full CI/CD checks locally...$(NC)"
-	@echo "$(BLUE)=== Formatting Check ===$(NC)"
-	@$(MAKE) fmt-check
-	@echo "$(BLUE)=== Strict Linting ===$(NC)"
-	@$(MAKE) lint-strict
-	@echo "$(BLUE)=== Security Audit ===$(NC)"
-	@$(MAKE) audit
-	@echo "$(BLUE)=== Dependency Check ===$(NC)"
-	@$(MAKE) deny
-	@echo "$(BLUE)=== Feature Checks ===$(NC)"
-	@$(MAKE) feature-check
-	@echo "$(BLUE)=== Tests ===$(NC)"
-	@$(MAKE) test
-	@echo "$(BLUE)=== Doc Tests ===$(NC)"
-	@$(MAKE) test-doc
-	@echo "$(BLUE)=== Benchmark Compilation ===$(NC)"
-	@$(MAKE) bench-check
-	@echo "$(BLUE)=== Documentation ===$(NC)"
-	@$(MAKE) docs-strict
-	@echo "$(BLUE)=== Build All Features ===$(NC)"
-	@$(MAKE) build-all
-	@echo "$(BLUE)=== Examples ===$(NC)"
-	@$(MAKE) examples
-	@echo "$(GREEN)✅ All CI/CD checks passed locally!$(NC)"
-
-ci-local-coverage: ## Run CI-like checks locally with coverage
-	@echo "$(CYAN)Running CI checks with coverage locally...$(NC)"
-	@echo "$(BLUE)=== Formatting ===$(NC)"
-	@$(MAKE) fmt-check
-	@echo "$(BLUE)=== Linting ===$(NC)"
-	@$(MAKE) lint
-	@echo "$(BLUE)=== Security Audit ===$(NC)"
-	@$(MAKE) audit
-	@echo "$(BLUE)=== Tests with Coverage ===$(NC)"
-	@$(MAKE) coverage-summary
-	@echo "$(BLUE)=== Documentation ===$(NC)"
-	@$(MAKE) docs
-	@echo "$(BLUE)=== Build ===$(NC)"
-	@$(MAKE) build-all
-	@echo "$(GREEN)✅ All CI checks with coverage passed locally!$(NC)"
-
-# =============================================================================
-# Utility Commands
-# =============================================================================
-
-clean: ## Clean build artifacts and coverage reports
-	@echo "$(CYAN)Cleaning build artifacts...$(NC)"
-	@cargo clean
-	@rm -rf target/
-	@rm -f lcov.info coverage.json
-	@echo "$(GREEN)✅ Clean complete!$(NC)"
-
-watch: ## Watch for changes and run tests
-	@echo "$(CYAN)Watching for changes...$(NC)"
-	@cargo watch -x "test"
-
-update: ## Update dependencies
-	@echo "$(CYAN)Updating dependencies...$(NC)"
-	@cargo update
-
-check-deps: ## Check dependency tree
-	@echo "$(CYAN)Checking dependency tree...$(NC)"
-	@cargo tree --all-features
-
-# =============================================================================
-# Development Workflows
-# =============================================================================
-
-dev: ## Quick development check (format + lint + test)
-	@echo "$(CYAN)Running quick development checks...$(NC)"
-	@$(MAKE) fmt
-	@$(MAKE) lint
-	@$(MAKE) test
-
-dev-docker: ## Quick development check in Docker
-	@echo "$(CYAN)Running quick development checks in Docker...$(NC)"
-	@$(MAKE) fmt-docker
-	@$(MAKE) lint-docker
-	@$(MAKE) test-docker
-
-pre-commit: ## Run pre-commit checks
-	@echo "$(CYAN)Running pre-commit checks...$(NC)"
-	@$(MAKE) fmt-check
-	@$(MAKE) lint
-	@$(MAKE) test
-	@echo "$(GREEN)✅ Pre-commit checks passed!$(NC)"
-
-# =============================================================================
-# OpenAI SDK Specific Commands
-# =============================================================================
-
-test-openai: ## Test OpenAI API integration (requires OPENAI_API_KEY)
+.PHONY: test-openai
+test-openai: ## Test OpenAI API integration when OPENAI_API_KEY is set
 	@echo "$(CYAN)Testing OpenAI API integration...$(NC)"
 	@if [ -z "$$OPENAI_API_KEY" ]; then \
-		echo "$(YELLOW)⚠️  OPENAI_API_KEY not set. Skipping integration tests.$(NC)"; \
+		echo "$(YELLOW)OPENAI_API_KEY not set. Skipping integration tests.$(NC)"; \
 	else \
-		echo "$(BLUE)Running integration tests with API key...$(NC)"; \
-		cargo test --features integration; \
+		cargo test --test openai_live_test -- --nocapture; \
 	fi
 
+.PHONY: api-coverage
 api-coverage: ## Show API implementation coverage
 	@echo "$(CYAN)API Implementation Coverage Report$(NC)"
 	@echo ""
-	@echo "$(GREEN)✅ Implemented APIs (95% coverage):$(NC)"
-	@echo "  • Chat Completions (ResponsesApi)"
-	@echo "  • Assistants API"
-	@echo "  • Vector Stores API"
-	@echo "  • Threads & Messages API"
-	@echo "  • Runs & Run Steps API"
-	@echo "  • Fine-tuning API"
-	@echo "  • Files API"
-	@echo "  • Images API (DALL-E)"
-	@echo "  • Audio API (Whisper/TTS)"
-	@echo "  • Embeddings API"
-	@echo "  • Moderations API"
-	@echo "  • Models API"
-	@echo "  • Batch API"
-	@echo "  • Streaming API"
-	@echo "  • Function Calling"
-	@echo ""
-	@echo "$(YELLOW)⚠️  Experimental:$(NC)"
-	@echo "  • GPT-5 API (future support)"
-	@echo "  • Containers API (Code Interpreter)"
+	@echo "$(GREEN)Implemented APIs (95% coverage):$(NC)"
+	@echo "  - Chat Completions (ResponsesApi)"
+	@echo "  - Assistants API"
+	@echo "  - Vector Stores API"
+	@echo "  - Threads & Messages API"
+	@echo "  - Runs & Run Steps API"
+	@echo "  - Fine-tuning API"
+	@echo "  - Files API"
+	@echo "  - Images API"
+	@echo "  - Audio API"
+	@echo "  - Embeddings API"
+	@echo "  - Moderations API"
+	@echo "  - Models API"
+	@echo "  - Batch API"
+	@echo "  - Streaming API"
+	@echo "  - Function Calling"
 
+.PHONY: stats
 stats: ## Show project statistics
 	@echo "$(CYAN)Project Statistics$(NC)"
 	@echo ""
 	@echo "$(BLUE)Code Metrics:$(NC)"
-	@echo "  • Total lines: ~54,000"
-	@echo "  • Source files: 49"
-	@echo "  • Test files: 19"
-	@echo "  • Examples: 27"
+	@echo "  - Total lines: ~54,000"
+	@echo "  - Source files: 49"
+	@echo "  - Test files: 19"
+	@echo "  - Examples: 27"
 	@echo ""
 	@echo "$(BLUE)Test Coverage:$(NC)"
-	@echo "  • Current: ~65%"
-	@echo "  • Tests: 528+"
-	@echo "  • Target: 80%"
+	@echo "  - Current: ~65%"
+	@echo "  - Tests: 528+"
+	@echo "  - Target: 80%"
 	@echo ""
 	@echo "$(BLUE)Code Quality:$(NC)"
-	@echo "  • Duplication: ~4.3% (from 18%)"
-	@echo "  • APIs refactored: 13/19"
-	@echo "  • HttpClient pattern: Active"
+	@echo "  - Duplication: ~4.3% (from 18%)"
+	@echo "  - APIs refactored: 13/19"
+	@echo "  - HttpClient pattern: Active"
 
-# Show variables for debugging
+.PHONY: clean
+clean: ## Clean build artifacts
+	@echo "$(CYAN)Cleaning artifacts...$(NC)"
+	@$(CARGO) clean
+	@rm -rf lcov.info coverage coverage.json sbom dist
+	@echo "$(GREEN)Cleaned!$(NC)"
+
+.PHONY: debug-vars
 debug-vars: ## Show Makefile variables
 	@echo "$(CYAN)Makefile Variables:$(NC)"
+	@echo "RUST_MSRV: $(RUST_MSRV)"
+	@echo "RUST_TOOLCHAIN: $(RUST_TOOLCHAIN)"
 	@echo "DOCKER_IMAGE: $(DOCKER_IMAGE)"
 	@echo "DOCKER_TAG: $(DOCKER_TAG)"
-	@echo "DOCKER_FULL_NAME: $(DOCKER_FULL_NAME)"
+	@echo "DOCKER_REGISTRY: $(DOCKER_REGISTRY)"
+	@echo "BINARY_NAME: $(BINARY_NAME)"
+	@echo "CLI_NAME: $(CLI_NAME)"
+
+.PHONY: f l t b c
+f: fmt   ## Alias: format
+l: lint  ## Alias: lint
+t: test  ## Alias: test
+b: build ## Alias: build
+c: check ## Alias: check

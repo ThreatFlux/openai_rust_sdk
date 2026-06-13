@@ -1,0 +1,11 @@
+.git
+.github
+target
+dist
+sbom
+lcov.info
+coverage
+coverage.json
+*.profraw
+*.profdata
+libyara.rlib

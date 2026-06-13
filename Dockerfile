@@ -1,122 +1,107 @@
-# Dependency cache stage using cargo-chef
-FROM lukemathwalker/cargo-chef:latest-rust-slim AS chef
-WORKDIR /app
+# ThreatFlux Rust Dockerfile
+# Multi-stage build for the OpenAI Rust SDK.
+
+FROM rust:1.96.0-bookworm AS rust-base
+
+ARG VERSION=0.0.0
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+ARG BINARY_NAME=openai_rust_sdk
+ARG BINARY_PACKAGE=
+ARG CLI_NAME=openai-rust-sdk
+ARG SBOM_MANIFEST_PATH=Cargo.toml
+ARG OCI_IMAGE_TITLE=OpenAI Rust SDK
+ARG OCI_IMAGE_DESCRIPTION=Comprehensive OpenAI API SDK for Rust with YARA rule validation
+ARG OCI_IMAGE_VENDOR=ThreatFlux
+ARG OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
 
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
     pkg-config \
     libssl-dev \
-    build-essential \
-    curl \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-RUN cargo install cargo-chef
-
-# Plan the build (generate recipe.json)
-FROM chef AS planner
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY benches ./benches
-COPY examples ./examples
-COPY tests ./tests
-RUN cargo chef prepare --recipe-path recipe.json
-
-# Build dependencies (cached layer)
-FROM chef AS builder
-
-# Build arguments
-ARG VERSION=unknown
-ARG BUILD_DATE
-ARG VCS_REF
-
-# Install build dependencies
-USER root
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    build-essential \
-    curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the build recipe and build dependencies
-COPY --from=planner /app/recipe.json recipe.json
+FROM rust-base AS builder
 
-# Build dependencies - this is the caching layer!
-RUN cargo chef cook --release --recipe-path recipe.json --all-features
+RUN useradd -m -u 1000 builder
+USER builder
+WORKDIR /build
 
-# Copy all source code
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY benches ./benches
-COPY examples ./examples
-COPY tests ./tests
+ENV CARGO_HOME=/home/builder/.cargo
+ENV PATH="/home/builder/.cargo/bin:${PATH}"
 
-# Build the application
-ENV CARGO_PKG_VERSION=${VERSION}
-RUN cargo build --release --all-features
+COPY --chown=builder:builder . .
 
-# Runtime stage
-FROM debian:bookworm-slim
+RUN if [ -n "${BINARY_PACKAGE}" ]; then \
+      cargo build --release -p "${BINARY_PACKAGE}" --bin "${BINARY_NAME}" --all-features; \
+    else \
+      cargo build --release --bin "${BINARY_NAME}" --all-features || cargo build --release --all-features; \
+    fi
 
-# Install runtime dependencies
-USER root
+RUN cargo install cargo-cyclonedx --locked --version 0.5.8 && \
+    cargo cyclonedx \
+      --manifest-path "${SBOM_MANIFEST_PATH}" \
+      --all-features \
+      --format json \
+      --spec-version 1.5 \
+      --override-filename "${BINARY_NAME}-sbom"
+
+FROM debian:bookworm-slim AS runtime
+
+ARG VERSION=0.0.0
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+ARG BINARY_NAME=openai_rust_sdk
+ARG CLI_NAME=openai-rust-sdk
+ARG OCI_IMAGE_TITLE=OpenAI Rust SDK
+ARG OCI_IMAGE_DESCRIPTION=Comprehensive OpenAI API SDK for Rust with YARA rule validation
+ARG OCI_IMAGE_VENDOR=ThreatFlux
+ARG OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
+
+LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
+      org.opencontainers.image.description="${OCI_IMAGE_DESCRIPTION}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="${OCI_IMAGE_VENDOR}" \
+      org.opencontainers.image.source="${OCI_IMAGE_SOURCE}" \
+      org.opencontainers.image.authors="Wyatt Roersma <wyattroersma@gmail.com>, Claude Code" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.documentation="https://github.com/threatflux/openai_rust_sdk/blob/main/README.md" \
+      com.threatflux.category="AI/ML SDK" \
+      com.threatflux.capabilities="openai,batch-processing,yara-validation" \
+      com.threatflux.rust.version="1.96.0" \
+      com.threatflux.rust.edition="2024"
+
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /data /config /output /usr/share/doc/openai-rust-sdk \
+    && useradd -m -u 1000 -s /bin/bash openai
 
-# Create non-root user
-RUN useradd -m -u 1000 -s /bin/bash openai
-
-# Copy the binary from builder
-COPY --from=builder /app/target/release/openai_rust_sdk /usr/local/bin/openai-rust-sdk
-
-# Copy library files for potential linking
-COPY --from=builder /app/target/release/libopenai_rust_sdk.rlib /usr/local/lib/
-COPY --from=builder /app/target/release/deps /usr/local/lib/deps
-
-# Create necessary directories
-RUN mkdir -p /data /config /output && \
-    chown -R openai:openai /data /config /output /usr/local/bin/openai-rust-sdk
-
-# Copy test data for validation (optional, remove in production)
+COPY --from=builder /build/target/release/${BINARY_NAME} /usr/local/bin/${CLI_NAME}
+COPY --from=builder /build/${BINARY_NAME}-sbom.json /usr/share/doc/openai-rust-sdk/sbom.cdx.json
 COPY --chown=openai:openai test_data /opt/openai-rust-sdk/test_data
 
-# Switch to non-root user
-USER openai
+RUN chown -R openai:openai \
+    /data \
+    /config \
+    /output \
+    /opt/openai-rust-sdk \
+    /usr/local/bin/${CLI_NAME} \
+    /usr/share/doc/openai-rust-sdk
 
-# Set working directory
+USER openai
 WORKDIR /data
 
-# Environment variables
 ENV RUST_LOG=info
 ENV OPENAI_BASE_URL=https://api.openai.com/v1
 
-# Default command (can be overridden)
-ENTRYPOINT ["openai-rust-sdk"]
-
-# Health check for API connectivity
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["openai-rust-sdk", "--version"] || exit 1
+    CMD ["/usr/local/bin/openai-rust-sdk", "--version"] || exit 1
 
-# Expose common API server ports (if SDK includes a server mode)
 EXPOSE 3000 8080
 
-# Labels with build info
-LABEL org.opencontainers.image.title="OpenAI Rust SDK"
-LABEL org.opencontainers.image.description="Comprehensive OpenAI API SDK for Rust with YARA rule validation"
-LABEL org.opencontainers.image.authors="Wyatt Roersma <wyattroersma@gmail.com>, Claude Code"
-LABEL org.opencontainers.image.source="https://github.com/threatflux/openai_rust_sdk"
-LABEL org.opencontainers.image.licenses="MIT"
-LABEL org.opencontainers.image.version="${VERSION}"
-LABEL org.opencontainers.image.created="${BUILD_DATE}"
-LABEL org.opencontainers.image.revision="${VCS_REF}"
-LABEL org.opencontainers.image.vendor="ThreatFlux"
-LABEL org.opencontainers.image.documentation="https://github.com/threatflux/openai_rust_sdk/blob/main/README.md"
-
-# Additional ThreatFlux-specific labels
-LABEL com.threatflux.category="AI/ML SDK"
-LABEL com.threatflux.capabilities="openai,batch-processing,yara-validation"
-LABEL com.threatflux.rust.version="1.95.0"
-LABEL com.threatflux.rust.edition="2024"
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/openai-rust-sdk"]

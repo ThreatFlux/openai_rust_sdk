@@ -15,20 +15,24 @@ concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.96.0
+  BINARY_NAME: openai_rust_sdk
+  SBOM_MANIFEST_PATH: Cargo.toml
+
 jobs:
   # Security audit for dependencies
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Install cargo-audit
         run: cargo install cargo-audit
@@ -51,15 +55,13 @@ jobs:
   license-check:
     name: License Check
     runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Install cargo-deny
         run: cargo install cargo-deny
@@ -112,8 +114,6 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
     permissions:
       security-events: write
       actions: read
@@ -131,7 +131,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Install dependencies
         run: |
@@ -171,15 +171,13 @@ jobs:
   supply-chain:
     name: Supply Chain Security
     runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Install cargo-supply-chain
         run: |
@@ -191,16 +189,19 @@ jobs:
           cargo supply-chain publishers
         continue-on-error: true
       
-      - name: Generate SBOM with cargo-cyclonedx
-        run: |
-          cargo install cargo-cyclonedx
-          cargo cyclonedx --format json > sbom.json
+      - name: Install cargo-cyclonedx
+        uses: taiki-e/install-action@7a79fe8c3a13344501c80d99cae481c1c9085912 # v2.81.10
+        with:
+          tool: cargo-cyclonedx@0.5.8
+
+      - name: Generate SBOM
+        run: make sbom BINARY_NAME="${BINARY_NAME}" SBOM_MANIFEST_PATH="${SBOM_MANIFEST_PATH}"
       
       - name: Upload SBOM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: sbom
-          path: sbom.json
+          path: sbom/*.json
           retention-days: 30
 
   # Secret scanning

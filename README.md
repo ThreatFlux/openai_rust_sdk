@@ -305,6 +305,6 @@ Contributions are welcome! Please ensure all tests pass and code is properly for
 
 ## Requirements
 
-- Rust 1.95.0 or later
+- Rust 1.96.0 or later
 - OpenAI API key for batch processing
 - yara-x crate for rule validation
