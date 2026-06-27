@@ -20,6 +20,10 @@ on:
     - cron: "0 4 * * 1"
   workflow_dispatch:
 
+# Least-privilege default; jobs that need more declare their own permissions
+# (Scorecard Token-Permissions).
+permissions: read-all
+
 env:
   REGISTRY: ghcr.io
   DOCKERHUB_REGISTRY: docker.io
@@ -228,6 +232,9 @@ jobs:
       contents: read
       security-events: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
       - name: Download image (PRs)
         if: github.event_name == 'pull_request'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -263,6 +270,7 @@ jobs:
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
           vuln-type: os,library
+          trivyignores: .trivyignore
         continue-on-error: true
 
       - name: Upload Trivy results

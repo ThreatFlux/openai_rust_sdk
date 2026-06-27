@@ -479,6 +479,8 @@ jobs:
     needs: check-for-release
     if: needs.check-for-release.outputs.should_release == 'false'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Log skip reason
         run: |

@@ -43,3 +43,15 @@ CVE-2025-5278
 # dpkg - low severity
 CVE-2025-6297
 TEMP-0841856-B18BAF
+
+# ---------------------------------------------------------------------------
+# Residual CVEs after moving the runtime to distroless/cc-debian12 (2026-06-26).
+# Distroless removes perl/tar/passwd/coreutils/ncurses/apt and most of the CVEs
+# above; the entries below cover the residual glibc/openssl/zlib set that remains
+# and has no upstream fix. Re-review when the distroless base image is bumped.
+# ---------------------------------------------------------------------------
+
+# zlib1g - CRITICAL by CVSS but the integer overflow is in MiniZip
+# (contrib/minizip), which is NOT compiled into the shared libz.so that Debian
+# ships. Debian marks zlib1g not-affected; no fixed version exists. Not reachable.
+CVE-2023-45853

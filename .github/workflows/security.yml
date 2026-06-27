@@ -274,52 +274,11 @@ jobs:
           sarif_file: reports/dependency-check-report.sarif
         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
 
-  # Container scanning (if Docker image exists)
-  container-scan:
-    name: Container Security Scan
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
-      
-      - name: Build Docker image
-        run: |
-          docker build -t openai-rust-sdk:scan \
-            --build-arg VERSION=${{ github.sha }} \
-            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-            --build-arg VCS_REF=${{ github.sha }} \
-            .
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # 0.36.0
-        with:
-          image-ref: 'openai-rust-sdk:scan'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          trivyignores: '.trivyignore'
-      
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4
-        with:
-          sarif_file: 'trivy-results.sarif'
-        if: always() && hashFiles('trivy-results.sarif') != ''
-      
-      - name: Run Grype scanner
-        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2  # v7.4.0
-        with:
-          image: 'openai-rust-sdk:scan'
-          fail-build: false
-          severity-cutoff: high
-      
-      - name: Upload Grype results
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4
-        with:
-          sarif_file: results.sarif
-        if: always() && hashFiles('results.sarif') != ''
+  # NOTE: Container image scanning lives in the Docker workflow
+  # (.github/workflows/docker.yml -> "scan" job), which reuses the image already
+  # built by that pipeline. The previous duplicate container-scan job here scanned
+  # a second, separately-built image and double-counted every OS-package CVE in the
+  # code-scanning dashboard, so it was removed.
 
   # Security scorecard
   scorecard:
