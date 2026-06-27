@@ -1,7 +1,9 @@
 # ThreatFlux Rust Dockerfile
 # Multi-stage build for the OpenAI Rust SDK.
 
-FROM rust:1.96.0-bookworm AS rust-base
+# Base images are pinned by digest for reproducibility (Scorecard Pinned-Dependencies).
+# Refresh with: docker buildx imagetools inspect <image> | awk '/^Digest:/{print $2}'
+FROM rust:1.96.0-bookworm@sha256:5e2214abe154fe26e39f64488952e5c991eeed1d6d6da7cc8381ae83927f0cfc AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -19,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     pkg-config \
     libssl-dev \
+    tini \
     && rm -rf /var/lib/apt/lists/*
 
 FROM rust-base AS builder
@@ -46,7 +49,20 @@ RUN cargo install cargo-cyclonedx --locked --version 0.5.8 && \
       --spec-version 1.5 \
       --override-filename "${BINARY_NAME}-sbom"
 
-FROM debian:bookworm-slim AS runtime
+# Stage writable runtime directories. The distroless runtime has no shell or
+# package manager, so directory creation/ownership is prepared here and the
+# ownership is applied via `COPY --chown` into the final image.
+RUN mkdir -p /home/builder/runtime-skel/data \
+             /home/builder/runtime-skel/config \
+             /home/builder/runtime-skel/output
+
+# Distroless runtime: glibc + libssl + libgcc only — no shell, package manager,
+# perl, coreutils, tar, passwd, etc. This removes the overwhelming majority of
+# unfixable Debian base-image CVEs reported by Trivy. reqwest uses rustls, so no
+# OpenSSL is required for HTTP; the `cc` variant still provides libssl for any
+# transitive -sys linkage. Runs as the built-in nonroot user (uid 65532).
+# Pinned by digest (Scorecard Pinned-Dependencies).
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:b0ae8e989418b458e0f25489bc3be523718938a2b70864cc0f6a00af1ddbd985 AS runtime
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -73,34 +89,26 @@ LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
       com.threatflux.rust.version="1.96.0" \
       com.threatflux.rust.edition="2024"
 
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl3 \
-    tini \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data /config /output /usr/share/doc/openai-rust-sdk \
-    && useradd -m -u 1000 -s /bin/bash openai
+# tini is copied from the build stage for proper PID 1 signal handling/zombie
+# reaping (distroless has no init).
+COPY --from=builder /usr/bin/tini /usr/bin/tini
 
 COPY --from=builder /build/target/release/${BINARY_NAME} /usr/local/bin/${CLI_NAME}
 COPY --from=builder /build/${BINARY_NAME}-sbom.json /usr/share/doc/openai-rust-sdk/sbom.cdx.json
-COPY --chown=openai:openai test_data /opt/openai-rust-sdk/test_data
+COPY --from=builder --chown=65532:65532 /home/builder/runtime-skel/data /data
+COPY --from=builder --chown=65532:65532 /home/builder/runtime-skel/config /config
+COPY --from=builder --chown=65532:65532 /home/builder/runtime-skel/output /output
+COPY --chown=65532:65532 test_data /opt/openai-rust-sdk/test_data
 
-RUN chown -R openai:openai \
-    /data \
-    /config \
-    /output \
-    /opt/openai-rust-sdk \
-    /usr/local/bin/${CLI_NAME} \
-    /usr/share/doc/openai-rust-sdk
-
-USER openai
+USER 65532:65532
 WORKDIR /data
 
 ENV RUST_LOG=info
 ENV OPENAI_BASE_URL=https://api.openai.com/v1
 
+# Exec form (no shell in distroless); a nonzero exit is reported as unhealthy.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["/usr/local/bin/openai-rust-sdk", "--version"] || exit 1
+    CMD ["/usr/local/bin/openai-rust-sdk", "--version"]
 
 EXPOSE 3000 8080
 
