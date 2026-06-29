@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.5.1] - 2026-06-13
+
+
+### 🚀 What's Changed
+
+#### 🐛 Bug Fixes
+- fix security workflow permissions (51e9bcc)
+- fix: remove dead models_impl directory to fix code duplication check (6f4fa0c)
+- fix(ci): raise code duplication fail_above threshold to 95 (dbb1bba)
+- fix: add --version flag to CLI for Docker healthcheck compatibility (0d96351)
+- fix(security): resolve GitHub security scanning alerts (#60) (33d1664)
+
+#### 🔧 Other Changes
+- use rust docker template 1.96 (5e7886c)
+- ci(deps): bump the actions group across 1 directory with 11 updates (#81) (28ffcc8)
+- chore: roll up Rust and dependency updates (1097e8f)
+- chore(deps): update all GitHub Actions and transitive crate deps to latest (75a3559)
+- chore: update GitHub Actions and crate dependencies to latest stable versions (1c72378)
+- chore: bump version to v1.5.0 and update CHANGELOG (364800a)
+
+### 📊 Statistics
+
+- **Version**: 1.5.0 → 1.5.1
+- **Date**: 2026-06-13
+- **Commits**: 11
+- **Contributors**: 3
+
+
 ## [1.5.0] - 2026-03-24
 
 
