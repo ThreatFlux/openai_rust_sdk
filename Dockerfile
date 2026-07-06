@@ -3,7 +3,7 @@
 
 # Base images are pinned by digest for reproducibility (Scorecard Pinned-Dependencies).
 # Refresh with: docker buildx imagetools inspect <image> | awk '/^Digest:/{print $2}'
-FROM rust:1.96.0-bookworm@sha256:5e2214abe154fe26e39f64488952e5c991eeed1d6d6da7cc8381ae83927f0cfc AS rust-base
+FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663 AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
