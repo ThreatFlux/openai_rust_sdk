@@ -33,7 +33,7 @@ paste = { package = "qlora-paste", version = "1.0.20" }
 # WebRTC dependencies for real-time audio
 webrtc = "0.17.1"
 # WebRTC signaling and peer connection
-tokio-tungstenite = "0.29.0"
+tokio-tungstenite = "0.30.0"
 url = "2.5.8"
 rand = "0.10.1"
 log = "0.4.29"
