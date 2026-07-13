@@ -24,7 +24,7 @@ eventsource-stream = "0.2.3"
 futures = "0.3.32"
 chrono = { version = "0.4.44", features = ["serde"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
-jsonschema = "0.46.5"
+jsonschema = "0.47.0"
 async-stream = "0.3.6"
 bytes = "1.11.1"
 base64 = "0.22.1"
