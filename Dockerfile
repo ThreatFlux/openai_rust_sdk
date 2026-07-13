@@ -62,7 +62,7 @@ RUN mkdir -p /home/builder/runtime-skel/data \
 # OpenSSL is required for HTTP; the `cc` variant still provides libssl for any
 # transitive -sys linkage. Runs as the built-in nonroot user (uid 65532).
 # Pinned by digest (Scorecard Pinned-Dependencies).
-FROM gcr.io/distroless/cc-debian12:nonroot@sha256:b0ae8e989418b458e0f25489bc3be523718938a2b70864cc0f6a00af1ddbd985 AS runtime
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:ce0d66bc0f64aae46e6a03add867b07f42cc7b8799c949c2e898057b7f75a151 AS runtime
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
