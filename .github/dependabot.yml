@@ -13,7 +13,7 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "wyattroersma"  # Add your GitHub username
+      - "wroersma"
     labels:
       - "dependencies"
       - "rust"
@@ -48,7 +48,7 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "wyattroersma"
+      - "wroersma"
     labels:
       - "dependencies"
       - "github-actions"
@@ -71,7 +71,7 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "wyattroersma"
+      - "wroersma"
     labels:
       - "dependencies"
       - "docker"
