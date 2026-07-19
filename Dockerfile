@@ -86,7 +86,7 @@ LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
       org.opencontainers.image.documentation="https://github.com/threatflux/openai_rust_sdk/blob/main/README.md" \
       com.threatflux.category="AI/ML SDK" \
       com.threatflux.capabilities="openai,batch-processing,yara-validation" \
-      com.threatflux.rust.version="1.97.0" \
+      com.threatflux.rust.version="1.96.0" \
       com.threatflux.rust.edition="2024"
 
 # tini is copied from the build stage for proper PID 1 signal handling/zombie

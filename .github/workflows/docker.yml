@@ -64,11 +64,15 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           echo "name=$(echo "${REPO_NAME}" | tr '[:upper:]_' '[:lower:]-')" >> "$GITHUB_OUTPUT"
 
-      - name: Detect Rust toolchain version
-        id: rust_toolchain
+      - name: Detect Rust base image version
+        id: rust_base
         run: |
-          TOOLCHAIN_VERSION="$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' rust-toolchain.toml | sed -n '1p')"
-          echo "version=${TOOLCHAIN_VERSION}" >> "$GITHUB_OUTPUT"
+          RUST_BASE_VERSION="$(sed -n 's/^FROM rust:\([0-9][0-9.]*\)[^@ ]*@sha256:[^ ]* AS rust-base$/\1/p' Dockerfile | sed -n '1p')"
+          if [ -z "${RUST_BASE_VERSION}" ]; then
+            echo "Unable to detect the pinned Rust base image version" >&2
+            exit 1
+          fi
+          echo "version=${RUST_BASE_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Select build platforms
         id: platforms
@@ -134,11 +138,11 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.image_name }}
             ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.dockerhub_repo.outputs.name }}
           tags: |
-            type=raw,value=base-rust-${{ steps.rust_toolchain.outputs.version }}
+            type=raw,value=base-rust-${{ steps.rust_base.outputs.version }}
             type=raw,value=base-rust-latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=${{ env.OCI_IMAGE_TITLE }} Rust Base
-            org.opencontainers.image.description=Rust ${{ steps.rust_toolchain.outputs.version }} base image for ${{ env.OCI_IMAGE_TITLE }}
+            org.opencontainers.image.description=Rust ${{ steps.rust_base.outputs.version }} base image for ${{ env.OCI_IMAGE_TITLE }}
             org.opencontainers.image.vendor=${{ env.OCI_IMAGE_VENDOR }}
             org.opencontainers.image.source=${{ env.OCI_IMAGE_SOURCE }}
 
