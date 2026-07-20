@@ -24,7 +24,7 @@ eventsource-stream = "0.2.3"
 futures = "0.3.32"
 chrono = { version = "0.4.44", features = ["serde"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
-jsonschema = "0.46.5"
+jsonschema = "0.47.0"
 async-stream = "0.3.6"
 bytes = "1.11.1"
 base64 = "0.22.1"
@@ -33,7 +33,7 @@ paste = { package = "qlora-paste", version = "1.0.20" }
 # WebRTC dependencies for real-time audio
 webrtc = "0.17.1"
 # WebRTC signaling and peer connection
-tokio-tungstenite = "0.29.0"
+tokio-tungstenite = "0.30.0"
 url = "2.5.8"
 rand = "0.10.1"
 log = "0.4.29"

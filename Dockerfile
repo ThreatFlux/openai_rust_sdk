@@ -3,7 +3,7 @@
 
 # Base images are pinned by digest for reproducibility (Scorecard Pinned-Dependencies).
 # Refresh with: docker buildx imagetools inspect <image> | awk '/^Digest:/{print $2}'
-FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663 AS rust-base
+FROM rust:1.97.0-bookworm@sha256:7d0723df719e7f213b69dc7c8c595985c3f4b060cfbee4f7bc0e347a86fe3b6a AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -62,7 +62,7 @@ RUN mkdir -p /home/builder/runtime-skel/data \
 # OpenSSL is required for HTTP; the `cc` variant still provides libssl for any
 # transitive -sys linkage. Runs as the built-in nonroot user (uid 65532).
 # Pinned by digest (Scorecard Pinned-Dependencies).
-FROM gcr.io/distroless/cc-debian12:nonroot@sha256:b0ae8e989418b458e0f25489bc3be523718938a2b70864cc0f6a00af1ddbd985 AS runtime
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:ce0d66bc0f64aae46e6a03add867b07f42cc7b8799c949c2e898057b7f75a151 AS runtime
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
