@@ -508,6 +508,23 @@ mod tests {
     }
 
     #[test]
+    fn test_validation_reports_each_missing_required_property() {
+        let schema = SchemaBuilder::object()
+            .property("name", SchemaBuilder::string())
+            .property("age", SchemaBuilder::integer())
+            .required(&["name", "age"])
+            .build();
+
+        let error = schema
+            .validate(&json!({}))
+            .expect_err("both required properties are missing");
+        let message = error.to_string();
+
+        assert!(message.contains("name"), "missing name error: {message}");
+        assert!(message.contains("age"), "missing age error: {message}");
+    }
+
+    #[test]
     fn test_array_schema() {
         let schema = SchemaBuilder::array()
             .items(SchemaBuilder::string())
