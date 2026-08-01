@@ -10,9 +10,9 @@ use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{Mutex, mpsc};
-use webrtc::data_channel::RTCDataChannel;
-use webrtc::peer_connection::RTCPeerConnection;
-use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;
+use webrtc::data_channel::DataChannel;
+use webrtc::media_stream::track_local::static_sample::TrackLocalStaticSample;
+use webrtc::peer_connection::PeerConnection;
 
 use super::super::vad::VoiceActivityDetector;
 
@@ -22,10 +22,10 @@ pub struct RealtimeSession {
     pub id: String,
 
     /// WebRTC peer connection
-    peer_connection: Arc<RTCPeerConnection>,
+    peer_connection: Arc<dyn PeerConnection>,
 
     /// Data channel for events
-    data_channel: Arc<Mutex<Option<Arc<RTCDataChannel>>>>,
+    data_channel: Arc<Mutex<Option<Arc<dyn DataChannel>>>>,
 
     /// Audio track for sending
     audio_track: Arc<Mutex<Option<Arc<TrackLocalStaticSample>>>>,
@@ -69,7 +69,7 @@ impl RealtimeSession {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: String,
-        peer_connection: Arc<RTCPeerConnection>,
+        peer_connection: Arc<dyn PeerConnection>,
         event_sender: mpsc::UnboundedSender<RealtimeEvent>,
         event_receiver: mpsc::UnboundedReceiver<RealtimeEvent>,
         audio_sender: mpsc::UnboundedSender<AudioBuffer>,
@@ -144,7 +144,7 @@ impl RealtimeSession {
     }
 
     /// Set the data channel
-    pub async fn set_data_channel(&self, data_channel: Arc<RTCDataChannel>) {
+    pub async fn set_data_channel(&self, data_channel: Arc<dyn DataChannel>) {
         *self.data_channel.lock().await = Some(data_channel);
     }
 
@@ -164,7 +164,7 @@ impl RealtimeSession {
     }
 
     /// Get the peer connection
-    pub fn peer_connection(&self) -> &Arc<RTCPeerConnection> {
+    pub fn peer_connection(&self) -> &Arc<dyn PeerConnection> {
         &self.peer_connection
     }
 
@@ -174,7 +174,7 @@ impl RealtimeSession {
     }
 
     /// Get the data channel (for internal use)
-    pub(crate) async fn data_channel(&self) -> Option<Arc<RTCDataChannel>> {
+    pub(crate) async fn data_channel(&self) -> Option<Arc<dyn DataChannel>> {
         self.data_channel.lock().await.clone()
     }
 

@@ -647,8 +647,7 @@ mod tests {
     fn test_from_env_with_custom_base_url() {
         let _guard = ENV_LOCK.lock().expect("lock poisoned");
 
-        // SAFETY: test runs under ENV_LOCK so no concurrent env access.
-        // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage
+        // SAFETY: ENV_LOCK prevents concurrent environment access in this test module.
         unsafe {
             std::env::set_var("OPENAI_API_KEY", "test-key");
             std::env::set_var("OPENAI_BASE_URL", "https://example-proxy.test/v1");
@@ -660,8 +659,7 @@ mod tests {
             "https://example-proxy.test/v1"
         );
 
-        // SAFETY: test runs under ENV_LOCK so no concurrent env access.
-        // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage
+        // SAFETY: ENV_LOCK prevents concurrent environment access in this test module.
         unsafe {
             std::env::remove_var("OPENAI_API_KEY");
             std::env::remove_var("OPENAI_BASE_URL");

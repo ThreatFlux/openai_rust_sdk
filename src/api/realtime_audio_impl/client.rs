@@ -5,6 +5,10 @@
 use super::{config::RealtimeAudioConfig, session::RealtimeSession};
 use crate::api::base::HttpClient;
 use crate::error::{OpenAIError, Result};
+use crate::models::realtime::{
+    RealtimeClientSecretRequest, RealtimeClientSecretResponse, RealtimeTranscriptionSessionRequest,
+    RealtimeTranscriptionSessionResponse,
+};
 use crate::models::realtime_audio::{RealtimeSessionRequest, RealtimeSessionResponse};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -56,7 +60,7 @@ impl RealtimeAudioApi {
         &self,
         request: &RealtimeSessionRequest,
     ) -> Result<Arc<RealtimeSession>> {
-        let url = format!("{}/realtime/sessions", self.http_client.base_url());
+        let url = format!("{}/v1/realtime/sessions", self.http_client.base_url());
         let headers = self.http_client.build_headers()?;
 
         let response = self
@@ -86,9 +90,8 @@ impl RealtimeAudioApi {
             .await
             .map_err(crate::parse_err!(to_string))?;
 
-        let session = self
-            .create_webrtc_session(session_response, request.config.clone())
-            .await?;
+        let session =
+            Box::pin(self.create_webrtc_session(session_response, request.config.clone())).await?;
 
         // Store the session
         let mut sessions = self.sessions.write().await;
@@ -120,6 +123,26 @@ impl RealtimeAudioApi {
         Ok(())
     }
 
+    /// Create an ephemeral client secret for a Realtime or transcription session.
+    pub async fn create_client_secret(
+        &self,
+        request: &RealtimeClientSecretRequest,
+    ) -> Result<RealtimeClientSecretResponse> {
+        self.http_client
+            .post("/v1/realtime/client_secrets", request)
+            .await
+    }
+
+    /// Create a server-side Realtime transcription session.
+    pub async fn create_transcription_session(
+        &self,
+        request: &RealtimeTranscriptionSessionRequest,
+    ) -> Result<RealtimeTranscriptionSessionResponse> {
+        self.http_client
+            .post("/v1/realtime/transcription_sessions", request)
+            .await
+    }
+
     /// Get the HTTP client for internal use
     #[allow(dead_code)]
     pub(crate) fn http_client(&self) -> &HttpClient {
@@ -130,5 +153,65 @@ impl RealtimeAudioApi {
     #[allow(dead_code)]
     pub(crate) fn sessions(&self) -> &Arc<RwLock<HashMap<String, Arc<RealtimeSession>>>> {
         &self.sessions
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn creates_current_realtime_rest_sessions() {
+        let server = MockServer::start_async().await;
+        let secret_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/v1/realtime/client_secrets");
+                then.status(200)
+                    .header("Content-Type", "application/json")
+                    .json_body(json!({
+                        "value": "ek_test",
+                        "expires_at": 1_800_000_000,
+                        "session": {"type": "realtime", "model": "gpt-realtime"}
+                    }));
+            })
+            .await;
+        let transcription_mock = server
+            .mock_async(|when, then| {
+                when.method(POST)
+                    .path("/v1/realtime/transcription_sessions");
+                then.status(200)
+                    .header("Content-Type", "application/json")
+                    .json_body(json!({
+                        "client_secret": {"value": "ek_transcription", "expires_at": 1_800_000_000},
+                        "expires_at": 1_800_000_000
+                    }));
+            })
+            .await;
+
+        let api = RealtimeAudioApi::new_with_base_url("test-key", &server.base_url()).expect("API");
+        let secret_request = RealtimeClientSecretRequest::new(json!({
+            "type": "realtime",
+            "model": "gpt-realtime"
+        }))
+        .with_expiration_seconds(600);
+        let secret = api
+            .create_client_secret(&secret_request)
+            .await
+            .expect("client secret");
+        assert_eq!(secret.value, "ek_test");
+
+        let transcription = api
+            .create_transcription_session(&RealtimeTranscriptionSessionRequest::default())
+            .await
+            .expect("transcription session");
+        assert_eq!(
+            transcription.client_secret.expect("client secret").value,
+            "ek_transcription"
+        );
+
+        secret_mock.assert_async().await;
+        transcription_mock.assert_async().await;
     }
 }

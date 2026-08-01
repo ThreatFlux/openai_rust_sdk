@@ -28,6 +28,10 @@ use crate::{De, Ser};
 #[derive(Debug, Clone, PartialEq, Eq, Ser, De)]
 #[serde(rename_all = "snake_case")]
 pub enum VideoStatus {
+    /// Video generation is queued by the service.
+    Queued,
+    /// Video generation is currently running.
+    InProgress,
     /// Video generation is queued
     Pending,
     /// Video generation is in progress
@@ -64,6 +68,10 @@ pub struct Video {
     /// Current status of the video generation
     pub status: VideoStatus,
 
+    /// Approximate completion percentage for the generation task.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<u32>,
+
     /// The model used to generate the video
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
@@ -84,6 +92,26 @@ pub struct Video {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub height: Option<u32>,
 
+    /// Current API resolution string, such as `1280x720`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<String>,
+
+    /// Current API duration string, such as `8`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seconds: Option<String>,
+
+    /// Unix timestamp at which rendering completed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<u64>,
+
+    /// Unix timestamp at which downloadable assets expire.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+
+    /// Source video ID when this job is a remix.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remixed_from_video_id: Option<String>,
+
     /// URL to download the generated video (available when status is completed)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub download_url: Option<String>,
@@ -101,6 +129,18 @@ pub struct CreateVideoRequest {
 
     /// Text prompt describing the desired video
     pub prompt: String,
+
+    /// Current API clip duration (`4`, `8`, or `12`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seconds: Option<String>,
+
+    /// Current API resolution, for example `720x1280`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<String>,
+
+    /// Optional image URL or uploaded file reference.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_reference: Option<VideoImageReference>,
 
     /// Desired duration of the video in seconds
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -125,6 +165,9 @@ impl CreateVideoRequest {
         Self {
             model: model.into(),
             prompt: prompt.into(),
+            seconds: None,
+            size: None,
+            input_reference: None,
             duration: None,
             width: None,
             height: None,
@@ -136,6 +179,27 @@ impl CreateVideoRequest {
     #[must_use]
     pub fn with_duration(mut self, duration: f64) -> Self {
         self.duration = Some(duration);
+        self
+    }
+
+    /// Set the current API clip duration.
+    #[must_use]
+    pub fn with_seconds(mut self, seconds: impl Into<String>) -> Self {
+        self.seconds = Some(seconds.into());
+        self
+    }
+
+    /// Set the current API output resolution.
+    #[must_use]
+    pub fn with_size(mut self, size: impl Into<String>) -> Self {
+        self.size = Some(size.into());
+        self
+    }
+
+    /// Set an image URL or uploaded file as a generation reference.
+    #[must_use]
+    pub fn with_input_reference(mut self, input_reference: VideoImageReference) -> Self {
+        self.input_reference = Some(input_reference);
         self
     }
 
@@ -158,6 +222,116 @@ impl CreateVideoRequest {
     pub fn with_n(mut self, n: u32) -> Self {
         self.n = Some(n);
         self
+    }
+}
+
+/// Image URL or uploaded file reference for video generation.
+#[derive(Debug, Clone, Ser, De, Default)]
+pub struct VideoImageReference {
+    /// Fully qualified URL or base64 data URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+    /// Uploaded file identifier.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+}
+
+impl VideoImageReference {
+    /// Reference an image URL.
+    #[must_use]
+    pub fn image_url(url: impl Into<String>) -> Self {
+        Self {
+            image_url: Some(url.into()),
+            file_id: None,
+        }
+    }
+
+    /// Reference an uploaded file.
+    #[must_use]
+    pub fn file_id(file_id: impl Into<String>) -> Self {
+        Self {
+            image_url: None,
+            file_id: Some(file_id.into()),
+        }
+    }
+}
+
+/// Reference to a completed video for edit and extend operations.
+#[derive(Debug, Clone, Ser, De)]
+pub struct VideoReference {
+    /// Completed video identifier.
+    pub id: String,
+}
+
+impl VideoReference {
+    /// Create a video reference.
+    #[must_use]
+    pub fn new(id: impl Into<String>) -> Self {
+        Self { id: id.into() }
+    }
+}
+
+/// JSON request for editing an existing video.
+#[derive(Debug, Clone, Ser, De)]
+pub struct EditVideoRequest {
+    /// Completed source video.
+    pub video: VideoReference,
+    /// Prompt describing the edit.
+    pub prompt: String,
+}
+
+/// JSON request for extending an existing video.
+#[derive(Debug, Clone, Ser, De)]
+pub struct ExtendVideoRequest {
+    /// Completed source video.
+    pub video: VideoReference,
+    /// Prompt describing the extension.
+    pub prompt: String,
+    /// Extension duration in seconds.
+    pub seconds: String,
+}
+
+/// JSON request for remixing an existing video.
+#[derive(Debug, Clone, Ser, De)]
+pub struct RemixVideoRequest {
+    /// Prompt describing the remix.
+    pub prompt: String,
+}
+
+impl EditVideoRequest {
+    /// Create an edit request.
+    #[must_use]
+    pub fn new(video_id: impl Into<String>, prompt: impl Into<String>) -> Self {
+        Self {
+            video: VideoReference::new(video_id),
+            prompt: prompt.into(),
+        }
+    }
+}
+
+impl ExtendVideoRequest {
+    /// Create an extension request.
+    #[must_use]
+    pub fn new(
+        video_id: impl Into<String>,
+        prompt: impl Into<String>,
+        seconds: impl Into<String>,
+    ) -> Self {
+        Self {
+            video: VideoReference::new(video_id),
+            prompt: prompt.into(),
+            seconds: seconds.into(),
+        }
+    }
+}
+
+impl RemixVideoRequest {
+    /// Create a remix request.
+    #[must_use]
+    pub fn new(prompt: impl Into<String>) -> Self {
+        Self {
+            prompt: prompt.into(),
+        }
     }
 }
 
@@ -388,5 +562,61 @@ mod tests {
         assert_eq!(list.object, "list");
         assert!(list.data.is_empty());
         assert!(!list.has_more);
+    }
+
+    #[test]
+    fn current_video_request_and_operation_models() {
+        let request = CreateVideoRequest::new("sora-2", "A fox in snow")
+            .with_seconds("8")
+            .with_size("1280x720")
+            .with_input_reference(VideoImageReference::image_url(
+                "https://example.test/fox.png",
+            ));
+        let request_json = serde_json::to_value(&request).expect("request JSON");
+        assert_eq!(request_json["seconds"], "8");
+        assert_eq!(request_json["size"], "1280x720");
+        assert_eq!(
+            request_json["input_reference"]["image_url"],
+            "https://example.test/fox.png"
+        );
+
+        let file_reference = VideoImageReference::file_id("file_123");
+        assert_eq!(file_reference.file_id.as_deref(), Some("file_123"));
+        assert_eq!(VideoReference::new("video_123").id, "video_123");
+
+        let edit = EditVideoRequest::new("video_123", "Make it brighter");
+        assert_eq!(edit.video.id, "video_123");
+        assert_eq!(edit.prompt, "Make it brighter");
+
+        let extend = ExtendVideoRequest::new("video_123", "Continue the scene", "4");
+        assert_eq!(extend.seconds, "4");
+
+        let remix = RemixVideoRequest::new("Use a watercolor style");
+        assert_eq!(remix.prompt, "Use a watercolor style");
+    }
+
+    #[test]
+    fn current_video_response_fields_round_trip() {
+        let video: Video = serde_json::from_value(serde_json::json!({
+            "id": "video_123",
+            "object": "video",
+            "created_at": 1_800_000_000,
+            "status": "in_progress",
+            "progress": 42,
+            "seconds": "8",
+            "size": "1280x720",
+            "completed_at": null,
+            "expires_at": 1_800_100_000,
+            "remixed_from_video_id": "video_original"
+        }))
+        .expect("video JSON");
+        assert_eq!(video.status, VideoStatus::InProgress);
+        assert_eq!(video.progress, Some(42));
+        assert_eq!(video.seconds.as_deref(), Some("8"));
+        assert_eq!(video.size.as_deref(), Some("1280x720"));
+        assert_eq!(
+            video.remixed_from_video_id.as_deref(),
+            Some("video_original")
+        );
     }
 }

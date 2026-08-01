@@ -30,7 +30,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openai_rust_sdk = "0.1.0"
+openai_rust_sdk = "1.6.0"
 ```
 
 ## Quick Start
@@ -146,6 +146,13 @@ while let Some(event) = stream.next().await {
 # Ok::<(), Box<dyn std::error::Error>>(())
 # })?;
 ```
+
+The current Responses surface also supports GPT-5 reasoning controls, prompt-cache
+retention, truncation, tool search, shell/apply-patch/custom tools, background execution,
+input-token counting, conversation compaction, and typed reasoning/tool-call stream events.
+Realtime client secrets/transcription sessions and the current Videos API (including image
+references, edit, extend, remix, and content download) are available from `RealtimeAudioApi`
+and `VideosApi`.
 
 Compatibility helpers such as `generate_text`, `create_chat_completion`, and
 `create_custom_response` automatically route through the Responses API to maintain

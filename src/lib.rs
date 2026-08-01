@@ -173,6 +173,10 @@ pub use api::{
 pub use builders::{FunctionBuilder, ObjectSchemaBuilder};
 pub use client::{ChatBuilder, OpenAIClient, from_env, from_env_with_base_url};
 pub use error::{OpenAIError, Result};
+pub use models::realtime::*;
+pub use models::responses_v2::{
+    CreateResponseRequest, InputTokenCountResponse, ResponseStreamEvent,
+};
 pub use models::{assistants::*, functions::*, responses::*};
 pub use prompt_engineering::{
     Example, PromptBuilder, PromptPatterns, PromptTemplateBuilder, XmlContentBuilder,

@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use crate::models::functions::{Tool, ToolChoice};
-use crate::models::gpt5::{ReasoningConfig, TextConfig};
+use crate::models::gpt5::{PromptCacheOptions, ReasoningConfig, TextConfig};
 use crate::models::responses::message_types::{
     ImageDetail, Message, MessageContent, MessageContentInput, MessageRole,
 };
@@ -83,6 +83,15 @@ pub struct ResponseUsage {
         alias = "completion_tokens_details"
     )]
     pub output_tokens_details: Option<CompletionTokenDetails>,
+}
+
+/// Token count returned by `POST /v1/responses/input_tokens`.
+#[derive(Debug, Clone, Ser, De, Default)]
+pub struct InputTokenCountResponse {
+    /// Resource discriminator (`response.input_tokens`).
+    pub object: String,
+    /// Number of input tokens in the request.
+    pub input_tokens: u32,
 }
 
 /// Detailed prompt token information including caching and audio metrics
@@ -350,6 +359,16 @@ pub enum ServiceTier {
     Priority,
 }
 
+/// Strategy for handling input that exceeds a model's context window.
+#[derive(Debug, Clone, Copy, Ser, De, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Truncation {
+    /// Fail when the context window would be exceeded.
+    Disabled,
+    /// Drop older conversation items to fit the context window.
+    Auto,
+}
+
 /// Streaming options controlling the SSE payload
 #[derive(Debug, Clone, Ser, De, Default)]
 pub struct StreamOptions {
@@ -454,6 +473,15 @@ pub struct CreateResponseRequest {
     /// Prompt cache key for cache-aware routing
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt_cache_key: Option<String>,
+    /// Prompt-cache behavior for GPT-5.6 and later.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_cache_options: Option<PromptCacheOptions>,
+    /// Context-window truncation behavior.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub truncation: Option<Truncation>,
+    /// Model-owned style preset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personality: Option<String>,
     /// Reasoning configuration for advanced models
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<ReasoningConfig>,
@@ -574,6 +602,13 @@ impl CreateResponseRequest {
         self
     }
 
+    /// Configure streaming event selection, usage, and continuation.
+    #[must_use]
+    pub fn with_stream_options(mut self, options: StreamOptions) -> Self {
+        self.stream_options = Some(options);
+        self
+    }
+
     /// Set the sampling temperature for the response
     #[must_use]
     pub fn with_temperature(mut self, temperature: f32) -> Self {
@@ -655,6 +690,27 @@ impl CreateResponseRequest {
     #[must_use]
     pub fn with_prompt_cache_key(mut self, key: impl Into<String>) -> Self {
         self.prompt_cache_key = Some(key.into());
+        self
+    }
+
+    /// Configure prompt-cache retention and breakpoint behavior.
+    #[must_use]
+    pub fn with_prompt_cache_options(mut self, options: PromptCacheOptions) -> Self {
+        self.prompt_cache_options = Some(options);
+        self
+    }
+
+    /// Set the context-window truncation strategy.
+    #[must_use]
+    pub fn with_truncation(mut self, truncation: Truncation) -> Self {
+        self.truncation = Some(truncation);
+        self
+    }
+
+    /// Set the model-owned personality preset.
+    #[must_use]
+    pub fn with_personality(mut self, personality: impl Into<String>) -> Self {
+        self.personality = Some(personality.into());
         self
     }
 
@@ -898,6 +954,21 @@ impl CreateResponseRequest {
             payload.insert("prompt_cache_key".into(), Value::String(cache_key.clone()));
         }
 
+        if let Some(cache_options) = &self.prompt_cache_options {
+            payload.insert(
+                "prompt_cache_options".into(),
+                serde_json::to_value(cache_options)?,
+            );
+        }
+
+        if let Some(truncation) = &self.truncation {
+            payload.insert("truncation".into(), serde_json::to_value(truncation)?);
+        }
+
+        if let Some(personality) = &self.personality {
+            payload.insert("personality".into(), Value::String(personality.clone()));
+        }
+
         if let Some(reasoning) = &self.reasoning {
             payload.insert("reasoning".into(), serde_json::to_value(reasoning)?);
         }
@@ -1131,6 +1202,15 @@ fn convert_enhanced_request_tool(tool: &EnhancedTool) -> serde_json::Result<Valu
             EnhancedTool::ImageGeneration(_) => ensure_tool_name(map, "image_generation"),
             EnhancedTool::CodeInterpreter(_) => ensure_tool_name(map, "code_interpreter"),
             EnhancedTool::ComputerUse(_) => ensure_tool_name(map, "computer_use"),
+            EnhancedTool::ToolSearch(_) => ensure_tool_name(map, "tool_search"),
+            EnhancedTool::ProgrammaticToolCalling => {
+                ensure_tool_name(map, "programmatic_tool_calling");
+            }
+            EnhancedTool::LocalShell => ensure_tool_name(map, "local_shell"),
+            EnhancedTool::Shell(_) => ensure_tool_name(map, "shell"),
+            EnhancedTool::ApplyPatch(_) => ensure_tool_name(map, "apply_patch"),
+            EnhancedTool::Custom(_) => ensure_tool_name(map, "custom"),
+            EnhancedTool::Namespace(_) => ensure_tool_name(map, "namespace"),
         }
     }
     Ok(value)
@@ -2012,6 +2092,20 @@ pub enum ResponseStreamEvent {
         event_id: Option<String>,
         response: ResponseObject,
     },
+    /// Response accepted and actively processing.
+    #[serde(rename = "response.in_progress")]
+    ResponseInProgress {
+        event_id: Option<String>,
+        response: ResponseObject,
+        sequence_number: Option<u64>,
+    },
+    /// Response queued for processing.
+    #[serde(rename = "response.queued")]
+    ResponseQueued {
+        event_id: Option<String>,
+        response: ResponseObject,
+        sequence_number: Option<u64>,
+    },
     /// Response completed event (final payload)
     #[serde(rename = "response.completed")]
     ResponseCompleted {
@@ -2024,6 +2118,13 @@ pub enum ResponseStreamEvent {
         event_id: Option<String>,
         response: ResponseObject,
     },
+    /// Response ended before completion.
+    #[serde(rename = "response.incomplete")]
+    ResponseIncomplete {
+        event_id: Option<String>,
+        response: ResponseObject,
+        sequence_number: Option<u64>,
+    },
     /// Output item added to the response
     #[serde(rename = "response.output_item.added")]
     OutputItemAdded {
@@ -2031,6 +2132,34 @@ pub enum ResponseStreamEvent {
         response_id: String,
         output_index: u32,
         item: ResponseItem,
+    },
+    /// Output item completed.
+    #[serde(rename = "response.output_item.done")]
+    OutputItemDone {
+        event_id: Option<String>,
+        output_index: u32,
+        item: ResponseItem,
+        sequence_number: Option<u64>,
+    },
+    /// A new content part was added to an output item.
+    #[serde(rename = "response.content_part.added")]
+    ContentPartAdded {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        content_index: u32,
+        part: ContentPart,
+        sequence_number: Option<u64>,
+    },
+    /// An output content part completed.
+    #[serde(rename = "response.content_part.done")]
+    ContentPartDone {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        content_index: u32,
+        part: ContentPart,
+        sequence_number: Option<u64>,
     },
     /// Output text delta received
     #[serde(rename = "response.output_text.delta")]
@@ -2047,6 +2176,124 @@ pub enum ResponseStreamEvent {
         response_id: String,
         output_index: u32,
         text: String,
+    },
+    /// Function-call argument fragment.
+    #[serde(rename = "response.function_call_arguments.delta")]
+    FunctionCallArgumentsDelta {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        delta: String,
+        sequence_number: Option<u64>,
+    },
+    /// Complete function-call arguments.
+    #[serde(rename = "response.function_call_arguments.done")]
+    FunctionCallArgumentsDone {
+        event_id: Option<String>,
+        item_id: String,
+        name: String,
+        output_index: u32,
+        arguments: String,
+        sequence_number: Option<u64>,
+    },
+    /// Custom tool input fragment.
+    #[serde(rename = "response.custom_tool_call_input.delta")]
+    CustomToolCallInputDelta {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        delta: String,
+        sequence_number: Option<u64>,
+    },
+    /// Complete custom tool input.
+    #[serde(rename = "response.custom_tool_call_input.done")]
+    CustomToolCallInputDone {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        input: String,
+        sequence_number: Option<u64>,
+    },
+    /// Reasoning summary text fragment.
+    #[serde(rename = "response.reasoning_summary_text.delta")]
+    ReasoningSummaryTextDelta {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        summary_index: u32,
+        delta: String,
+        sequence_number: Option<u64>,
+    },
+    /// Complete reasoning summary text.
+    #[serde(rename = "response.reasoning_summary_text.done")]
+    ReasoningSummaryTextDone {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        summary_index: u32,
+        text: String,
+        sequence_number: Option<u64>,
+    },
+    /// Reasoning text fragment.
+    #[serde(rename = "response.reasoning_text.delta")]
+    ReasoningTextDelta {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        content_index: u32,
+        delta: String,
+        sequence_number: Option<u64>,
+    },
+    /// Complete reasoning text.
+    #[serde(rename = "response.reasoning_text.done")]
+    ReasoningTextDone {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        content_index: u32,
+        text: String,
+        sequence_number: Option<u64>,
+    },
+    /// Refusal text fragment.
+    #[serde(rename = "response.refusal.delta")]
+    RefusalDelta {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        content_index: u32,
+        delta: String,
+        sequence_number: Option<u64>,
+    },
+    /// Complete refusal text.
+    #[serde(rename = "response.refusal.done")]
+    RefusalDone {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        content_index: u32,
+        refusal: String,
+        sequence_number: Option<u64>,
+    },
+    /// Reasoning summary part was added.
+    #[serde(rename = "response.reasoning_summary_part.added")]
+    ReasoningSummaryPartAdded {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        summary_index: u32,
+        part: Value,
+        sequence_number: Option<u64>,
+    },
+    /// Reasoning summary part completed.
+    #[serde(rename = "response.reasoning_summary_part.done")]
+    ReasoningSummaryPartDone {
+        event_id: Option<String>,
+        item_id: String,
+        output_index: u32,
+        summary_index: u32,
+        part: Value,
+        status: Option<String>,
+        sequence_number: Option<u64>,
     },
     /// Conversation item created/added event
     #[serde(rename = "conversation.item.created")]

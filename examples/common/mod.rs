@@ -100,27 +100,43 @@ pub fn get_api_key_or_default(default_key: &str) -> String {
 mod tests {
     use super::*;
     use std::env;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_get_api_key_or_default() {
+        let _lock = ENV_LOCK.lock().unwrap();
         // Remove the env var if it exists for this test
         let original = env::var("OPENAI_API_KEY").ok();
-        env::remove_var("OPENAI_API_KEY");
+        // These tests run in isolation and restore the process environment below.
+        // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage -- test-only serialized environment setup
+        unsafe { env::remove_var("OPENAI_API_KEY") };
 
         let result = get_api_key_or_default("test-key");
         assert_eq!(result, "test-key");
 
         // Restore original value if it existed
         if let Some(original_key) = original {
-            env::set_var("OPENAI_API_KEY", original_key);
+            // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage -- test-only serialized environment restoration
+            unsafe { env::set_var("OPENAI_API_KEY", original_key) };
         }
     }
 
     #[test]
     fn test_try_get_api_key_with_key() {
-        env::set_var("OPENAI_API_KEY", "test-key");
+        let _lock = ENV_LOCK.lock().unwrap();
+        let original = env::var("OPENAI_API_KEY").ok();
+        // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage -- test-only serialized environment setup
+        unsafe { env::set_var("OPENAI_API_KEY", "test-key") };
         let result = try_get_api_key();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "test-key");
+        match original {
+            // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage -- test-only serialized environment restoration
+            Some(original_key) => unsafe { env::set_var("OPENAI_API_KEY", original_key) },
+            // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage -- test-only serialized environment restoration
+            None => unsafe { env::remove_var("OPENAI_API_KEY") },
+        }
     }
 }
