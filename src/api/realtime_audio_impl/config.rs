@@ -4,7 +4,7 @@
 
 use crate::models::realtime_audio::VoiceActivityDetectionConfig;
 use std::time::Duration;
-use webrtc::ice_transport::ice_server::RTCIceServer;
+use webrtc::peer_connection::RTCIceServer;
 
 /// Configuration for real-time audio API
 #[derive(Debug, Clone)]

@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.6.0] - 2026-08-01
+
+### Features
+
+- Update the Responses API for current GPT-5 reasoning, prompt-cache, truncation, personality,
+  tool, background, compaction, token-counting, and streaming-event features.
+- Add current Realtime client-secret and transcription-session endpoints.
+- Update the Videos API for current creation payloads, image references, edit, extend, remix,
+  and binary content downloads.
+- Upgrade the WebRTC stack and refresh Rust, crate, and GitHub Actions versions.
+
+### Compatibility
+
+- Preserve the legacy GPT-5 snapshot constants and video request builders as compatibility
+  surfaces while translating them to current API payloads.
+
 ## [1.5.1] - 2026-06-13
 
 

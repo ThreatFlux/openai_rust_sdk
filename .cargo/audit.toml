@@ -13,4 +13,7 @@ ignore = [
     # Bincode unmaintained - transitive dependency through yara-x
     # yara-x has not yet migrated away from bincode; no direct fix available
     "RUSTSEC-2025-0141",
+    # wasmtime is required by yara-x 1.19.0, which has not released a version
+    # using a fixed wasmtime range yet; remove this exception when yara-x ships it.
+    "RUSTSEC-2026-0222",
 ]

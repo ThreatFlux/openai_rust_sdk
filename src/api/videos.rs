@@ -7,8 +7,10 @@ use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
 use crate::error::Result;
 use crate::models::videos::{
-    CreateVideoRequest, ListVideosParams, Video, VideoDeleteResponse, VideoList,
+    CreateVideoRequest, EditVideoRequest, ExtendVideoRequest, ListVideosParams, RemixVideoRequest,
+    Video, VideoDeleteResponse, VideoList,
 };
+use serde_json::Value;
 
 /// Videos API client for Sora video generation
 pub struct VideosApi {
@@ -27,7 +29,8 @@ impl ApiClientConstructors for VideosApi {
 impl VideosApi {
     /// Generate a new video from a text prompt
     pub async fn create_video(&self, request: &CreateVideoRequest) -> Result<Video> {
-        self.client.post("/v1/videos/generations", request).await
+        let payload = current_video_payload(request)?;
+        self.client.post("/v1/videos", &payload).await
     }
 
     /// Retrieve a video by ID
@@ -64,6 +67,71 @@ impl VideosApi {
         let path = format!("/v1/videos/{}", video_id.as_ref());
         self.client.delete(&path).await
     }
+
+    /// Edit a completed generated video.
+    pub async fn edit_video(&self, request: &EditVideoRequest) -> Result<Video> {
+        self.client.post("/v1/videos/edits", request).await
+    }
+
+    /// Extend a completed generated video.
+    pub async fn extend_video(&self, request: &ExtendVideoRequest) -> Result<Video> {
+        self.client.post("/v1/videos/extensions", request).await
+    }
+
+    /// Remix a completed generated video with a refreshed prompt.
+    pub async fn remix_video(
+        &self,
+        video_id: impl AsRef<str>,
+        request: &RemixVideoRequest,
+    ) -> Result<Video> {
+        let path = format!("/v1/videos/{}/remix", video_id.as_ref());
+        self.client.post(&path, request).await
+    }
+
+    /// Download the rendered video or a derived preview asset.
+    pub async fn download_video_content(
+        &self,
+        video_id: impl AsRef<str>,
+        variant: Option<&str>,
+    ) -> Result<Vec<u8>> {
+        let path = match variant {
+            Some(variant) => format!("/v1/videos/{}/content?variant={variant}", video_id.as_ref()),
+            None => format!("/v1/videos/{}/content", video_id.as_ref()),
+        };
+        self.client.get_bytes(&path).await
+    }
+}
+
+/// Convert the compatibility request shape to the current Videos API payload.
+fn current_video_payload(request: &CreateVideoRequest) -> Result<Value> {
+    let mut payload = serde_json::to_value(request).map_err(crate::parse_err!(to_string))?;
+    if let Value::Object(fields) = &mut payload {
+        if !fields.contains_key("seconds")
+            && let Some(duration) = request.duration
+        {
+            let seconds = if duration.fract() == 0.0 {
+                format!("{duration:.0}")
+            } else {
+                duration.to_string()
+            };
+            fields.insert("seconds".to_string(), Value::String(seconds));
+        }
+
+        if !fields.contains_key("size")
+            && let (Some(width), Some(height)) = (request.width, request.height)
+        {
+            fields.insert(
+                "size".to_string(),
+                Value::String(format!("{width}x{height}")),
+            );
+        }
+
+        fields.remove("duration");
+        fields.remove("width");
+        fields.remove("height");
+        fields.remove("n");
+    }
+    Ok(payload)
 }
 
 #[cfg(test)]
@@ -112,6 +180,21 @@ mod tests {
         assert!(json.get("duration").is_none());
         assert!(json.get("width").is_none());
         assert!(json.get("n").is_none());
+    }
+
+    #[test]
+    fn current_video_payload_maps_legacy_fields_to_current_api() {
+        let request = CreateVideoRequest::new("sora-2", "A cat in space")
+            .with_duration(8.0)
+            .with_width(1280)
+            .with_height(720);
+        let payload = current_video_payload(&request).expect("payload");
+
+        assert_eq!(payload["seconds"], "8");
+        assert_eq!(payload["size"], "1280x720");
+        assert!(payload.get("duration").is_none());
+        assert!(payload.get("width").is_none());
+        assert!(payload.get("height").is_none());
     }
 
     #[test]

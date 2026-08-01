@@ -5,12 +5,12 @@
 use crate::error::{OpenAIError, Result};
 use crate::models::realtime_audio::{AudioBuffer, RealtimeEvent};
 use log::warn;
+use rtc::media::Sample;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use webrtc::data_channel::data_channel_message::DataChannelMessage;
-use webrtc::media::Sample;
-use webrtc::track::track_remote::TrackRemote;
+use webrtc::data_channel::RTCDataChannelMessage;
+use webrtc::media_stream::track_remote::{TrackRemote, TrackRemoteEvent};
 
 use super::types::RealtimeSession;
 
@@ -21,7 +21,7 @@ impl RealtimeSession {
             let json = serde_json::to_string(&event).map_err(crate::parse_err!(to_string))?;
 
             data_channel
-                .send_text(json)
+                .send_text(&json)
                 .await
                 .map_err(crate::streaming_err!("Failed to send event: {}"))?;
         } else {
@@ -48,6 +48,7 @@ impl RealtimeSession {
             };
 
             audio_track
+                .sample_writer(123_456, 111)
                 .write_sample(&sample)
                 .await
                 .map_err(crate::streaming_err!("Failed to send audio: {}"))?;
@@ -76,7 +77,7 @@ impl RealtimeSession {
     }
 
     /// Handle incoming data channel message
-    pub async fn handle_data_channel_message(&self, msg: DataChannelMessage) -> Result<()> {
+    pub async fn handle_data_channel_message(&self, msg: RTCDataChannelMessage) -> Result<()> {
         if let Ok(text) = String::from_utf8(msg.data.to_vec()) {
             match serde_json::from_str::<RealtimeEvent>(&text) {
                 Ok(event) => {
@@ -94,14 +95,14 @@ impl RealtimeSession {
     }
 
     /// Handle incoming audio track
-    pub async fn handle_incoming_track(&self, track: Arc<TrackRemote>) {
+    pub async fn handle_incoming_track(&self, track: Arc<dyn TrackRemote>) {
         let audio_sender = self.audio_sender().clone();
         let sample_rate = 24000; // Default sample rate for real-time audio
 
         tokio::spawn(async move {
             loop {
-                match track.read_rtp().await {
-                    Ok((rtp_packet, _)) => {
+                match track.poll().await {
+                    Some(TrackRemoteEvent::OnRtpPacket(rtp_packet)) => {
                         // Convert RTP packet to audio buffer
                         // This is a simplified conversion - in reality you'd need
                         // to handle Opus decoding properly
@@ -124,10 +125,11 @@ impl RealtimeSession {
                             break;
                         }
                     }
-                    Err(e) => {
-                        log::error!("Failed to read RTP packet: {e}");
+                    Some(TrackRemoteEvent::OnError | TrackRemoteEvent::OnEnded) | None => {
+                        log::error!("Incoming realtime audio track ended");
                         break;
                     }
+                    Some(_) => {}
                 }
             }
         });

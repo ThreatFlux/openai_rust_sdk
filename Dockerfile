@@ -3,7 +3,7 @@
 
 # Base images are pinned by digest for reproducibility (Scorecard Pinned-Dependencies).
 # Refresh with: docker buildx imagetools inspect <image> | awk '/^Digest:/{print $2}'
-FROM rust:1.97.0-bookworm@sha256:7d0723df719e7f213b69dc7c8c595985c3f4b060cfbee4f7bc0e347a86fe3b6a AS rust-base
+FROM rust:1.97.1-bookworm@sha256:77fac8b98f9f46062bb680b6d25d5bcaabfc400143952ebc572e924bcbedc3fa AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -86,7 +86,7 @@ LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
       org.opencontainers.image.documentation="https://github.com/threatflux/openai_rust_sdk/blob/main/README.md" \
       com.threatflux.category="AI/ML SDK" \
       com.threatflux.capabilities="openai,batch-processing,yara-validation" \
-      com.threatflux.rust.version="1.96.0" \
+      com.threatflux.rust.version="1.97.1" \
       com.threatflux.rust.edition="2024"
 
 # tini is copied from the build stage for proper PID 1 signal handling/zombie

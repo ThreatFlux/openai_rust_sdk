@@ -29,7 +29,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_VERSION: 1.96.0
+  RUST_VERSION: 1.97.1
 
 jobs:
   check-for-release:
@@ -45,6 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -185,6 +186,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -310,10 +312,13 @@ jobs:
           mv CHANGELOG.new.md CHANGELOG.md
       
       - name: Create and push tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ needs.check-for-release.outputs.next_version }}"
           # Tag the current HEAD directly — no push to main (branch protection blocks direct pushes)
           git tag -a "v$VERSION" -m "Release v$VERSION"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin "v$VERSION"
 
       - name: Create GitHub Release
@@ -329,6 +334,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create version bump PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
         run: |
           VERSION="${{ needs.check-for-release.outputs.next_version }}"
           BRANCH="chore/release-v${VERSION}"
@@ -341,6 +349,7 @@ jobs:
           - Version: ${{ needs.check-for-release.outputs.current_version }} → ${VERSION}
           - Updated CHANGELOG.md"
 
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin "$BRANCH"
 
           gh pr create \
@@ -371,6 +380,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0
       
       - name: Install Rust toolchain

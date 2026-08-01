@@ -5,8 +5,8 @@ use crate::api::common::{
 use crate::api::shared_utilities::EnumConverter;
 use crate::error::{ApiErrorResponse, OpenAIError, Result};
 use crate::models::responses_v2::{
-    ContentPart, CreateResponseRequest, ResponseInput, ResponseItem, ResponseObject,
-    ResponseStreamEvent,
+    ContentPart, CreateResponseRequest, InputTokenCountResponse, ResponseInput, ResponseItem,
+    ResponseObject, ResponseStreamEvent,
 };
 use crate::{De, Ser};
 use eventsource_stream::Eventsource;
@@ -143,28 +143,43 @@ impl ResponsesApiV2 {
             .map_err(OpenAIError::from)
     }
 
-    /// Compact a response (server-side context compaction)
+    /// Compact a conversation with the current Responses compaction endpoint.
     ///
-    /// Reduces the size of a stored response's context while preserving key information.
+    /// The request is sent to `POST /v1/responses/compact`; compaction is based on
+    /// the supplied model and input (or a previous response identifier).
     pub async fn compact_response(
         &self,
-        response_id: impl AsRef<str>,
-        background: Option<bool>,
+        request: &CreateResponseRequest,
     ) -> Result<ResponseObject> {
-        let url = format!("/v1/responses/{}/compact", response_id.as_ref());
-        let mut body = serde_json::json!({});
-        if let Some(bg) = background {
-            body["background"] = serde_json::json!(bg);
+        let mut body = request.to_payload()?;
+        if let Value::Object(payload) = &mut body {
+            payload.retain(|key, _| {
+                matches!(
+                    key.as_str(),
+                    "model"
+                        | "input"
+                        | "previous_response_id"
+                        | "instructions"
+                        | "prompt_cache_key"
+                        | "prompt_cache_options"
+                        | "service_tier"
+                )
+            });
         }
-        self.http_client.post(&url, &body).await
+        self.http_client.post("/v1/responses/compact", &body).await
     }
 
-    /// Count input tokens for a response
+    /// Count input tokens for a Responses request.
     ///
-    /// Returns the number of tokens that would be consumed by the given input.
-    pub async fn count_input_tokens(&self, response_id: impl AsRef<str>) -> Result<Value> {
-        let url = format!("/v1/responses/{}/input_tokens/count", response_id.as_ref());
-        self.http_client.post(&url, &Value::Null).await
+    /// Returns the number of tokens consumed by the request's input.
+    pub async fn count_input_tokens(
+        &self,
+        request: &CreateResponseRequest,
+    ) -> Result<InputTokenCountResponse> {
+        let body = request.to_payload()?;
+        self.http_client
+            .post("/v1/responses/input_tokens", &body)
+            .await
     }
 
     /// List input items used to generate a response
@@ -323,6 +338,32 @@ mod tests {
     }
 
     #[test]
+    fn parse_current_reasoning_event_returns_typed_variant() {
+        let event = Event {
+            id: String::new(),
+            event: "response.reasoning_summary_text.delta".into(),
+            data: json!({
+                "type": "response.reasoning_summary_text.delta",
+                "item_id": "rs_1",
+                "output_index": 0,
+                "summary_index": 0,
+                "delta": "Planning",
+                "sequence_number": 1
+            })
+            .to_string(),
+            retry: None,
+        };
+
+        let parsed = parse_sse_event(Ok(event)).expect("some").expect("ok");
+        match parsed {
+            ResponseStreamEvent::ReasoningSummaryTextDelta { delta, .. } => {
+                assert_eq!(delta, "Planning");
+            }
+            other => panic!("unexpected event: {:?}", other),
+        }
+    }
+
+    #[test]
     fn parse_error_event_maps_to_stream_error() {
         let event = Event {
             id: String::new(),
@@ -418,6 +459,12 @@ mod tests {
             "has_more": false
         })
         .to_string();
+        let compact_body = sample_response("Compacted").to_string();
+        let input_tokens_body = json!({
+            "object": "response.input_tokens",
+            "input_tokens": 17
+        })
+        .to_string();
 
         let completed_event = json!({
             "type": "response.completed",
@@ -508,6 +555,24 @@ event: response.completed\ndata: {}\n\n",
             })
             .await;
 
+        let compact_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/v1/responses/compact");
+                then.status(200)
+                    .header("Content-Type", "application/json")
+                    .body(&compact_body);
+            })
+            .await;
+
+        let input_tokens_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/v1/responses/input_tokens");
+                then.status(200)
+                    .header("Content-Type", "application/json")
+                    .body(&input_tokens_body);
+            })
+            .await;
+
         let api = ResponsesApiV2::new_with_base_url("test-key", &server.base_url()).unwrap();
         let request = CreateResponseRequest::new_text("gpt-4o-mini", "Hello");
 
@@ -560,6 +625,12 @@ event: response.completed\ndata: {}\n\n",
             .unwrap();
         assert_eq!(items.data.len(), 1);
 
+        let compacted = api.compact_response(&request).await.unwrap();
+        assert_eq!(compacted.output_text(), "Compacted");
+
+        let input_tokens = api.count_input_tokens(&request).await.unwrap();
+        assert_eq!(input_tokens.input_tokens, 17);
+
         stream_mock.assert_async().await;
         create_mock.assert_async().await;
         retrieve_mock.assert_async().await;
@@ -567,5 +638,7 @@ event: response.completed\ndata: {}\n\n",
         delete_mock.assert_async().await;
         list_mock.assert_async().await;
         input_items_mock.assert_async().await;
+        compact_mock.assert_async().await;
+        input_tokens_mock.assert_async().await;
     }
 }

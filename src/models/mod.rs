@@ -36,6 +36,8 @@ pub mod models;
 pub mod moderations;
 /// Modular moderations models for content policy classification
 pub mod moderations_modular;
+/// Current REST models for ephemeral Realtime sessions
+pub mod realtime;
 /// Real-time audio models for WebRTC streaming
 pub mod realtime_audio;
 /// Response models and data structures
@@ -127,6 +129,9 @@ pub use functions::{
 // GPT-5 API
 pub use gpt5::*;
 
+// Current REST Realtime session models
+pub use realtime::*;
+
 // Images API - explicit exports to avoid conflicts
 pub use images::builders as image_builders;
 pub use images::requests as image_requests;
@@ -164,11 +169,12 @@ pub use responses_v2::{
     CompletionTokenDetails as ResponsesApiCompletionTokenDetails,
     ContentPart as ResponsesApiContentPart, ConversationObject as ResponsesApiConversationObject,
     ConversationReference as ResponsesApiConversationReference, CreateResponseRequest,
+    InputTokenCountResponse as ResponsesApiInputTokenCountResponse,
     Instructions as ResponsesApiInstructions, PromptTokenDetails as ResponsesApiPromptTokenDetails,
     ResponseError as ResponsesApiError, ResponseInput as ResponsesApiInput,
     ResponseItem as ResponsesApiItem, ResponseObject, ResponseStatus, ResponseStreamEvent,
     ResponseUsage as ResponsesApiUsage, ServiceTier as ResponsesApiServiceTier,
-    StreamOptions as ResponsesApiStreamOptions,
+    StreamOptions as ResponsesApiStreamOptions, Truncation as ResponsesApiTruncation,
 };
 
 // Runs API

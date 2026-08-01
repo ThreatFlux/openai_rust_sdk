@@ -2,8 +2,8 @@
 # Standardized build, test, and development commands for openai_rust_sdk.
 
 CARGO ?= cargo
-RUST_MSRV ?= 1.96.0
-RUST_TOOLCHAIN ?= 1.96.0
+RUST_MSRV ?= 1.97.1
+RUST_TOOLCHAIN ?= 1.97.1
 
 DOCKER_IMAGE ?= openai-rust-sdk
 DOCKER_TAG ?= latest
