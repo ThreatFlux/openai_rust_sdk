@@ -375,7 +375,7 @@ jobs:
             CLI_NAME=${{ env.CLI_NAME }}
             SBOM_MANIFEST_PATH=${{ env.SBOM_MANIFEST_PATH }}
             OCI_IMAGE_TITLE=OpenAI Rust SDK
-            OCI_IMAGE_DESCRIPTION=Comprehensive OpenAI API SDK for Rust with YARA rule validation
+            OCI_IMAGE_DESCRIPTION=Batch JSONL generation and local YARA-X validation CLI
             OCI_IMAGE_VENDOR=ThreatFlux
             OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
           cache-from: type=gha

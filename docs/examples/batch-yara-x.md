@@ -1,16 +1,19 @@
-# YARA-X validation and batch generation
+# Batch API example: generate and validate YARA-X rules
 
-YARA support is optional. It compiles rules locally with
-[`yara-x`](https://crates.io/crates/yara-x), reports a small set of structural
-features, and scans two built-in test samples. The command-line interface can
-also run three built-in validator cases or generate OpenAI Batch API JSONL for
-YARA-rule prompts.
+This optional, security-oriented example shows how to prepare JSONL requests for
+the OpenAI Batch API and validate the generated YARA rules locally with
+[`yara-x`](https://crates.io/crates/yara-x). It is a focused Batch API case study,
+not a core requirement or primary use case of the SDK.
+
+The example tooling reports a small set of structural rule features, scans two
+built-in test samples, runs three built-in validator cases, and generates Batch
+API JSONL containing YARA-rule prompts.
 
 None of the CLI commands sends a network request, and none requires
 `OPENAI_API_KEY`. The generated JSONL must be uploaded and submitted separately
 if you want OpenAI to process it.
 
-## Enable YARA support
+## Enable the example tooling
 
 For a library dependency from crates.io:
 
@@ -47,6 +50,76 @@ are:
 The batch JSONL generator is also available as a library API without optional
 features. The packaged CLI intentionally requires `yara` for every command,
 including batch generation.
+
+## Generate Batch API JSONL
+
+```console
+cargo run --features yara -- generate-batch \
+  --output-dir ./batch-output \
+  --suite comprehensive
+```
+
+With the installed binary:
+
+```console
+openai_rust_sdk generate-batch --output-dir ./batch-output --suite basic
+```
+
+The exact options are:
+
+```text
+Usage: openai_rust_sdk generate-batch [OPTIONS] --output-dir <OUTPUT_DIR>
+
+Options:
+  -o, --output-dir <OUTPUT_DIR>
+  -s, --suite <SUITE>            [default: comprehensive]
+  -h, --help                     Print help
+```
+
+Available suites are:
+
+| Suite | Requests | Focus |
+| --- | ---: | --- |
+| `basic` | 3 | Literal text, PE headers, and diagnostic strings. |
+| `malware` | 3 | UPX, ransomware indicators, and keylogger APIs. |
+| `comprehensive` | 10 | Basic, malware, regex, cryptocurrency, size, loops, modules, and obfuscated JavaScript prompts. |
+
+The output path is
+`<OUTPUT_DIR>/<SUITE>_batch_jobs.jsonl`. Each line targets
+`POST /v1/chat/completions`. The CLI currently emits `model: "gpt-4"` and has no
+model option. To choose a model, use the library API:
+
+```rust
+use openai_rust_sdk::BatchJobGenerator;
+use std::path::Path;
+
+fn main() {
+    let generator = BatchJobGenerator::new(Some("gpt-5.6-luna".to_owned()));
+    generator
+        .generate_test_suite(Path::new("basic_batch_jobs.jsonl"), "basic")
+        .expect("batch generation failed");
+}
+```
+
+An unknown suite produces an error. The generator only writes JSONL; it does
+not upload a file, create a Batch API job, poll it, or validate model output.
+Those operations require a separately configured API client and
+`OPENAI_API_KEY`.
+
+## Run the end-to-end Batch workflow
+
+The runnable [`batch_processing_demo.rs`](../../examples/batch_processing_demo.rs)
+connects the example-specific generator to the SDK's general Batch client. It
+uploads the JSONL input, creates a Batch job, polls its status, downloads the
+result files, and applies the local YARA extraction and reporting helpers.
+
+```console
+export OPENAI_API_KEY="your_api_key_here"
+cargo run --example batch_processing_demo
+```
+
+This command makes live API requests and may incur usage charges. It polls for
+up to five minutes; a Batch job can continue after the example stops polling.
 
 ## Validate a rule
 
@@ -131,62 +204,7 @@ openai_rust_sdk run-tests
 `run-tests` executes three local cases: a valid string rule, a valid hex-pattern
 rule, and a deliberately invalid rule. It reports totals, passed and failed
 cases, and a success percentage. This command does not use the named batch
-generation suites below.
-
-## Generate Batch API JSONL
-
-```console
-cargo run --features yara -- generate-batch \
-  --output-dir ./batch-output \
-  --suite comprehensive
-```
-
-With the installed binary:
-
-```console
-openai_rust_sdk generate-batch --output-dir ./batch-output --suite basic
-```
-
-The exact options are:
-
-```text
-Usage: openai_rust_sdk generate-batch [OPTIONS] --output-dir <OUTPUT_DIR>
-
-Options:
-  -o, --output-dir <OUTPUT_DIR>
-  -s, --suite <SUITE>            [default: comprehensive]
-  -h, --help                     Print help
-```
-
-Available suites are:
-
-| Suite | Requests | Focus |
-| --- | ---: | --- |
-| `basic` | 3 | Literal text, PE headers, and diagnostic strings. |
-| `malware` | 3 | UPX, ransomware indicators, and keylogger APIs. |
-| `comprehensive` | 10 | Basic, malware, regex, cryptocurrency, size, loops, modules, and obfuscated JavaScript prompts. |
-
-The output path is
-`<OUTPUT_DIR>/<SUITE>_batch_jobs.jsonl`. Each line targets
-`POST /v1/chat/completions`. The CLI currently emits `model: "gpt-4"` and has no
-model option. To choose a model, use the library API:
-
-```rust
-use openai_rust_sdk::BatchJobGenerator;
-use std::path::Path;
-
-fn main() {
-    let generator = BatchJobGenerator::new(Some("gpt-5.6-luna".to_owned()));
-    generator
-        .generate_test_suite(Path::new("basic_batch_jobs.jsonl"), "basic")
-        .expect("batch generation failed");
-}
-```
-
-An unknown suite produces an error. The generator only writes JSONL; it does
-not upload a file, create a Batch API job, poll it, or validate model output.
-Those operations require a separately configured API client and
-`OPENAI_API_KEY`.
+generation suites above.
 
 ## Security guidance
 

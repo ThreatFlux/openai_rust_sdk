@@ -181,7 +181,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-rustdoc-
 
-      - name: Build CLI with YARA support
+      - name: Build optional Batch example CLI
         run: cargo +stable build --locked --features yara --bin openai_rust_sdk
 
       - name: Smoke-test CLI argument help

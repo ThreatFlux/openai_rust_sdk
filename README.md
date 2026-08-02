@@ -6,8 +6,8 @@
 [![MSRV](https://img.shields.io/badge/MSRV-1.97.1-blue.svg)](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/Cargo.toml)
 [![License](https://img.shields.io/crates/l/openai_rust_sdk.svg)](LICENSE)
 
-An unofficial, async, type-safe Rust client for the OpenAI API, with first-class Responses
-streaming and tools, broad platform API coverage, and optional YARA-X validation.
+An unofficial, async, type-safe Rust client for the OpenAI API, with first-class support for
+Responses, typed streaming, modern tools, and a broad platform surface.
 
 > [!NOTE]
 > This is a community-maintained project. It is not affiliated with, endorsed by, or maintained
@@ -25,8 +25,6 @@ streaming and tools, broad platform API coverage, and optional YARA-X validation
   shell, apply-patch, and custom tools.
 - **Broad API surface:** conversations, Realtime, Batch, files, uploads, vector stores, media,
   evals, fine-tuning, moderation, and administration APIs.
-- **Optional YARA-X workflow:** generate security-focused Batch inputs and validate generated
-  YARA rules locally.
 
 The OpenAI API changes quickly. See the dated [coverage matrix](docs/api-coverage.md) for exact
 support and known gaps instead of relying on an “all APIs” claim.
@@ -114,7 +112,7 @@ operations but does not yet mirror every endpoint or event in the current OpenAI
 | --- | --- | --- |
 | Responses and Conversations | Supported | [Quick start](examples/quickstart.rs), [Responses example](examples/responses_api.rs) |
 | Typed streaming and tools | Partial | [Streaming](examples/responses_api.rs), [MCP](examples/responses_mcp_tool.rs), [response formats](examples/response_format_demo.rs) |
-| Batch, Files, Uploads, and Vector Stores | Supported | [Batch](examples/batch_processing_demo.rs), [Files](examples/files_demo.rs), [Vector Stores](examples/vector_stores_demo.rs) |
+| Batch, Files, Uploads, and Vector Stores | Supported | [Batch](examples/batch_list_jobs.rs), [Files](examples/files_demo.rs), [Vector Stores](examples/vector_stores_demo.rs) |
 | Audio, Images, and Videos | Partial | [Audio](examples/audio_demo.rs), [Images](examples/images_demo.rs) |
 | Realtime | Partial | [Realtime example](examples/realtime_audio_demo.rs) |
 | Evals, Fine-tuning, and Administration | Partial | [Fine-tuning](examples/fine_tuning_demo.rs) |
@@ -131,7 +129,7 @@ currently unsupported surfaces.
 | Stream typed Responses events | [`responses_api.rs`](examples/responses_api.rs) | `cargo run --example responses_api` |
 | Use a remote MCP tool | [`responses_mcp_tool.rs`](examples/responses_mcp_tool.rs) | `cargo run --example responses_mcp_tool` |
 | Build and validate structured-output schemas | [`response_format_demo.rs`](examples/response_format_demo.rs) | `cargo run --example response_format_demo` |
-| Process a Batch workload | [`batch_processing_demo.rs`](examples/batch_processing_demo.rs) | `cargo run --example batch_processing_demo` |
+| List and inspect Batch jobs | [`batch_list_jobs.rs`](examples/batch_list_jobs.rs) | `cargo run --example batch_list_jobs` |
 | Manage API files | [`files_demo.rs`](examples/files_demo.rs) | `cargo run --example files_demo` |
 
 Examples that make network requests require `OPENAI_API_KEY`. Some examples exercise partial or
@@ -140,20 +138,17 @@ production.
 
 ## Cargo features
 
-The default build keeps YARA-X optional.
+Optional features are disabled by default.
 
 | Feature | What it enables |
 | --- | --- |
-| `default` | OpenAI API client and the core SDK surface; no YARA-X dependency |
+| `default` | OpenAI API client and the core SDK surface |
 | `testing` | Reserved compatibility feature; currently adds no dependencies |
-| `yara` | YARA-X compilation, rule validation, metrics, and the YARA CLI |
+| `yara` | Local YARA-X validation and CLI tooling for the optional Batch API example |
 | `full` | All optional capabilities; currently enables `testing` and `yara` |
 
-For YARA validation in a library:
-
-```bash
-cargo add openai_rust_sdk --features yara
-```
+The `yara` feature supports a security-oriented
+[Batch API example](docs/examples/batch-yara-x.md); it is not required for normal SDK use.
 
 ## Configuration and reliability
 
@@ -168,27 +163,6 @@ cargo add openai_rust_sdk --features yara
 
 See [Configuration and reliability](docs/configuration.md) for authentication, custom endpoints,
 streaming behavior, errors, runtime/TLS details, and production considerations.
-
-## Optional YARA-X tooling
-
-Install the CLI from crates.io with YARA support:
-
-```bash
-cargo install openai_rust_sdk --features yara
-openai_rust_sdk validate-rule --file ./rule.yar
-openai_rust_sdk generate-batch --suite basic --output-dir ./out
-openai_rust_sdk run-tests
-```
-
-From a source checkout, prefix each command with
-`cargo run --features yara --`, for example:
-
-```bash
-cargo run --features yara -- validate-rule --file ./rule.yar
-```
-
-Local validation and Batch-file generation do not require an OpenAI API key. Submitting generated
-requests to OpenAI does. See the complete [YARA-X guide](docs/yara.md).
 
 ## Development
 

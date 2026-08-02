@@ -14,7 +14,6 @@ including known gaps and legacy endpoints, use the canonical
 | Platform APIs | Clients for Batch, files, uploads, vector stores, media, evals, fine-tuning, moderation, and administration |
 | Realtime | Useful REST session operations and experimental connection helpers, with important gaps documented in the coverage matrix |
 | Legacy migration | Assistants, Threads, and Runs remain available while users migrate to Responses |
-| YARA-X | Optional local rule compilation, structural metrics, sample scans, validator cases, and Batch JSONL generation |
 
 “Typed” does not imply that every current OpenAI endpoint or event is implemented. OpenAI evolves
 the API independently of this community project. Check
@@ -28,7 +27,8 @@ The OpenAI API client is available with no optional features:
 cargo add openai_rust_sdk
 ```
 
-YARA-X is opt-in because it adds a substantial compilation dependency:
+The security-oriented Batch API example can optionally compile generated YARA rules locally. This
+adds a substantial compilation dependency, so the tooling is opt-in:
 
 ```bash
 cargo add openai_rust_sdk --features yara
@@ -36,12 +36,13 @@ cargo add openai_rust_sdk --features yara
 
 | Feature | Effect |
 | --- | --- |
-| `default` | Core SDK without YARA-X |
-| `yara` | YARA-X validation and the packaged CLI |
+| `default` | Core OpenAI API client |
+| `yara` | YARA-X validation and CLI support for the optional Batch API example |
 | `testing` | Reserved compatibility feature; currently adds no dependencies |
 | `full` | All optional capabilities; currently enables `testing` and `yara` |
 
-See [the YARA-X guide](docs/yara.md) for exact commands, output semantics, and security guidance.
+See [the YARA-X Batch example](docs/examples/batch-yara-x.md) for exact commands, output semantics,
+and security guidance.
 
 ## Production considerations
 

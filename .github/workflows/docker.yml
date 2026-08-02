@@ -35,7 +35,7 @@ env:
   CLI_NAME: ${{ vars.RUST_TEMPLATE_CLI_NAME || 'openai-rust-sdk' }}
   SBOM_MANIFEST_PATH: ${{ vars.RUST_TEMPLATE_SBOM_MANIFEST_PATH || 'Cargo.toml' }}
   OCI_IMAGE_TITLE: OpenAI Rust SDK
-  OCI_IMAGE_DESCRIPTION: Comprehensive OpenAI API SDK for Rust with YARA rule validation
+  OCI_IMAGE_DESCRIPTION: Batch JSONL generation and local YARA-X validation CLI
   OCI_IMAGE_VENDOR: ThreatFlux
   OCI_IMAGE_SOURCE: https://github.com/threatflux/openai_rust_sdk
 

@@ -1,13 +1,16 @@
-//! # Testing Module
+//! # Batch Example Utilities
 //!
-//! This module provides comprehensive testing and validation functionality.
+//! This module supports the optional security-oriented Batch API case study. Batch JSONL
+//! generation is always available; local YARA-X compilation and validation require the `yara`
+//! feature. These helpers are not required to use the SDK's OpenAI API clients.
 //!
 //! ## Features
 //!
-//! When the `yara` feature is enabled, this module provides YARA rule validation:
+//! When the `yara` feature is enabled, the example also provides:
 //! - Core YARA rule validation using the yara-x engine
 //! - Pre-defined test cases and test suite management
-//! - `OpenAI` Batch API job generation for YARA testing
+//!
+//! Batch API job generation is available without optional features.
 //!
 //! ## Sub-modules
 //!

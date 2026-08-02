@@ -44,14 +44,14 @@
 //!
 //! ## Cargo features
 //!
-//! - `default`: the API client without YARA-X.
-//! - `yara`: YARA-X rule compilation, validation, metrics, and CLI commands.
+//! - `default`: the core OpenAI API client.
+//! - `yara`: local validation and CLI tooling for the optional YARA-X Batch API example.
 //! - `testing`: reserved compatibility feature; currently adds no dependencies.
 //! - `full`: all optional capabilities; currently enables `testing` and `yara`.
 //!
 //! See the
-//! [YARA-X guide](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/docs/yara.md) for exact
-//! CLI commands and security considerations.
+//! [YARA-X Batch example](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/docs/examples/batch-yara-x.md)
+//! for exact CLI commands and security considerations.
 //!
 //! ## Reliability
 //!
@@ -129,7 +129,7 @@ pub mod models;
 pub mod prompt_engineering;
 /// JSON Schema utilities
 pub mod schema;
-/// YARA testing and validation functionality
+/// Utilities for the optional YARA-X Batch API example
 pub mod testing;
 
 // Re-export main OpenAI API types for convenience
@@ -153,10 +153,10 @@ pub use prompt_engineering::{
 };
 pub use schema::{EnhancedSchemaBuilder, JsonSchema, SchemaBuilder};
 
-// Re-export testing functionality
+// Re-export Batch example generation
 pub use testing::batch_generator::BatchJobGenerator;
 
-// Re-export YARA testing functionality when feature is enabled
+// Re-export optional case-study validation when the feature is enabled
 #[cfg(feature = "yara")]
 pub use testing::{
     test_cases::YaraTestCases,

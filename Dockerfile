@@ -13,7 +13,7 @@ ARG BINARY_PACKAGE=
 ARG CLI_NAME=openai-rust-sdk
 ARG SBOM_MANIFEST_PATH=Cargo.toml
 ARG OCI_IMAGE_TITLE=OpenAI Rust SDK
-ARG OCI_IMAGE_DESCRIPTION=Comprehensive OpenAI API SDK for Rust with YARA rule validation
+ARG OCI_IMAGE_DESCRIPTION=Batch JSONL generation and local YARA-X validation CLI
 ARG OCI_IMAGE_VENDOR=ThreatFlux
 ARG OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
 
@@ -70,7 +70,7 @@ ARG VCS_REF=unknown
 ARG BINARY_NAME=openai_rust_sdk
 ARG CLI_NAME=openai-rust-sdk
 ARG OCI_IMAGE_TITLE=OpenAI Rust SDK
-ARG OCI_IMAGE_DESCRIPTION=Comprehensive OpenAI API SDK for Rust with YARA rule validation
+ARG OCI_IMAGE_DESCRIPTION=Batch JSONL generation and local YARA-X validation CLI
 ARG OCI_IMAGE_VENDOR=ThreatFlux
 ARG OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
 
@@ -85,7 +85,7 @@ LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.documentation="https://github.com/threatflux/openai_rust_sdk/blob/main/README.md" \
       com.threatflux.category="AI/ML SDK" \
-      com.threatflux.capabilities="openai,batch-processing,yara-validation" \
+      com.threatflux.capabilities="openai,batch-jsonl-generation,yara-x-validation" \
       com.threatflux.rust.version="1.97.1" \
       com.threatflux.rust.edition="2024"
 
