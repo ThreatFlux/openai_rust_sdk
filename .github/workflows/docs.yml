@@ -98,6 +98,8 @@ jobs:
             --retry-wait-time 2
             --timeout 30
             --accept '100..=103,200..=299,429'
+            --exclude '^https://platform\.openai\.com/api-keys$'
+            --exclude '^https://help\.openai\.com/?$'
             README.md
             CHANGELOG.md
             CONTRIBUTING.md
