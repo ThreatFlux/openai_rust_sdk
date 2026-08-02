@@ -2,7 +2,7 @@
 //!
 //! This module supports the optional security-oriented Batch API case study. Batch JSONL
 //! generation is always available; local YARA-X compilation and validation require the `yara`
-//! feature. These helpers are not required to use the SDK's OpenAI API clients.
+//! feature. These helpers are not required to use the SDK's `OpenAI` API clients.
 //!
 //! ## Features
 //!
