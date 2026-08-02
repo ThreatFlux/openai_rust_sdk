@@ -16,7 +16,7 @@ use testing::{YaraTestCases, YaraValidator};
 #[derive(Parser)]
 #[command(name = "openai_rust_sdk")]
 #[command(version)]
-#[command(about = "YARA rule validation testing")]
+#[command(about = "Batch JSONL generation and local YARA-X validation")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

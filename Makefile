@@ -250,8 +250,14 @@ docker-push: ## Push Docker image to registry
 	@docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
 	@echo "$(GREEN)Docker image pushed!$(NC)"
 
+.PHONY: docs-check
+docs-check: ## Validate README and documentation contracts
+	@echo "$(CYAN)Checking documentation contracts...$(NC)"
+	@python3 scripts/check_docs.py
+	@echo "$(GREEN)Documentation checks passed!$(NC)"
+
 .PHONY: pre-commit
-pre-commit: fmt-check lint test-doc ## Pre-commit checks
+pre-commit: fmt-check lint test-doc docs-check ## Pre-commit checks
 
 .PHONY: template-check
 template-check: ## Fail if template placeholders are still present
@@ -260,7 +266,7 @@ template-check: ## Fail if template placeholders are still present
 	@echo "$(GREEN)No unresolved template placeholders found!$(NC)"
 
 .PHONY: ci
-ci: template-check fmt-check lint test test-features docs security ## Full CI checks
+ci: template-check docs-check fmt-check lint test test-features docs security ## Full CI checks
 
 .PHONY: ci-quick
 ci-quick: template-check fmt-check lint check ## Quick CI checks
@@ -307,24 +313,8 @@ test-openai: ## Test OpenAI API integration when OPENAI_API_KEY is set
 
 .PHONY: api-coverage
 api-coverage: ## Show API implementation coverage
-	@echo "$(CYAN)API Implementation Coverage Report$(NC)"
-	@echo ""
-	@echo "$(GREEN)Implemented APIs (95% coverage):$(NC)"
-	@echo "  - Chat Completions (ResponsesApi)"
-	@echo "  - Assistants API"
-	@echo "  - Vector Stores API"
-	@echo "  - Threads & Messages API"
-	@echo "  - Runs & Run Steps API"
-	@echo "  - Fine-tuning API"
-	@echo "  - Files API"
-	@echo "  - Images API"
-	@echo "  - Audio API"
-	@echo "  - Embeddings API"
-	@echo "  - Moderations API"
-	@echo "  - Models API"
-	@echo "  - Batch API"
-	@echo "  - Streaming API"
-	@echo "  - Function Calling"
+	@echo "$(CYAN)API coverage is maintained in docs/api-coverage.md.$(NC)"
+	@echo "$(GREEN)Open the dated matrix for supported, partial, legacy, and missing surfaces.$(NC)"
 
 .PHONY: stats
 stats: ## Show project statistics

@@ -1,5 +1,6 @@
 //! Validation demonstrations and type-safe response handling
 
+use super::example_model;
 use crate::response_format_modules::type_definitions::Person;
 use openai_rust_sdk::{
     api::ResponsesApi,
@@ -82,7 +83,7 @@ pub async fn demo_strict_mode_enforcement(
     let strict_schema = create_strict_schema();
 
     let _request = ResponseRequest::new_text(
-        "gpt-4",
+        example_model(),
         "Generate an API response with status, data, and timestamp",
     )
     .with_strict_json_schema("api_response", strict_schema.clone());
@@ -129,9 +130,11 @@ pub async fn demo_type_safe_responses(
         "additionalProperties": false
     });
 
-    let request =
-        ResponseRequest::new_text("gpt-4", "Generate a person profile for a data scientist")
-            .with_json_schema("person", person_schema.clone());
+    let request = ResponseRequest::new_text(
+        example_model(),
+        "Generate a person profile for a data scientist",
+    )
+    .with_json_schema("person", person_schema.clone());
 
     println!("Type-safe request format: {:?}", request.response_format);
 

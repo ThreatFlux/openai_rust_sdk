@@ -1,317 +1,195 @@
 # OpenAI Rust SDK
 
-A comprehensive Rust SDK for the OpenAI API with integrated YARA-X rule validation testing. This library provides complete access to all OpenAI APIs including Chat, Assistants, Batch processing, and more, with special capabilities for testing AI models' ability to generate valid YARA rules.
+[![Crates.io](https://img.shields.io/crates/v/openai_rust_sdk.svg)](https://crates.io/crates/openai_rust_sdk)
+[![Documentation](https://docs.rs/openai_rust_sdk/badge.svg)](https://docs.rs/openai_rust_sdk)
+[![CI](https://github.com/ThreatFlux/openai_rust_sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/ThreatFlux/openai_rust_sdk/actions/workflows/ci.yml)
+[![MSRV](https://img.shields.io/badge/MSRV-1.97.1-blue.svg)](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/Cargo.toml)
+[![License](https://img.shields.io/crates/l/openai_rust_sdk.svg)](LICENSE)
 
-Developed by Wyatt Roersma and Claude Code.
+An unofficial, async, type-safe Rust client for the OpenAI API, with first-class support for
+Responses, typed streaming, modern tools, and a broad platform surface.
 
-## Features
+> [!NOTE]
+> This is a community-maintained project. It is not affiliated with, endorsed by, or maintained
+> by OpenAI.
 
-✅ **Complete OpenAI API Support**
-- Create, retrieve, cancel, and list batch jobs
-- JSONL format support for batch requests
-- Automatic retry and error handling
-- Type-safe API interactions
+[API documentation](https://docs.rs/openai_rust_sdk) · [Examples](examples/) ·
+[API coverage](docs/api-coverage.md) · [Configuration](docs/configuration.md) ·
+[Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
-✅ **YARA-X Integration**
-- Real-time YARA rule validation using yara-x
-- Feature detection (hex patterns, strings, regex, metadata)
-- Performance metrics and complexity scoring
-- Pattern testing against sample data
+## Why this SDK?
 
-✅ **Testing Framework**
-- Generate batch jobs with YARA-specific questions
-- Validate AI-generated rules for correctness
-- Built-in test suite with various rule types
-- Comprehensive error reporting
+- **Responses first:** create, stream, retrieve, list, cancel, compact, and count tokens with
+  strongly typed requests and events.
+- **Modern tools:** function calling, web and file search, MCP, image generation, computer use,
+  shell, apply-patch, and custom tools.
+- **Broad API surface:** conversations, Realtime, Batch, files, uploads, vector stores, media,
+  evals, fine-tuning, moderation, and administration APIs.
 
-## Installation
+The OpenAI API changes quickly. See the dated [coverage matrix](docs/api-coverage.md) for exact
+support and known gaps instead of relying on an “all APIs” claim.
 
-Add to your `Cargo.toml`:
+> [!WARNING]
+> OpenAI has deprecated the Assistants API and announced shutdown on **August 26, 2026**. This
+> crate retains Assistants, Threads, and Runs for migration support; start new integrations with
+> the [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses).
 
-```toml
-[dependencies]
-openai_rust_sdk = "1.6.0"
-```
+## Quick start
 
-## Quick Start
+### Requirements
 
-### Environment Setup
+- Rust **1.97.1** or newer (the minimum supported Rust version, or MSRV)
+- An [OpenAI API key](https://platform.openai.com/api-keys) for live requests
+- Tokio with its macros and multithreaded runtime enabled
 
-```bash
-export OPENAI_API_KEY=your_api_key_here
-
-# Optional: target a non-default OpenAI-compatible endpoint (e.g., proxy or hosted variant)
-export OPENAI_BASE_URL=https://my-openai-proxy.example.com/v1
-```
-
-With both variables set, `OpenAIClient::from_env()` will authenticate with your key and route
-requests through the alternate base URL automatically.
-
-### Generate a Batch Job
+Install the latest published release:
 
 ```bash
-cargo run -- generate-batch basic output.jsonl
+cargo add openai_rust_sdk
+cargo add tokio --features macros,rt-multi-thread
 ```
 
-### Validate a YARA Rule
+The default branch can be ahead of the crates.io release. To test unreleased `main` explicitly:
 
 ```bash
-cargo run -- validate-rule rule.yar
+cargo add openai_rust_sdk --git https://github.com/ThreatFlux/openai_rust_sdk.git
+cargo add tokio --features macros,rt-multi-thread
 ```
 
-### Run Test Suite
+Set your credentials. `OPENAI_MODEL` is read by this example and can be omitted:
 
 ```bash
-cargo run -- run-tests
+export OPENAI_API_KEY="your_api_key_here"
+export OPENAI_MODEL="gpt-5.6-luna"
 ```
 
-## Usage Examples
+PowerShell users can use `$Env:OPENAI_API_KEY = "your_api_key_here"`.
 
-### Full Integration Example
+Create `src/main.rs`:
 
+<!-- BEGIN QUICKSTART -->
 ```rust
-use openai_rust_sdk::testing::{
-    batch_generator::BatchJobGenerator,
-    yara_validator::YaraValidator,
-};
+use openai_rust_sdk::{from_env, models::CreateResponseRequest};
 
-fn main() {
-    // Generate batch job
-    let generator = BatchJobGenerator::new(Some("gpt-5-nano".to_string()));
-    let batch_file = std::path::Path::new("test_batch.jsonl");
-    generator.generate_test_suite(batch_file, "basic").unwrap();
-    
-    // Validate a YARA rule
-    let rule = r#"
-    rule DetectMalware {
-        strings:
-            $a = "malware"
-        condition:
-            $a
-    }
-    "#;
-    
-    let validator = YaraValidator::new();
-    let result = validator.validate_rule(rule).unwrap();
-    
-    if result.is_valid {
-        println!("✓ Rule is valid!");
-    }
+const DEFAULT_MODEL: &str = "gpt-5.6-luna";
+
+#[tokio::main]
+async fn main() -> openai_rust_sdk::Result<()> {
+    let client = from_env()?;
+    let model = std::env::var("OPENAI_MODEL")
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| DEFAULT_MODEL.to_owned());
+
+    let request = CreateResponseRequest::new_text(
+        model,
+        "Explain Rust's ownership model in one concise sentence.",
+    );
+    let response = client.create_response_v2(&request).await?;
+
+    println!("{}", response.output_text());
+    Ok(())
 }
 ```
+<!-- END QUICKSTART -->
 
-### Batch Processing Workflow
-
-1. **Prepare Questions**: Generate JSONL file with YARA-related questions
-2. **Upload File**: Use OpenAI Files API to upload the JSONL
-3. **Create Batch**: Submit batch job with file ID
-4. **Monitor Progress**: Poll for completion (up to 24 hours)
-5. **Download Results**: Retrieve generated YARA rules
-6. **Validate Rules**: Use yara-x validator to test correctness
-
-### Modern Responses API
-
-The SDK now ships with a native client for the `/v1/responses` endpoints. You can access
-the full feature set--including conversations, background execution, and structured
-outputs--through the new builder and client helpers:
-
-```rust
-use futures::StreamExt;
-use openai_rust_sdk::{
-    CreateResponseRequest, OpenAIClient,
-    ResponsesApiServiceTier as ServiceTier,
-};
-
-# tokio_test::block_on(async {
-let client = OpenAIClient::new(std::env::var("OPENAI_API_KEY")?)?;
-
-let request = CreateResponseRequest::new_text("gpt-4o-mini", "Summarize Rust ownership")
-    .with_service_tier(ServiceTier::Auto)
-    .with_store(true);
-
-let response = client.create_response_v2(&request).await?;
-println!("Summary: {}", response.output_text());
-
-// Stream events with strong typing
-let mut stream = client.stream_response_v2(&request).await?;
-while let Some(event) = stream.next().await {
-    match event? {
-        openai_rust_sdk::ResponseStreamEvent::OutputTextDelta { delta, .. } => {
-            print!("{}", delta);
-        }
-        openai_rust_sdk::ResponseStreamEvent::ResponseCompleted { .. } => println!("\nDone!"),
-        _ => {}
-    }
-}
-# Ok::<(), Box<dyn std::error::Error>>(())
-# })?;
-```
-
-The current Responses surface also supports GPT-5 reasoning controls, prompt-cache
-retention, truncation, tool search, shell/apply-patch/custom tools, background execution,
-input-token counting, conversation compaction, and typed reasoning/tool-call stream events.
-Realtime client secrets/transcription sessions and the current Videos API (including image
-references, edit, extend, remix, and content download) are available from `RealtimeAudioApi`
-and `VideosApi`.
-
-Compatibility helpers such as `generate_text`, `create_chat_completion`, and
-`create_custom_response` automatically route through the Responses API to maintain
-the existing interface while unlocking new functionality.
-
-### Using a Custom Base URL
-
-```rust
-# tokio_test::block_on(async {
-use openai_rust_sdk::{from_env, CreateResponseRequest};
-
-// Set OPENAI_API_KEY and optionally OPENAI_BASE_URL before running.
-let client = from_env()?;
-
-let response = client
-    .create_response_v2(&CreateResponseRequest::new_text(
-        "gpt-4o-mini",
-        "Send this request through my proxy",
-    ))
-    .await?;
-
-println!("{}", response.output_text());
-# Ok::<(), Box<dyn std::error::Error>>(())
-# })?;
-```
-
-When `OPENAI_BASE_URL` is supplied, the client automatically routes requests through that
-endpoint instead of the default `https://api.openai.com`.
-
-## Test Suites
-
-The SDK includes three test suites for different complexity levels:
-
-### Basic Suite
-- Simple string detection rules
-- Basic PE file detection
-- Error/warning pattern matching
-
-### Malware Suite
-- Ransomware detection patterns
-- Trojan indicators
-- Cryptominer signatures
-- Advanced malware techniques
-
-### Comprehensive Suite
-- Complex multi-condition rules
-- External variable usage
-- Iterator patterns
-- Module imports
-- Performance-optimized rules
-
-## Project Structure
-
-```
-openai_rust_sdk/
-├── src/
-│   ├── lib.rs              # Library entry point
-│   ├── main.rs             # CLI application
-│   └── testing/
-│       ├── mod.rs          # Testing module exports
-│       ├── yara_validator.rs    # YARA-X validation
-│       ├── test_cases.rs       # Built-in test cases
-│       └── batch_generator.rs  # Batch job generation
-├── examples/
-│   └── full_integration.rs # Complete usage example
-├── test_data/
-│   ├── yara_x_questions.jsonl # Sample questions
-│   └── simple_batch.jsonl     # Basic test batch
-└── tests/
-    └── integration_test.rs # Integration tests
-```
-
-## CLI Commands
+Run it:
 
 ```bash
-# Validate a single YARA rule
-cargo run -- validate-rule path/to/rule.yar
-
-# Run the built-in test suite
-cargo run -- run-tests
-
-# Generate batch job for basic testing
-cargo run -- generate-batch basic output.jsonl
-
-# Generate batch job for malware detection
-cargo run -- generate-batch malware output.jsonl
-
-# Generate comprehensive test batch
-cargo run -- generate-batch comprehensive output.jsonl
+cargo run
 ```
 
-## Testing with GPT-5-Nano
+The complete source is kept in [`examples/quickstart.rs`](examples/quickstart.rs) and compiled by
+documentation CI.
 
-The SDK is configured to use `gpt-5-nano` for testing, which provides fast and cost-effective rule generation. Example batch request:
+## API coverage
 
-```json
-{
-  "custom_id": "yara_001",
-  "method": "POST",
-  "url": "/v1/chat/completions",
-  "body": {
-    "model": "gpt-5-nano",
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are an expert YARA rule developer."
-      },
-      {
-        "role": "user",
-        "content": "Create a YARA rule to detect UPX-packed PE files."
-      }
-    ],
-    "max_tokens": 1000,
-    "temperature": 0.3
-  }
-}
-```
+This table is a summary, not a completeness claim. “Partial” means the crate supports useful
+operations but does not yet mirror every endpoint or event in the current OpenAI API.
 
-## Validation Metrics
+| Area | Status | Start here |
+| --- | --- | --- |
+| Responses and Conversations | Supported | [Quick start](examples/quickstart.rs), [Responses example](examples/responses_api.rs) |
+| Typed streaming and tools | Partial | [Streaming](examples/responses_api.rs), [MCP](examples/responses_mcp_tool.rs), [response formats](examples/response_format_demo.rs) |
+| Batch, Files, Uploads, and Vector Stores | Supported | [Batch](examples/batch_list_jobs.rs), [Files](examples/files_demo.rs), [Vector Stores](examples/vector_stores_demo.rs) |
+| Audio, Images, and Videos | Partial | [Audio](examples/audio_demo.rs), [Images](examples/images_demo.rs) |
+| Realtime | Partial | [Realtime example](examples/realtime_audio_demo.rs) |
+| Evals, Fine-tuning, and Administration | Partial | [Fine-tuning](examples/fine_tuning_demo.rs) |
+| Assistants, Threads, and Runs | Legacy | [Migration guidance](https://developers.openai.com/api/docs/guides/migrate-to-responses) |
 
-The validator provides comprehensive metrics:
+See [API coverage](docs/api-coverage.md) for endpoint-level notes, lifecycle information, and
+currently unsupported surfaces.
 
-- **Compilation Status**: Whether the rule compiles successfully
-- **Feature Detection**: Identifies rule components (strings, hex, regex, etc.)
-- **Performance Metrics**: Compilation time and complexity scoring
-- **Pattern Testing**: Tests rules against sample data
-- **Error Reporting**: Detailed error messages for invalid rules
+## Common examples
+
+| Goal | Example | Command |
+| --- | --- | --- |
+| Make a Responses request | [`quickstart.rs`](examples/quickstart.rs) | `cargo run --example quickstart` |
+| Stream typed Responses events | [`responses_api.rs`](examples/responses_api.rs) | `cargo run --example responses_api` |
+| Use a remote MCP tool | [`responses_mcp_tool.rs`](examples/responses_mcp_tool.rs) | `cargo run --example responses_mcp_tool` |
+| Build and validate structured-output schemas | [`response_format_demo.rs`](examples/response_format_demo.rs) | `cargo run --example response_format_demo` |
+| List and inspect Batch jobs | [`batch_list_jobs.rs`](examples/batch_list_jobs.rs) | `cargo run --example batch_list_jobs` |
+| Manage API files | [`files_demo.rs`](examples/files_demo.rs) | `cargo run --example files_demo` |
+
+Examples that make network requests require `OPENAI_API_KEY`. Some examples exercise partial or
+legacy APIs; read their source and the [coverage matrix](docs/api-coverage.md) before using them in
+production.
+
+## Cargo features
+
+Optional features are disabled by default.
+
+| Feature | What it enables |
+| --- | --- |
+| `default` | OpenAI API client and the core SDK surface |
+| `testing` | Reserved compatibility feature; currently adds no dependencies |
+| `yara` | Local YARA-X validation and CLI tooling for the optional Batch API example |
+| `full` | All optional capabilities; currently enables `testing` and `yara` |
+
+The `yara` feature supports a security-oriented
+[Batch API example](docs/examples/batch-yara-x.md); it is not required for normal SDK use.
+
+## Configuration and reliability
+
+- `openai_rust_sdk::from_env()` requires `OPENAI_API_KEY`.
+- `OPENAI_BASE_URL` is optional and must be an API origin such as
+  `https://proxy.example.com`—do not append `/v1` or a trailing slash.
+- The bearer API key is sent to the configured base URL. Only use endpoints you trust.
+- The SDK does **not** currently apply automatic retries or expose a global request timeout.
+  Applications should add workload-appropriate timeouts, backoff, and idempotency handling.
+- OpenAI-compatible endpoints vary; a custom base URL does not guarantee support for every model,
+  request field, stream event, or platform API.
+
+See [Configuration and reliability](docs/configuration.md) for authentication, custom endpoints,
+streaming behavior, errors, runtime/TLS details, and production considerations.
 
 ## Development
 
-### Building
-
 ```bash
-cargo build --release
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-features
+cargo doc --all-features --no-deps
+python3 scripts/check_docs.py
 ```
 
-### Running Tests
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and release process.
 
-```bash
-cargo test
-```
+## Support and security
 
-### Formatting & Linting
-
-```bash
-cargo fmt
-cargo clippy -- -D warnings
-```
+- Use [GitHub Issues](https://github.com/ThreatFlux/openai_rust_sdk/issues) for reproducible bugs
+  and feature requests.
+- Follow [SECURITY.md](SECURITY.md) to report vulnerabilities privately; do not open a public
+  security issue.
+- OpenAI account, billing, model-access, or service-status questions belong with
+  [OpenAI Support](https://help.openai.com/).
 
 ## License
 
-MIT
+Licensed under the [MIT License](LICENSE).
 
-## Contributing
+## Acknowledgments
 
-Contributions are welcome! Please ensure all tests pass and code is properly formatted before submitting PRs.
-
-## Requirements
-
-- Rust 1.96.0 or later
-- OpenAI API key for batch processing
-- yara-x crate for rule validation
+Created and maintained by Wyatt Roersma with development assistance from Claude Code. See the
+repository history for the complete contributor record.

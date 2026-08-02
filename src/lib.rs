@@ -1,7 +1,68 @@
-//! # Batch `OpenAI` SDK with YARA Rule Validation and `OpenAI` API Client
+//! # OpenAI Rust SDK
 //!
-//! This crate provides a comprehensive SDK for integrating `OpenAI`'s API with YARA rule validation,
-//! including support for chat completions, streaming responses, and automated testing.
+//! `openai_rust_sdk` is an unofficial, async, type-safe Rust client for the OpenAI API. The
+//! [Responses API](api::responses_v2) is the recommended starting point for new integrations;
+//! the crate also covers conversations, streaming and tools, Batch, files, vector stores,
+//! media, Realtime, fine-tuning, evals, and administration APIs.
+//!
+//! This community-maintained crate is not affiliated with, endorsed by, or maintained by OpenAI.
+//! The API changes quickly, so consult the dated
+//! [coverage matrix](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/docs/api-coverage.md)
+//! before depending on a particular endpoint in production.
+//!
+//! ## Quick start
+//!
+//! Set `OPENAI_API_KEY`, then create a response:
+//!
+//! ```rust,no_run
+//! use openai_rust_sdk::{from_env, models::CreateResponseRequest};
+//!
+//! #[tokio::main]
+//! async fn main() -> openai_rust_sdk::Result<()> {
+//!     let client = from_env()?;
+//!     let request = CreateResponseRequest::new_text(
+//!         "gpt-5.6-luna",
+//!         "Explain Rust's ownership model in one concise sentence.",
+//!     );
+//!
+//!     let response = client.create_response_v2(&request).await?;
+//!     println!("{}", response.output_text());
+//!     Ok(())
+//! }
+//! ```
+//!
+//! `from_env` also accepts the optional `OPENAI_BASE_URL` environment variable. A custom base URL
+//! must be an API origin without `/v1` or a trailing slash. The API key is sent as a bearer token
+//! to that origin, so only configure endpoints you trust.
+//!
+//! ## API lifecycle
+//!
+//! Responses and Conversations are the modern integration path. Assistants, Threads, and Runs
+//! remain available for migration, but OpenAI has deprecated the Assistants API and announced its
+//! shutdown for August 26, 2026. See OpenAI's
+//! [migration guide](https://developers.openai.com/api/docs/guides/migrate-to-responses).
+//!
+//! ## Cargo features
+//!
+//! - `default`: the core OpenAI API client.
+//! - `yara`: local validation and CLI tooling for the optional YARA-X Batch API example.
+//! - `testing`: reserved compatibility feature; currently adds no dependencies.
+//! - `full`: all optional capabilities; currently enables `testing` and `yara`.
+//!
+//! See the
+//! [YARA-X Batch example](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/docs/examples/batch-yara-x.md)
+//! for exact CLI commands and security considerations.
+//!
+//! ## Reliability
+//!
+//! The shared HTTP client does not currently apply automatic retries or expose a global request
+//! timeout. Applications should add workload-appropriate timeouts, exponential backoff with
+//! jitter, and idempotency handling. More details are in the
+//! [configuration guide](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/docs/configuration.md).
+//!
+//! Complete, runnable programs live in the repository's
+//! [examples directory](https://github.com/ThreatFlux/openai_rust_sdk/tree/main/examples), starting
+//! with `quickstart.rs` and `responses_api.rs`.
 
 #![allow(missing_docs)]
 #![allow(clippy::missing_docs_in_private_items)]
@@ -39,98 +100,7 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::multiple_crate_versions)]
-//!
-//! ## Features
-//!
-//! - **`OpenAI` API Client**: Full-featured client with streaming support
-//! - **Chat Completions**: Support for role-based conversations and prompt templates
-//! - **Streaming Support**: Real-time streaming responses with Server-Sent Events
-//! - **Responses API**: Modern `/v1/responses` endpoint with streaming and input items
-//! - **Assistants & Threads**: Create assistants, manage threads, messages, and runs
-//! - **Fine-Tuning**: Job management with pause/resume support
-//! - **Vector Stores**: RAG/knowledge management with file search and content retrieval
-//! - **Uploads**: Multipart large file uploads with part management
-//! - **Evals**: Evaluation creation, runs, and output item inspection
-//! - **Videos (Sora)**: AI video generation via the Sora API
-//! - **Conversations**: Conversation and item (message) management
-//! - **Skills**: Reusable skill creation, versioning, and content management
-//! - **Admin**: Organization administration — users, invites, projects, API keys, rate limits, audit logs, and usage
-//! - **Images (DALL-E)**: Image generation, editing, and variations
-//! - **Audio**: Text-to-speech, transcription, and translation
-//! - **Embeddings**: Vector representations for text
-//! - **Moderations**: Content policy classification
-//! - **Batch API**: Asynchronous batch job processing
-//! - **YARA Rule Validation**: Complete validation pipeline using the yara-x engine
-//! - **Comprehensive Testing**: Unit tests, integration tests, and performance benchmarks
-//! - **Error Handling**: Robust error handling with detailed validation results
-//!
-//! ## Quick Start - `OpenAI` API
-
-// Allow unused imports where they are required for serde attributes to work properly
 #![allow(unused_imports)]
-//!
-//! ```rust,no_run
-//! use openai_rust_sdk::{OpenAIClient, ChatBuilder};
-//!
-//! # tokio_test::block_on(async {
-//! let client = OpenAIClient::new("your-api-key")?;
-//!
-//! // Simple text generation
-//! let response = client.generate_text("gpt-4", "Hello, world!").await?;
-//! println!("Response: {response}");
-//!
-//! // Chat conversation
-//! let conversation = ChatBuilder::new()
-//!     .developer("You are a helpful assistant")
-//!     .user("What is Rust?");
-//!
-//! let response = client.chat("gpt-4", conversation).await?;
-//! println!("Chat response: {response}");
-//! # Ok::<(), openai_rust_sdk::OpenAIError>(())
-//! # }).unwrap();
-//! ```
-//!
-//! ## Quick Start - YARA Validation
-//!
-//! ```rust,ignore
-//! # #[cfg(feature = "yara")]
-//! use openai_rust_sdk::testing::YaraValidator;
-//!
-//! # #[cfg(feature = "yara")]
-//! # tokio_test::block_on(async {
-//! let validator = YaraValidator::new();
-//! let rule = r#"
-//! rule test_rule {
-//!     strings:
-//!         $hello = "Hello World"
-//!     condition:
-//!         $hello
-//! }
-//! "#;
-//!
-//! let result = validator.validate_rule(rule)?;
-//! println!("Rule is valid: {}", result.is_valid);
-//! # Ok::<(), anyhow::Error>(())
-//! # }).unwrap();
-//! ```
-//!
-//! ## Modules
-//!
-//! - [`client`]: Main `OpenAI` client with all API functionality
-//! - [`api`]: Individual API modules — responses, assistants, fine-tuning, vector stores, uploads, evals, videos, conversations, skills, admin, and more
-//! - [`models`]: Data models for requests and responses
-//! - [`testing`]: YARA validation and testing functionality
-//! - [`error`]: Error types and handling
-//!
-//! ## Examples
-//!
-//! See the `examples/` directory for complete usage examples:
-//! - `chat_completion.rs`: Chat completions and streaming examples
-//! - `full_integration.rs`: Complete workflow demonstration
-//! - `basic_validation.rs`: Simple rule validation
-//! - `streaming_demo.rs`: Streaming API integration
-//! - `error_handling.rs`: Error handling patterns
-
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
@@ -159,7 +129,7 @@ pub mod models;
 pub mod prompt_engineering;
 /// JSON Schema utilities
 pub mod schema;
-/// YARA testing and validation functionality
+/// Utilities for the optional YARA-X Batch API example
 pub mod testing;
 
 // Re-export main OpenAI API types for convenience
@@ -183,10 +153,10 @@ pub use prompt_engineering::{
 };
 pub use schema::{EnhancedSchemaBuilder, JsonSchema, SchemaBuilder};
 
-// Re-export testing functionality
+// Re-export Batch example generation
 pub use testing::batch_generator::BatchJobGenerator;
 
-// Re-export YARA testing functionality when feature is enabled
+// Re-export optional case-study validation when the feature is enabled
 #[cfg(feature = "yara")]
 pub use testing::{
     test_cases::YaraTestCases,

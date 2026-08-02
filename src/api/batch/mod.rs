@@ -10,8 +10,8 @@
 //! - **Status Monitoring**: Check batch progress and completion status
 //! - **Result Retrieval**: Download completed batch results
 //! - **Batch Management**: List, cancel, and manage batch operations
-//! - **YARA Processing**: Extract and process YARA rules from batch results
-//! - **Comprehensive Reporting**: Generate detailed analysis reports
+//! - **Example Helpers**: Extract YARA rules and generate reports for the included security case
+//!   study
 //!
 //! ## Example
 //!

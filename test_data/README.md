@@ -1,6 +1,6 @@
 # Test Data
 
-This directory contains sample JSONL files for testing the OpenAI Batch API with yara-x related questions.
+This directory contains sample JSONL files for the optional YARA-X Batch API case study.
 
 ## Files
 
