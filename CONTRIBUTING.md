@@ -1,233 +1,121 @@
 # Contributing to OpenAI Rust SDK
 
-Thank you for your interest in contributing to the OpenAI Rust SDK! We welcome contributions from the community.
+Thank you for helping improve the project. Contributions should be focused, tested, and honest
+about the OpenAI API behavior they support. Please keep discussion respectful and constructive.
 
-## 📋 Table of Contents
+Security vulnerabilities must follow the private process in [SECURITY.md](SECURITY.md); do not
+open a public issue for them.
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Process](#development-process)
-- [Commit Guidelines](#commit-guidelines)
-- [Pull Request Process](#pull-request-process)
-- [Testing](#testing)
-- [Release Process](#release-process)
+## Set up a development checkout
 
-## Code of Conduct
-
-Please be respectful and constructive in all interactions. We aim to maintain a welcoming and inclusive environment for all contributors.
-
-## Getting Started
-
-1. Fork the repository
-2. Clone your fork:
-   ```bash
-   git clone https://github.com/your-username/openai_rust_sdk.git
-   cd openai_rust_sdk
-   ```
-3. Add upstream remote:
-   ```bash
-   git remote add upstream https://github.com/threatflux/openai_rust_sdk.git
-   ```
-4. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-## Development Process
-
-### Prerequisites
-
-- Rust 1.82 or later
-- Cargo and standard Rust toolchain
-- Optional: Docker for testing containerized builds
-
-### Building
+The minimum supported Rust version is **1.97.1**. The checked-in `rust-toolchain.toml` selects the
+project toolchain automatically when Rustup is installed. Documentation checks additionally use
+Python 3.11 or newer.
 
 ```bash
-# Standard build
-cargo build --all-features
-
-# Release build
-cargo build --release --all-features
-
-# Quick development cycle
-make dev
+git clone https://github.com/YOUR-USER/openai_rust_sdk.git
+cd openai_rust_sdk
+git remote add upstream https://github.com/ThreatFlux/openai_rust_sdk.git
+git switch -c your-focused-branch
 ```
 
-### Code Quality
-
-Before submitting a PR, ensure your code passes all checks:
+Install the optional development tools used by the full Makefile workflow:
 
 ```bash
-# Run full CI-like checks
-make all
-
-# Or run individually:
-cargo fmt           # Format code
-cargo clippy        # Lint
-cargo test         # Run tests
-cargo audit        # Security audit
+make dev-setup
 ```
 
-## Commit Guidelines
+Normal builds and tests do not need an OpenAI API key. Never commit credentials, `.env` files,
+generated Batch inputs containing sensitive data, or live API responses with private content.
 
-⚠️ **IMPORTANT**: This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning and releases.
+## Development loop
 
-Please read our [Commit Convention Guide](.github/commit-convention.md) for detailed information.
-
-### Quick Reference
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-**Types that trigger releases:**
-- `feat:` - New feature (minor version bump)
-- `fix:` - Bug fix (patch version bump)
-- `feat!:` or `BREAKING CHANGE:` - Breaking change (major version bump)
-
-**Other types (no release):**
-- `docs:` - Documentation
-- `style:` - Formatting
-- `refactor:` - Code restructuring
-- `perf:` - Performance improvements
-- `test:` - Tests
-- `chore:` - Maintenance
-- `ci:` - CI/CD changes
-
-### Examples
+Use the smallest check that covers your change while iterating:
 
 ```bash
-# Feature (triggers minor release)
-git commit -m "feat: add support for GPT-5 models"
-
-# Bug fix (triggers patch release)
-git commit -m "fix: resolve memory leak in streaming responses"
-
-# Breaking change (triggers major release)
-git commit -m "feat!: redesign API client initialization
-
-BREAKING CHANGE: Client::new() now requires ApiConfig parameter"
-```
-
-## Pull Request Process
-
-1. **Update your fork:**
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
-
-2. **Make your changes:**
-   - Write clear, concise code
-   - Add tests for new functionality
-   - Update documentation as needed
-   - Follow existing code style
-
-3. **Test thoroughly:**
-   ```bash
-   make test          # Run all tests
-   make test-openai   # Test with OpenAI API (requires API key)
-   ```
-
-4. **Create PR:**
-   - Use a descriptive title following commit conventions
-   - Fill out the PR template
-   - Link related issues
-   - Ensure all CI checks pass
-
-5. **PR Review:**
-   - Address reviewer feedback
-   - Keep PR focused and atomic
-   - Rebase if needed to resolve conflicts
-
-## Testing
-
-### Unit Tests
-```bash
+cargo check --all-targets --all-features
 cargo test --all-features
+cargo fmt --all
+cargo clippy --all-targets --all-features -- -D warnings
 ```
 
-### Integration Tests
+Before opening a pull request, run the repository checks:
+
 ```bash
-# Requires OPENAI_API_KEY environment variable
-export OPENAI_API_KEY=your_key_here
-cargo test --all-features -- --ignored
+make ci
+python3 scripts/check_docs.py
 ```
 
-### Coverage
+`make ci` uses additional tools installed by `make dev-setup`, including `cargo-audit` and
+`cargo-deny`. It can require network access to refresh advisory data.
+
+For a documentation-only change, at minimum run:
+
 ```bash
-make coverage      # Generate coverage report
-make coverage-open # Open HTML report
+python3 scripts/check_docs.py
+cargo fmt --all -- --check
+RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps
 ```
 
-### Examples
-Test examples to ensure they compile and run:
+The live integration test is environment-gated rather than marked `#[ignore]`. If
+`OPENAI_API_KEY` is present, ordinary `cargo test --all-features` and `make ci` runs can make live
+requests and incur usage charges. Unset the variable for an offline test run. To run the live test
+intentionally:
+
 ```bash
-cargo run --example chat_completion
-cargo run --example streaming_chat
+export OPENAI_API_KEY="your_api_key_here"
+make test-openai
 ```
 
-## Release Process
+Use a restricted test project and review each live test before running it. Most contributions
+should be verifiable with unit tests, fixtures, and mock HTTP servers.
 
-### Automatic Releases
+## Adding or changing API support
 
-This project uses automated releases triggered by conventional commits:
+An API contribution should normally include:
 
-1. **Push commits** with proper conventional commit messages
-2. **CI/CD runs** automatically on push to main
-3. **Auto-release workflow** triggers when all checks pass
-4. **Version bumped** based on commit types since last release
-5. **Release created** with:
-   - Updated version in Cargo.toml
-   - Generated CHANGELOG.md
-   - Git tag
-   - GitHub Release with artifacts
-   - Published to crates.io (if configured)
+- typed request and response models, with optional fields matching the wire format;
+- the client operation and error behavior;
+- serialization and mocked HTTP tests for success and representative failures;
+- a compile-tested example when users need a new integration pattern; and
+- an update to `docs/api-coverage.md` and any affected configuration guidance.
 
-### Manual Release
+Do not describe an area as fully supported solely because one endpoint exists. Call out missing
+operations, untyped events, preview behavior, and deprecated surfaces explicitly.
 
-To trigger a release manually:
+Feature-gated changes should compile both without default features and with all features:
 
-1. Go to Actions → Auto Release workflow
-2. Click "Run workflow"
-3. Select version bump type (patch/minor/major)
-4. Click "Run workflow"
-
-### Version Numbering
-
-We follow [Semantic Versioning](https://semver.org/):
-- **MAJOR**: Breaking API changes
-- **MINOR**: New features, backward compatible
-- **PATCH**: Bug fixes, backward compatible
-
-## Project Structure
-
-```
-openai_rust_sdk/
-├── src/
-│   ├── api/           # API client implementations
-│   ├── models/        # Request/response models
-│   ├── builders/      # Builder patterns
-│   ├── testing/       # Test utilities and YARA validation
-│   └── client.rs      # Main client
-├── examples/          # Usage examples
-├── tests/            # Integration tests
-├── benches/          # Benchmarks
-└── .github/
-    └── workflows/    # CI/CD pipelines
+```bash
+cargo check --no-default-features
+cargo check --all-features
 ```
 
-## Getting Help
+## Commits and pull requests
 
-- Check existing [issues](https://github.com/threatflux/openai_rust_sdk/issues)
-- Read the [documentation](https://docs.rs/openai_rust_sdk)
-- Ask in [discussions](https://github.com/threatflux/openai_rust_sdk/discussions)
+This repository uses [Conventional Commits](.github/commit-convention.md). Examples:
 
-## License
+```text
+feat(responses): support response compaction
+fix(streaming): preserve API error payloads
+docs: clarify custom base URL handling
+```
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Keep a pull request focused on one concern. Its description should explain the user-visible
+behavior, testing performed, compatibility impact, and any API gaps left intentionally. Link
+related issues and update the changelog when maintainers request it.
+
+Before requesting review, confirm that:
+
+- formatting, linting, relevant tests, and docs checks pass;
+- public API additions have useful rustdoc comments;
+- examples use current, configurable models and do not embed secrets;
+- generated files and unrelated formatting changes are excluded; and
+- the README and coverage matrix still make claims the implementation supports.
+
+Project maintainers handle versioning, release notes, tags, and crates.io publication after a
+change is merged.
+
+## Getting help
+
+Use [GitHub Issues](https://github.com/ThreatFlux/openai_rust_sdk/issues) for focused,
+reproducible bugs, design questions, or feature proposals.

@@ -1,150 +1,64 @@
-# OpenAI SDK - Complete Feature Set
+# OpenAI Rust SDK capabilities
 
-## 🚀 Core Features
+This page is a high-level map of the crate. For the dated, evidence-based status of each API area,
+including known gaps and legacy endpoints, use the canonical
+[API coverage matrix](docs/api-coverage.md).
 
-### 1. **Batch API Support** ✅
-- Create, retrieve, cancel, and list batch jobs
-- JSONL format support for batch requests
-- Automatic retry and error handling
-- Type-safe API interactions
+## Core capabilities
 
-### 2. **Chat Completions / Responses API** ✅
-- Text generation with simple prompts
-- Multi-turn conversations with role-based messages
-- Developer, User, and Assistant roles
-- Prompt templates with variable substitution
-- Instructions parameter for high-level guidance
-- Full parameter support (temperature, max_tokens, top_p, etc.)
+| Capability | What the crate provides |
+| --- | --- |
+| Responses | Typed create, retrieve, list, cancel, compact, token-counting, input-item, and streaming APIs |
+| Tools | Function calling, web and file search, MCP, image generation, computer use, shell, apply-patch, and custom tools |
+| Conversations | Typed conversation and item operations for Responses-based applications |
+| Platform APIs | Clients for Batch, files, uploads, vector stores, media, evals, fine-tuning, moderation, and administration |
+| Realtime | Useful REST session operations and experimental connection helpers, with important gaps documented in the coverage matrix |
+| Legacy migration | Assistants, Threads, and Runs remain available while users migrate to Responses |
+| YARA-X | Optional local rule compilation, structural metrics, sample scans, validator cases, and Batch JSONL generation |
 
-### 3. **Streaming Support** ✅
-- Server-Sent Events (SSE) streaming
-- Real-time response processing
-- Partial JSON parsing during streaming
-- Stream error handling and recovery
-- Memory-efficient processing for large responses
+“Typed” does not imply that every current OpenAI endpoint or event is implemented. OpenAI evolves
+the API independently of this community project. Check
+[`docs/api-coverage.md`](docs/api-coverage.md) before selecting the crate for a specific workflow.
 
-### 4. **Structured Outputs** ✅
-- JSON Schema validation for responses
-- Schema builder with fluent API
-- Support for all JSON types and constraints
-- Recursive schema support
-- Refusal handling for safety responses
-- Generic parsing to any Serde type
+## Cargo features
 
-### 5. **YARA-X Integration** ✅
-- Real-time YARA rule validation
-- Feature detection (hex, strings, regex, metadata)
-- Performance metrics and complexity scoring
-- Pattern testing against sample data
-- Batch job generation for testing AI models
+The OpenAI API client is available with no optional features:
 
-## 📊 Testing & Quality
-
-### Test Coverage
-- **112/113 tests passing** (99.1% success rate)
-- **48 unit tests** for core functionality
-- **38 integration tests** for API interactions
-- **26 documentation tests** with examples
-- **5 comprehensive example programs**
-
-### Code Quality
-- ✅ Zero compilation warnings
-- ✅ All clippy lints resolved
-- ✅ Comprehensive documentation
-- ✅ Consistent code formatting
-- ✅ Performance benchmarks included
-
-## 🛠 Technical Stack
-
-### Dependencies
-- **tokio** - Async runtime
-- **reqwest** - HTTP client
-- **serde** - Serialization
-- **yara-x** - YARA rule validation
-- **eventsource-stream** - SSE streaming
-- **jsonschema** - JSON Schema validation
-
-### Architecture
-- Modular design with clear separation of concerns
-- Builder patterns for easy API usage
-- Generic implementations for type safety
-- Comprehensive error handling
-- Async/await throughout
-
-## 📚 Examples Available
-
-1. **basic_validation.rs** - Simple YARA rule validation
-2. **chat_completion.rs** - Chat API usage with streaming
-3. **structured_outputs.rs** - Structured data extraction
-4. **streaming_demo.rs** - Real-time streaming responses
-5. **full_integration.rs** - Complete workflow example
-6. **error_handling.rs** - Proper error management
-
-## 🔧 Usage
-
-### Simple Text Generation
-```rust
-let client = Client::from_env()?;
-let response = client.generate_text("gpt-5", "Hello, world!").await?;
+```bash
+cargo add openai_rust_sdk
 ```
 
-### Streaming Response
-```rust
-let mut stream = client.generate_text_stream("gpt-5", "Tell me a story").await?;
-while let Some(chunk) = stream.next().await {
-    print!("{}", chunk?.text);
-}
+YARA-X is opt-in because it adds a substantial compilation dependency:
+
+```bash
+cargo add openai_rust_sdk --features yara
 ```
 
-### Structured Output
-```rust
-let schema = SchemaBuilder::object()
-    .property("name", SchemaBuilder::string())
-    .property("age", SchemaBuilder::number())
-    .required(&["name", "age"])
-    .build();
+| Feature | Effect |
+| --- | --- |
+| `default` | Core SDK without YARA-X |
+| `yara` | YARA-X validation and the packaged CLI |
+| `testing` | Reserved compatibility feature; currently adds no dependencies |
+| `full` | All optional capabilities; currently enables `testing` and `yara` |
 
-let response = client.create_structured_completion::<Person>(
-    "gpt-5",
-    "Extract: John, 30 years old",
-    schema
-).await?;
-```
+See [the YARA-X guide](docs/yara.md) for exact commands, output semantics, and security guidance.
 
-### YARA Validation
-```rust
-let validator = YaraValidator::new();
-let result = validator.validate_rule(rule_content)?;
-if result.is_valid {
-    println!("Rule compiled successfully!");
-}
-```
+## Production considerations
 
-## 🎯 Production Ready
+The shared HTTP client currently has no automatic retry policy or global request timeout. Custom
+base URLs receive the configured bearer credential and must be trusted. Streaming consumers must
+handle both transport errors and typed API error events.
 
-The SDK is production-ready with:
-- Comprehensive error handling
-- Type-safe API interactions
-- Full async/await support
-- Configurable timeouts and retries
-- Proper authentication handling
-- Clean, maintainable code structure
-- Extensive documentation and examples
-- Performance optimizations
-- Memory-efficient streaming
+Read [Configuration and reliability](docs/configuration.md) for authentication, base URL rules,
+TLS/runtime details, error handling, and a production-readiness checklist.
 
-## 📈 Performance
+## Explore the API
 
-- Streaming reduces memory usage by 90% for large responses
-- JSON parsing benchmarks show <1ms for typical responses
-- YARA rule validation typically completes in <100ms
-- Concurrent request handling with tokio runtime
-- Connection pooling for efficient HTTP usage
+- Start with the compile-tested [`examples/quickstart.rs`](examples/quickstart.rs).
+- Browse task-oriented programs in [`examples/`](examples/).
+- Use the generated [docs.rs API reference](https://docs.rs/openai_rust_sdk).
+- Review [the changelog](CHANGELOG.md) before upgrading.
 
-## 🔐 Security
-
-- Secure API key handling via environment variables
-- TLS/HTTPS enforced for all connections
-- Input validation and sanitization
-- Safe error messages without exposing sensitive data
-- Refusal detection for safety-critical responses
+The Assistants API is deprecated and scheduled to shut down on August 26, 2026. New integrations
+should use Responses; existing integrations should follow OpenAI's
+[migration guide](https://developers.openai.com/api/docs/guides/migrate-to-responses).

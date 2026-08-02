@@ -3,9 +3,11 @@ name = "openai_rust_sdk"
 version = "1.6.0"
 edition = "2024"
 rust-version = "1.97.1"
-description = "Comprehensive OpenAI API SDK for Rust with YARA rule validation"
+description = "Async, type-safe Rust client for the OpenAI API with optional YARA-X validation"
 license = "MIT"
 repository = "https://github.com/threatflux/openai_rust_sdk"
+documentation = "https://docs.rs/openai_rust_sdk"
+readme = "README.md"
 keywords = ["openai", "api", "sdk", "rust", "ai"]
 categories = ["development-tools", "api-bindings"]
 authors = ["Wyatt Roersma", "Claude Code"]
@@ -54,11 +56,11 @@ httpmock = "0.8.3"
 
 [features]
 default = []
-# Keep the default crate surface free of optional YARA dependencies.
+# Reserved compatibility feature; currently adds no dependencies.
 testing = []
-# Enable YARA rule validation capabilities
-yara = ["yara-x"]
-# Enable all optional capabilities
+# Enable YARA-X rule compilation, validation, and built-in test suites.
+yara = ["dep:yara-x"]
+# Enable every optional capability.
 full = ["testing", "yara"]
 
 [[bin]]

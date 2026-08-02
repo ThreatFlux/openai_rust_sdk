@@ -1,5 +1,6 @@
 //! Basic response format demonstrations
 
+use super::example_model;
 use openai_rust_sdk::{
     api::ResponsesApi,
     models::responses::{JsonSchemaSpec, ResponseRequest, SchemaUtils},
@@ -13,7 +14,7 @@ pub async fn demo_json_object_mode(
     println!("Requesting JSON object response without strict schema...");
 
     let request = ResponseRequest::new_text(
-        "gpt-4",
+        example_model(),
         "Generate a JSON object representing a book with title, author, year, and genres (array)",
     )
     .with_json_mode();
@@ -51,9 +52,11 @@ pub async fn demo_simple_schema_validation(
         ("occupation", "string"),
     ]);
 
-    let request =
-        ResponseRequest::new_text("gpt-4", "Generate information about a software engineer")
-            .with_json_schema("person", person_schema.clone());
+    let request = ResponseRequest::new_text(
+        example_model(),
+        "Generate information about a software engineer",
+    )
+    .with_json_schema("person", person_schema.clone());
 
     println!("Schema: {}", serde_json::to_string_pretty(&person_schema)?);
     println!("Request format: {:?}", request.response_format);

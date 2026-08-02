@@ -1,5 +1,6 @@
 //! Schema builders and advanced schema construction
 
+use super::example_model;
 use openai_rust_sdk::{
     api::ResponsesApi,
     models::responses::{JsonSchemaSpec, ResponseRequest},
@@ -79,7 +80,7 @@ pub fn build_task_list_schema(
 /// Create a request with the task list schema
 pub fn create_task_list_request(task_list_schema: SchemaBuilder) -> ResponseRequest {
     ResponseRequest::new_text(
-        "gpt-4",
+        example_model(),
         "Create a task list for developing a web application with 3 tasks",
     )
     .with_schema_builder("task_list", task_list_schema)
