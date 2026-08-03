@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-08-03
+
+### Security
+
+- Remove test-only process-global unsafe environment mutation by injecting a deterministic
+  environment lookup, preventing parallel tests from racing on OpenAI configuration variables.
+
 ## [1.6.0] - 2026-08-03
 
 ### Features
