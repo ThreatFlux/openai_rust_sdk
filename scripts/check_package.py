@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import re
-import subprocess
+# Cargo is a trusted developer tool invoked by this package contract check.
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -42,7 +43,8 @@ FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 
 
 def package_files() -> set[str]:
-    result = subprocess.run(
+    # The executable and arguments are fixed, and subprocess never invokes a shell.
+    result = subprocess.run(  # nosec B603, B607
         ["cargo", "package", "--list", "--allow-dirty"],
         cwd=ROOT,
         check=False,
