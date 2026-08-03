@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-03
+
+### Administration API
+
+- Complete the Administration client surface for organization admin API keys,
+  certificates, retention controls, groups, roles/RBAC, spend limits and
+  alerts, project permissions, service-account keys, and file/web-search usage.
+- Forward all documented audit-log filters and expose extensible JSON resource
+  models for fast-moving administrative schemas.
+
 ## [1.6.1] - 2026-08-03
 
 ### Security

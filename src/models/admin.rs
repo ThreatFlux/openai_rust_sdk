@@ -17,6 +17,53 @@
 use crate::{De, Ser};
 use serde_json::Value;
 
+/// A paginated administration resource. The API may add fields to individual
+/// resources over time, so the resource payload remains extensible JSON.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Ser, De)]
+pub struct AdminResourceList {
+    pub object: String,
+    pub data: Vec<Value>,
+    #[serde(default)]
+    pub has_more: bool,
+    #[serde(default)]
+    pub next: Option<String>,
+    #[serde(default)]
+    pub first_id: Option<String>,
+    #[serde(default)]
+    pub last_id: Option<String>,
+}
+
+/// An organization administration API key.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Ser, De)]
+pub struct AdminApiKey {
+    pub object: String,
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub redacted_value: Option<String>,
+    #[serde(default)]
+    pub value: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<u64>,
+    #[serde(default)]
+    pub expires_at: Option<u64>,
+    #[serde(default)]
+    pub last_used_at: Option<u64>,
+    #[serde(default)]
+    pub owner: Option<Value>,
+}
+
+/// Request to create an organization administration API key.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Ser, De)]
+pub struct CreateAdminApiKeyRequest {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_in_seconds: Option<u64>,
+}
+
 // ─── Common ──────────────────────────────────────────────────────────────────
 
 /// Common pagination parameters for admin list endpoints.
