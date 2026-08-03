@@ -256,6 +256,12 @@ docs-check: ## Validate README and documentation contracts
 	@python3 scripts/check_docs.py
 	@echo "$(GREEN)Documentation checks passed!$(NC)"
 
+.PHONY: package-check
+package-check: ## Validate the crates.io package contents
+	@echo "$(CYAN)Checking Cargo package contents...$(NC)"
+	@python3 scripts/check_package.py
+	@echo "$(GREEN)Cargo package contents are clean!$(NC)"
+
 .PHONY: pre-commit
 pre-commit: fmt-check lint test-doc docs-check ## Pre-commit checks
 
@@ -266,7 +272,7 @@ template-check: ## Fail if template placeholders are still present
 	@echo "$(GREEN)No unresolved template placeholders found!$(NC)"
 
 .PHONY: ci
-ci: template-check docs-check fmt-check lint test test-features docs security ## Full CI checks
+ci: template-check docs-check package-check fmt-check lint test test-features docs security ## Full CI checks
 
 .PHONY: ci-quick
 ci-quick: template-check fmt-check lint check ## Quick CI checks
@@ -281,7 +287,7 @@ ci-local-coverage: fmt-check lint coverage-summary docs build ## Alias: run loca
 all: ci coverage bench-check ## Full validation suite
 
 .PHONY: release-check
-release-check: ## Check release readiness
+release-check: package-check ## Check release readiness
 	@echo "$(CYAN)Checking release readiness...$(NC)"
 	@$(CARGO) check --all-features
 	@$(CARGO) test --all-features
@@ -320,21 +326,13 @@ api-coverage: ## Show API implementation coverage
 stats: ## Show project statistics
 	@echo "$(CYAN)Project Statistics$(NC)"
 	@echo ""
-	@echo "$(BLUE)Code Metrics:$(NC)"
-	@echo "  - Total lines: ~54,000"
-	@echo "  - Source files: 49"
-	@echo "  - Test files: 19"
-	@echo "  - Examples: 27"
+	@echo "$(BLUE)Rust files:$(NC)"
+	@printf "  - Source: %s\n" "$$(find src -type f -name '*.rs' | wc -l | tr -d ' ')"
+	@printf "  - Integration tests: %s\n" "$$(find tests -type f -name '*.rs' | wc -l | tr -d ' ')"
+	@printf "  - Examples: %s\n" "$$(find examples -type f -name '*.rs' | wc -l | tr -d ' ')"
 	@echo ""
-	@echo "$(BLUE)Test Coverage:$(NC)"
-	@echo "  - Current: ~65%"
-	@echo "  - Tests: 528+"
-	@echo "  - Target: 80%"
-	@echo ""
-	@echo "$(BLUE)Code Quality:$(NC)"
-	@echo "  - Duplication: ~4.3% (from 18%)"
-	@echo "  - APIs refactored: 13/19"
-	@echo "  - HttpClient pattern: Active"
+	@echo "Run 'cargo test -- --list' for the current test inventory."
+	@echo "See docs/api-coverage.md for the dated API coverage matrix."
 
 .PHONY: clean
 clean: ## Clean build artifacts

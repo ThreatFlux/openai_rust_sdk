@@ -130,7 +130,7 @@ jobs:
             org.opencontainers.image.description=${{ env.OCI_IMAGE_DESCRIPTION }}
             org.opencontainers.image.vendor=${{ env.OCI_IMAGE_VENDOR }}
             org.opencontainers.image.source=${{ env.OCI_IMAGE_SOURCE }}
-            maintainer=Wyatt Roersma <wyattroersma@gmail.com>
+            maintainer=ThreatFlux
 
       - name: Extract base image metadata
         id: base_meta

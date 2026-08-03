@@ -39,6 +39,9 @@ enum Commands {
         output_dir: PathBuf,
         #[arg(short, long, default_value = "comprehensive")]
         suite: String,
+        /// Model ID written to every Batch API request.
+        #[arg(short, long)]
+        model: String,
     },
 }
 
@@ -86,10 +89,10 @@ fn handle_run_tests() -> Result<()> {
 }
 
 #[cfg(feature = "yara")]
-fn handle_generate_batch(output_dir: &PathBuf, suite: &str) -> Result<()> {
+fn handle_generate_batch(output_dir: &PathBuf, suite: &str, model: &str) -> Result<()> {
     fs::create_dir_all(output_dir)?;
 
-    let generator = BatchJobGenerator::new(None);
+    let generator = BatchJobGenerator::with_model(model)?;
     let output_file = output_dir.join(format!("{suite}_batch_jobs.jsonl"));
 
     generator.generate_test_suite(&output_file, suite)?;
@@ -123,8 +126,12 @@ async fn main() -> Result<()> {
             Commands::RunTests => {
                 handle_run_tests()?;
             }
-            Commands::GenerateBatch { output_dir, suite } => {
-                handle_generate_batch(&output_dir, &suite)?;
+            Commands::GenerateBatch {
+                output_dir,
+                suite,
+                model,
+            } => {
+                handle_generate_batch(&output_dir, &suite, &model)?;
             }
         }
     }

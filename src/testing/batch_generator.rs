@@ -16,7 +16,7 @@
 //! use openai_rust_sdk::testing::BatchJobGenerator;
 //! use std::path::Path;
 //!
-//! let generator = BatchJobGenerator::new(Some("gpt-4".to_string()));
+//! let generator = BatchJobGenerator::with_model("gpt-5.6-luna")?;
 //! generator.generate_test_suite(
 //!     Path::new("batch_jobs.jsonl"),
 //!     "comprehensive"
@@ -48,7 +48,7 @@ pub struct BatchJobRequest {
 /// Body of a batch job request containing chat completion parameters
 #[derive(Debug, Clone, Ser, De)]
 pub struct BatchJobBody {
-    /// `OpenAI` model to use (e.g., "gpt-4", "gpt-3.5-turbo")
+    /// `OpenAI` model to use.
     pub model: String,
     /// Chat messages including system and user prompts
     pub messages: Vec<ChatMessage>,
@@ -80,31 +80,68 @@ pub struct BatchJobGenerator {
 }
 
 impl BatchJobGenerator {
-    /// Creates a new batch job generator
+    /// Creates a batch job generator with an explicitly selected model.
     ///
-    /// # Arguments
+    /// Blank model IDs are rejected so generated JSONL cannot silently contain
+    /// an unusable model value.
     ///
-    /// * `model` - Optional `OpenAI` model name. Defaults to "gpt-4" if not specified
+    /// # Errors
+    ///
+    /// Returns an error when `model` is empty or contains only whitespace.
     ///
     /// # Example
     ///
     /// ```
     /// use openai_rust_sdk::testing::BatchJobGenerator;
     ///
-    /// // Use default model (gpt-4)
+    /// let generator = BatchJobGenerator::with_model("gpt-5.6-luna")?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
+    #[allow(dead_code)]
+    pub fn with_model(model: impl Into<String>) -> Result<Self> {
+        let model = model.into();
+        let model = model.trim();
+
+        if model.is_empty() {
+            anyhow::bail!("model must be a non-empty model ID");
+        }
+
+        Ok(Self::build(model.to_owned()))
+    }
+
+    /// Creates a batch job generator using the legacy optional-model API.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - Optional `OpenAI` model name. Passing `None` preserves the
+    ///   historical `"gpt-4"` fallback for backward compatibility. New code
+    ///   should call [`Self::with_model`] and select a model explicitly.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use openai_rust_sdk::testing::BatchJobGenerator;
+    ///
+    /// // Legacy behavior retained for existing callers.
     /// let generator = BatchJobGenerator::new(None);
     ///
-    /// // Use specific model
-    /// let generator = BatchJobGenerator::new(Some("gpt-3.5-turbo".to_string()));
+    /// // Prefer an explicit model in new code.
+    /// let generator = BatchJobGenerator::with_model("gpt-5.6-luna")?;
+    /// # Ok::<(), anyhow::Error>(())
     /// ```
     #[must_use]
     #[allow(dead_code)]
     pub fn new(model: Option<String>) -> Self {
+        Self::build(model.unwrap_or_else(|| "gpt-4".to_owned()))
+    }
+
+    /// Builds the generator after model selection has been resolved.
+    fn build(model: String) -> Self {
         let system_prompt = "You are an expert YARA rule developer. Create syntactically correct YARA rules. Return only the YARA rule code.";
 
         Self {
-            system_prompt: system_prompt.to_string(),
-            model: model.unwrap_or_else(|| "gpt-4".to_string()),
+            system_prompt: system_prompt.to_owned(),
+            model,
         }
     }
 
@@ -135,7 +172,7 @@ impl BatchJobGenerator {
     /// use openai_rust_sdk::testing::BatchJobGenerator;
     /// use std::path::Path;
     ///
-    /// let generator = BatchJobGenerator::new(None);
+    /// let generator = BatchJobGenerator::with_model("gpt-5.6-luna")?;
     /// generator.generate_test_suite(
     ///     Path::new("comprehensive_batch.jsonl"),
     ///     "comprehensive"
@@ -242,6 +279,18 @@ mod tests {
         let custom_model = "gpt-3.5-turbo".to_string();
         let generator = BatchJobGenerator::new(Some(custom_model.clone()));
         assert_eq!(generator.model, custom_model);
+    }
+
+    #[test]
+    fn test_generator_creation_with_explicit_model() {
+        let generator = BatchJobGenerator::with_model(" gpt-5.6-luna ").unwrap();
+        assert_eq!(generator.model, "gpt-5.6-luna");
+    }
+
+    #[test]
+    fn test_generator_rejects_blank_explicit_model() {
+        let result = BatchJobGenerator::with_model("  ");
+        assert!(result.is_err());
     }
 
     #[test]

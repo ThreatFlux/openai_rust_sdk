@@ -66,6 +66,9 @@ jobs:
 
       - name: Check bootstrap placeholders
         run: python3 scripts/check_template_placeholders.py
+
+      - name: Check Cargo package contents
+        run: python3 scripts/check_package.py
       
       - name: Check formatting
         run: cargo fmt --all -- --check

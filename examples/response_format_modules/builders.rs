@@ -77,13 +77,15 @@ pub fn build_task_list_schema(
         .additional_properties(false)
 }
 
-/// Create a request with the task list schema
-pub fn create_task_list_request(task_list_schema: SchemaBuilder) -> ResponseRequest {
-    ResponseRequest::new_text(
-        example_model(),
+/// Create a request with the task list schema.
+pub fn create_task_list_request(
+    task_list_schema: SchemaBuilder,
+) -> std::io::Result<ResponseRequest> {
+    Ok(ResponseRequest::new_text(
+        example_model()?,
         "Create a task list for developing a web application with 3 tasks",
     )
-    .with_schema_builder("task_list", task_list_schema)
+    .with_schema_builder("task_list", task_list_schema))
 }
 
 /// Demonstrate the schema output structure
@@ -149,7 +151,7 @@ pub async fn demo_complex_schema_builder(
     println!("Building complex task list schema...");
 
     let schemas = build_task_list_schemas();
-    let request = create_task_list_request(schemas.task_list_schema.clone());
+    let request = create_task_list_request(schemas.task_list_schema.clone())?;
     demonstrate_schema_output(&request, &schemas.task_list_schema)?;
     validate_example_data(&schemas.task_list_schema)?;
 

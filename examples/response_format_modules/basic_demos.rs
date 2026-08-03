@@ -14,7 +14,7 @@ pub async fn demo_json_object_mode(
     println!("Requesting JSON object response without strict schema...");
 
     let request = ResponseRequest::new_text(
-        example_model(),
+        example_model()?,
         "Generate a JSON object representing a book with title, author, year, and genres (array)",
     )
     .with_json_mode();
@@ -53,7 +53,7 @@ pub async fn demo_simple_schema_validation(
     ]);
 
     let request = ResponseRequest::new_text(
-        example_model(),
+        example_model()?,
         "Generate information about a software engineer",
     )
     .with_json_schema("person", person_schema.clone());

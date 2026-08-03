@@ -83,7 +83,7 @@ pub async fn demo_strict_mode_enforcement(
     let strict_schema = create_strict_schema();
 
     let _request = ResponseRequest::new_text(
-        example_model(),
+        example_model()?,
         "Generate an API response with status, data, and timestamp",
     )
     .with_strict_json_schema("api_response", strict_schema.clone());
@@ -131,7 +131,7 @@ pub async fn demo_type_safe_responses(
     });
 
     let request = ResponseRequest::new_text(
-        example_model(),
+        example_model()?,
         "Generate a person profile for a data scientist",
     )
     .with_json_schema("person", person_schema.clone());

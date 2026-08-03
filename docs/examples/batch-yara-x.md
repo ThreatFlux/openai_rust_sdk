@@ -10,8 +10,10 @@ built-in test samples, runs three built-in validator cases, and generates Batch
 API JSONL containing YARA-rule prompts.
 
 None of the CLI commands sends a network request, and none requires
-`OPENAI_API_KEY`. The generated JSONL must be uploaded and submitted separately
-if you want OpenAI to process it.
+`OPENAI_API_KEY`. Batch generation does require an explicit model ID; the
+commands below use `OPENAI_MODEL` as shell configuration and pass it to the CLI.
+The generated JSONL must be uploaded and submitted separately if you want
+OpenAI to process it.
 
 ## Enable the example tooling
 
@@ -54,25 +56,31 @@ including batch generation.
 ## Generate Batch API JSONL
 
 ```console
+export OPENAI_MODEL="gpt-5.6-luna"
 cargo run --features yara -- generate-batch \
   --output-dir ./batch-output \
-  --suite comprehensive
+  --suite comprehensive \
+  --model "$OPENAI_MODEL"
 ```
 
 With the installed binary:
 
 ```console
-openai_rust_sdk generate-batch --output-dir ./batch-output --suite basic
+openai_rust_sdk generate-batch \
+  --output-dir ./batch-output \
+  --suite basic \
+  --model "$OPENAI_MODEL"
 ```
 
 The exact options are:
 
 ```text
-Usage: openai_rust_sdk generate-batch [OPTIONS] --output-dir <OUTPUT_DIR>
+Usage: openai_rust_sdk generate-batch [OPTIONS] --output-dir <OUTPUT_DIR> --model <MODEL>
 
 Options:
   -o, --output-dir <OUTPUT_DIR>
   -s, --suite <SUITE>            [default: comprehensive]
+  -m, --model <MODEL>            Model ID written to every Batch API request
   -h, --help                     Print help
 ```
 
@@ -86,18 +94,17 @@ Available suites are:
 
 The output path is
 `<OUTPUT_DIR>/<SUITE>_batch_jobs.jsonl`. Each line targets
-`POST /v1/chat/completions`. The CLI currently emits `model: "gpt-4"` and has no
-model option. To choose a model, use the library API:
+`POST /v1/chat/completions`. The CLI never chooses a model implicitly. The
+library API supports the same explicit selection:
 
 ```rust
 use openai_rust_sdk::BatchJobGenerator;
 use std::path::Path;
 
-fn main() {
-    let generator = BatchJobGenerator::new(Some("gpt-5.6-luna".to_owned()));
-    generator
-        .generate_test_suite(Path::new("basic_batch_jobs.jsonl"), "basic")
-        .expect("batch generation failed");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let generator = BatchJobGenerator::with_model("gpt-5.6-luna")?;
+    generator.generate_test_suite(Path::new("basic_batch_jobs.jsonl"), "basic")?;
+    Ok(())
 }
 ```
 
@@ -115,6 +122,7 @@ result files, and applies the local YARA extraction and reporting helpers.
 
 ```console
 export OPENAI_API_KEY="your_api_key_here"
+export OPENAI_MODEL="gpt-5.6-luna"
 cargo run --example batch_processing_demo
 ```
 

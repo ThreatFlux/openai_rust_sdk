@@ -11,6 +11,7 @@
 //! Usage:
 //! ```bash
 //! export OPENAI_API_KEY=your_api_key_here
+//! export OPENAI_MODEL=gpt-5.6-luna
 //! cargo run --example batch_processing_demo
 //! ```
 
@@ -30,11 +31,16 @@ fn initialize_batch_environment()
     let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
         "OPENAI_API_KEY environment variable not set. Please set it with: export OPENAI_API_KEY=your_key_here"
     })?;
+    let model = env::var("OPENAI_MODEL")
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+        .ok_or("OPENAI_MODEL must be set to a non-empty model ID")?;
 
     println!("🚀 OpenAI Batch Processing Demo");
     println!("===============================");
 
-    let batch_generator = BatchJobGenerator::new(Some("gpt-4o-mini".to_string()));
+    let batch_generator = BatchJobGenerator::with_model(model)?;
     let temp_dir = tempfile::tempdir()?;
     let batch_file = temp_dir.path().join("yara_batch_demo.jsonl");
 

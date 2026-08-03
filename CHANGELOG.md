@@ -1,6 +1,8 @@
 # Changelog
 
-## [1.6.0] - 2026-08-01
+## [Unreleased]
+
+## [1.6.0] - 2026-08-03
 
 ### Features
 
@@ -15,6 +17,17 @@
 
 - Preserve the legacy GPT-5 snapshot constants and video request builders as compatibility
   surfaces while translating them to current API payloads.
+
+### Changed
+
+- Require explicit model selection in the quickstart, response-format examples, Batch processing
+  demo, and `generate-batch` CLI command instead of silently choosing a model.
+- Add `BatchJobGenerator::with_model` for validated, explicit model selection. The legacy
+  `BatchJobGenerator::new(None)` fallback remains unchanged for Rust API compatibility.
+- Restrict crates.io packages to maintained source, tests, examples, and documentation, with CI
+  checks that reject repository-only artifacts and broken package-relative documentation links.
+- Route private vulnerability reports through the repository advisory flow or
+  `security@threatflux.ai`, and use organization-level container authorship metadata.
 
 ## [1.5.1] - 2026-06-13
 
