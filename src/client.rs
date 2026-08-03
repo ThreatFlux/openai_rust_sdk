@@ -561,11 +561,18 @@ impl ChatBuilder {
 
 /// Convenience function to create a client from environment variables
 pub fn from_env() -> Result<OpenAIClient> {
-    let api_key = std::env::var("OPENAI_API_KEY").map_err(|_| {
+    from_env_with_lookup(|name| std::env::var(name))
+}
+
+/// Creates a client with an injectable environment lookup for deterministic tests.
+fn from_env_with_lookup(
+    lookup: impl Fn(&str) -> std::result::Result<String, std::env::VarError>,
+) -> Result<OpenAIClient> {
+    let api_key = lookup("OPENAI_API_KEY").map_err(|_| {
         crate::error::OpenAIError::authentication("OPENAI_API_KEY environment variable not set")
     })?;
 
-    let base_url = match std::env::var("OPENAI_BASE_URL") {
+    let base_url = match lookup("OPENAI_BASE_URL") {
         Ok(value) => {
             let trimmed = value.trim();
             if trimmed.is_empty() {
@@ -600,9 +607,6 @@ pub fn from_env_with_base_url(base_url: impl Into<String>) -> Result<OpenAIClien
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_client_creation() {
@@ -645,24 +649,15 @@ mod tests {
 
     #[test]
     fn test_from_env_with_custom_base_url() {
-        let _guard = ENV_LOCK.lock().expect("lock poisoned");
-
-        // SAFETY: ENV_LOCK prevents concurrent environment access in this test module.
-        unsafe {
-            std::env::set_var("OPENAI_API_KEY", "test-key");
-            std::env::set_var("OPENAI_BASE_URL", "https://example-proxy.test/v1");
-        }
-
-        let client = from_env().expect("client creation failed");
+        let client = from_env_with_lookup(|name| match name {
+            "OPENAI_API_KEY" => Ok("test-key".to_string()),
+            "OPENAI_BASE_URL" => Ok("https://example-proxy.test/v1".to_string()),
+            _ => Err(std::env::VarError::NotPresent),
+        })
+        .expect("client creation failed");
         assert_eq!(
             client.responses().base_url(),
             "https://example-proxy.test/v1"
         );
-
-        // SAFETY: ENV_LOCK prevents concurrent environment access in this test module.
-        unsafe {
-            std::env::remove_var("OPENAI_API_KEY");
-            std::env::remove_var("OPENAI_BASE_URL");
-        }
     }
 }

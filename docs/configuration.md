@@ -218,7 +218,7 @@ rather than only when opening the stream.
 
 ## Release source
 
-As of **2026-08-03**, crates.io publishes `openai_rust_sdk` **1.6.0** with
+As of **2026-08-03**, crates.io publishes `openai_rust_sdk` **1.6.1** with
 `rust-version = 1.97.1`. The release tag, packaged crate, and matching docs.rs page
 describe the same source.
 

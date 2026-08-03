@@ -1,6 +1,6 @@
 [package]
 name = "openai_rust_sdk"
-version = "1.6.0"
+version = "1.6.1"
 edition = "2024"
 rust-version = "1.97.1"
 description = "Async, type-safe Rust client for the OpenAI API"
