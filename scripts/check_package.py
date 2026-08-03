@@ -3,13 +3,12 @@
 
 from __future__ import annotations
 
-import re
 # Cargo is a trusted developer tool invoked by this package contract check.
+import re
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
