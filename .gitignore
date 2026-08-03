@@ -1,11 +1,8 @@
 # Rust build artifacts
 /target/
+*.rlib
 **/*.rs.bk
 *.pdb
-
-# Compiled executables (without extension on Unix)
-test_validation
-**/test_validation
 
 # Cargo
 # Cargo.lock is tracked for reproducible builds and binary crate

@@ -30,8 +30,10 @@ The SDK does **not** load `.env` files. Load one in your application before
 calling `from_env()` if that is part of your configuration strategy.
 
 `OPENAI_MODEL`, `OPENAI_ORGANIZATION`, and `OPENAI_PROJECT` are not read by the
-SDK. Examples may read `OPENAI_MODEL` themselves, but that is application
-behavior rather than client configuration.
+SDK. Runnable examples that make model requests require `OPENAI_MODEL` rather
+than silently choosing a model. That is application behavior rather than
+client configuration; production applications should make their own explicit
+model-selection policy.
 
 `from_env_with_base_url(url)` reads `OPENAI_API_KEY` and uses the URL argument;
 it does not consult `OPENAI_BASE_URL`. `OpenAIClient::from_env()` does not exist:
@@ -214,20 +216,16 @@ rather than only when opening the stream.
 - WebAssembly support is not documented or tested; assume a native target
   unless your own build and runtime tests prove otherwise.
 
-## Release versus `main`
+## Release source
 
-As of **2026-08-02**:
+As of **2026-08-03**, crates.io publishes `openai_rust_sdk` **1.6.0** with
+`rust-version = 1.97.1`. The release tag, packaged crate, and matching docs.rs page
+describe the same source.
 
-- crates.io publishes `openai_rust_sdk` **1.5.0**, with `rust-version = 1.96.0`;
-- this repository's `main` manifest declares **1.6.0** and
-  `rust-version = 1.97.1`;
-- the coverage matrix and source links in these docs describe `main`.
-
-Consequently, an API or constructor documented on `main` may not exist in the
-registry release. Let `cargo add openai_rust_sdk` select the published version,
-inspect the resolved version in `Cargo.lock`, and use the matching docs.rs page.
-If you intentionally depend on Git, pin a reviewed commit SHA instead of a
-moving branch.
+The default branch can advance after a release. Let `cargo add openai_rust_sdk` select
+the published version, inspect the resolved version in `Cargo.lock`, and use the
+matching docs.rs page. If you intentionally depend on Git, pin a reviewed commit SHA instead of
+a moving branch.
 
 The repository's `rust-toolchain.toml` and `Cargo.toml` are authoritative for a
 source build. The selected crate release's manifest is authoritative for a

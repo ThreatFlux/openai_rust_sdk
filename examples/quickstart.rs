@@ -1,6 +1,4 @@
-use openai_rust_sdk::{from_env, models::CreateResponseRequest};
-
-const DEFAULT_MODEL: &str = "gpt-5.6-luna";
+use openai_rust_sdk::{OpenAIError, from_env, models::CreateResponseRequest};
 
 #[tokio::main]
 async fn main() -> openai_rust_sdk::Result<()> {
@@ -9,7 +7,11 @@ async fn main() -> openai_rust_sdk::Result<()> {
         .ok()
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| DEFAULT_MODEL.to_owned());
+        .ok_or_else(|| {
+            OpenAIError::InvalidRequest(
+                "OPENAI_MODEL must be set to a non-empty model ID".to_owned(),
+            )
+        })?;
 
     let request = CreateResponseRequest::new_text(
         model,

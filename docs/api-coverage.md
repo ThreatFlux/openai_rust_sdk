@@ -24,7 +24,7 @@ that every operation is continuously exercised against the live OpenAI service.
   API surface. A raw JSON escape hatch elsewhere does not change this status.
 
 The matrix describes source on `main`, not necessarily the latest crates.io
-release. See [Configuration and operational behavior](configuration.md#release-versus-main)
+release. See [Configuration and operational behavior](configuration.md#release-source)
 for the version distinction.
 
 ## Responses, tools, and realtime

@@ -1,25 +1,29 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.5.x   | :white_check_mark: |
-| < 1.5   | :x:                |
+Security fixes target the latest published release and the current default branch. Older releases
+may be assessed when impact and backport risk justify it, but they are not covered by a standing
+support commitment.
 
-## Reporting a Vulnerability
+## Report a vulnerability
 
-If you discover a security vulnerability, please report it responsibly:
+Do not open a public issue, discussion, or pull request for a suspected vulnerability.
 
-1. **Do NOT open a public GitHub issue.**
-2. Email **wyattroersma@gmail.com** with:
-   - A description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-3. You will receive an acknowledgment within 48 hours.
-4. A fix will be developed and released as soon as possible, depending on severity.
+1. Use this repository's private vulnerability reporting form under **Security → Advisories →
+   Report a vulnerability**, when available.
+2. Otherwise, email [security@threatflux.ai](mailto:security@threatflux.ai).
 
-## Security Scanning
+Include the affected version or commit, vulnerability type, likely impact, required preconditions,
+and a minimal reproduction or proof of concept. Do not send live credentials, personal data,
+proprietary samples, or large malware artifacts in the initial report; maintainers can arrange a
+safer transfer method when necessary.
+
+Maintainers will assess reproducibility, severity, affected versions, and remediation options.
+Please coordinate public disclosure so users have a reasonable opportunity to update. ThreatFlux
+does not currently promise an organization-wide response SLA or monetary reward.
+
+## Security scanning
 
 This project uses automated security scanning:
 

@@ -92,7 +92,9 @@ cargo check --all-features
 
 ## Commits and pull requests
 
-This repository uses [Conventional Commits](.github/commit-convention.md). Examples:
+This repository uses
+[Conventional Commits](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/.github/commit-convention.md).
+Examples:
 
 ```text
 feat(responses): support response compaction

@@ -56,22 +56,23 @@ cargo add openai_rust_sdk --git https://github.com/ThreatFlux/openai_rust_sdk.gi
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-Set your credentials. `OPENAI_MODEL` is read by this example and can be omitted:
+Set your credentials and choose a model explicitly. `OPENAI_MODEL` is required by this example;
+[`gpt-5.6-luna`](https://developers.openai.com/api/docs/models/gpt-5.6-luna) is one
+option for cost-sensitive, high-volume workloads:
 
 ```bash
 export OPENAI_API_KEY="your_api_key_here"
 export OPENAI_MODEL="gpt-5.6-luna"
 ```
 
-PowerShell users can use `$Env:OPENAI_API_KEY = "your_api_key_here"`.
+PowerShell users can set `$Env:OPENAI_API_KEY = "your_api_key_here"` and
+`$Env:OPENAI_MODEL = "gpt-5.6-luna"`.
 
 Create `src/main.rs`:
 
 <!-- BEGIN QUICKSTART -->
 ```rust
-use openai_rust_sdk::{from_env, models::CreateResponseRequest};
-
-const DEFAULT_MODEL: &str = "gpt-5.6-luna";
+use openai_rust_sdk::{OpenAIError, from_env, models::CreateResponseRequest};
 
 #[tokio::main]
 async fn main() -> openai_rust_sdk::Result<()> {
@@ -80,7 +81,11 @@ async fn main() -> openai_rust_sdk::Result<()> {
         .ok()
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| DEFAULT_MODEL.to_owned());
+        .ok_or_else(|| {
+            OpenAIError::InvalidRequest(
+                "OPENAI_MODEL must be set to a non-empty model ID".to_owned(),
+            )
+        })?;
 
     let request = CreateResponseRequest::new_text(
         model,

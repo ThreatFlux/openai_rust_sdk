@@ -12,16 +12,27 @@
 //!
 //! ## Quick start
 //!
-//! Set `OPENAI_API_KEY`, then create a response:
+//! Set `OPENAI_API_KEY` and choose `OPENAI_MODEL` explicitly (for example,
+//! [`gpt-5.6-luna`](https://developers.openai.com/api/docs/models/gpt-5.6-luna)), then create a
+//! response:
 //!
 //! ```rust,no_run
-//! use openai_rust_sdk::{from_env, models::CreateResponseRequest};
+//! use openai_rust_sdk::{OpenAIError, from_env, models::CreateResponseRequest};
 //!
 //! #[tokio::main]
 //! async fn main() -> openai_rust_sdk::Result<()> {
 //!     let client = from_env()?;
+//!     let model = std::env::var("OPENAI_MODEL")
+//!         .ok()
+//!         .map(|value| value.trim().to_owned())
+//!         .filter(|value| !value.is_empty())
+//!         .ok_or_else(|| {
+//!             OpenAIError::InvalidRequest(
+//!                 "OPENAI_MODEL must be set to a non-empty model ID".to_owned(),
+//!             )
+//!         })?;
 //!     let request = CreateResponseRequest::new_text(
-//!         "gpt-5.6-luna",
+//!         model,
 //!         "Explain Rust's ownership model in one concise sentence.",
 //!     );
 //!

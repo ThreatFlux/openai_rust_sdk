@@ -11,6 +11,20 @@ readme = "README.md"
 keywords = ["openai", "api", "sdk", "rust", "ai"]
 categories = ["development-tools", "api-bindings"]
 authors = ["Wyatt Roersma", "Claude Code"]
+include = [
+    "/src/**/*.rs",
+    "/examples/**/*.rs",
+    "/tests/**/*.rs",
+    "/benches/**/*.rs",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/SECURITY.md",
+    "/docs/api-coverage.md",
+    "/docs/configuration.md",
+    "/docs/examples/batch-yara-x.md",
+]
 
 [dependencies]
 tokio = { version = "1.53.1", features = ["full"] }

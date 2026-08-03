@@ -1,499 +1,141 @@
 name: Auto Release
 
 on:
-  workflow_run:
-    workflows: ["CI", "Quality", "Security"]
-    types:
-      - completed
+  workflow_dispatch:
+  push:
     branches:
       - main
-  schedule:
-    # Run weekly on Monday at 9 AM UTC to check for accumulated changes
-    - cron: '0 9 * * 1'
-  workflow_dispatch:
-    inputs:
-      version_bump:
-        description: 'Version bump type'
-        required: true
-        default: 'patch'
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+    paths:
+      - 'Cargo.toml'
 
-permissions: read-all
+permissions:
+  contents: read
 
 concurrency:
   group: auto-release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
+  CARGO_TERM_COLOR: always
   RUST_VERSION: 1.97.1
 
 jobs:
-  check-for-release:
-    name: Check if Release Needed
+  check-version:
+    name: Check Version
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
-      next_version: ${{ steps.version.outputs.next_version }}
-      current_version: ${{ steps.version.outputs.current_version }}
+      version_changed: ${{ steps.version.outputs.changed }}
+      new_version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify release source
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Auto Release must run from main, got $GITHUB_REF" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+            echo "The selected commit is no longer the tip of origin/main" >&2
+            exit 1
+          fi
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Check release version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          TAG="v${VERSION}"
+          git check-ref-format "refs/tags/$TAG"
+          if ! grep -Fq "## [$VERSION] -" CHANGELOG.md; then
+            echo "CHANGELOG.md does not contain a dated $VERSION release entry" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "$TAG already exists; no release needed"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New release version: $TAG"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify-package:
+    name: Verify Package
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install gh CLI
-        run: |
-          if ! command -v gh &> /dev/null; then
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt-get update && sudo apt-get install -y gh
-          fi
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
 
-      - name: Check CI status
-        id: ci_status
-        run: |
-          # Check if all required workflows have passed recently
-          echo "Checking CI status..."
-          
-          # Get the latest workflow runs
-          CI_STATUS=$(gh run list --workflow=ci.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
-          QUALITY_STATUS=$(gh run list --workflow=quality.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
-          SECURITY_STATUS=$(gh run list --workflow=security.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
-          
-          if [[ "$CI_STATUS" == "success" ]] && [[ "$QUALITY_STATUS" == "success" ]] && [[ "$SECURITY_STATUS" == "success" ]]; then
-            echo "all_passed=true" >> $GITHUB_OUTPUT
-            echo "✅ All CI checks passed"
-          else
-            echo "all_passed=false" >> $GITHUB_OUTPUT
-            echo "❌ Some CI checks have not passed"
-            echo "CI: $CI_STATUS, Quality: $QUALITY_STATUS, Security: $SECURITY_STATUS"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Check for changes since last release
-        id: check
-        run: |
-          # Get the last release tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
-          if [ -z "$LAST_TAG" ]; then
-            echo "No previous releases found"
-            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
-          fi
-          
-          # Check for changes since last tag
-          CHANGES=$(git log $LAST_TAG..HEAD --oneline --no-merges | wc -l)
-          
-          # Check for conventional commits that would trigger a release
-          FEAT_COUNT=$(git log $LAST_TAG..HEAD --grep="^feat" --oneline | wc -l)
-          FIX_COUNT=$(git log $LAST_TAG..HEAD --grep="^fix" --oneline | wc -l)
-          BREAKING_COUNT=$(git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --oneline | wc -l)
-          
-          echo "Changes since $LAST_TAG: $CHANGES"
-          echo "Features: $FEAT_COUNT, Fixes: $FIX_COUNT, Breaking: $BREAKING_COUNT"
-          
-          # Determine if we should release
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "reason=manual" >> $GITHUB_OUTPUT
-          elif [[ "${{ steps.ci_status.outputs.all_passed }}" != "true" ]]; then
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "reason=ci_failed" >> $GITHUB_OUTPUT
-          elif [[ $CHANGES -eq 0 ]]; then
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "reason=no_changes" >> $GITHUB_OUTPUT
-          elif [[ $BREAKING_COUNT -gt 0 ]] || [[ $FEAT_COUNT -gt 0 ]] || [[ $FIX_COUNT -gt 0 ]]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "reason=conventional_commits" >> $GITHUB_OUTPUT
-          else
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "reason=no_release_commits" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Determine version bump
-        id: version
-        if: steps.check.outputs.should_release == 'true'
-        env:
-          GITHUB_EVENT_VERSION_BUMP: ${{ github.event.inputs.version_bump }}
-        run: |
-          # Get current version from Cargo.toml
-          CURRENT_VERSION=$(grep "^version = " Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          
-          # Parse version components
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-          
-          # Determine bump type
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            BUMP_TYPE="$GITHUB_EVENT_VERSION_BUMP"
-          else
-            # Auto-determine based on commits
-            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-            if [ -z "$LAST_TAG" ]; then
-              LAST_TAG=$(git rev-list --max-parents=0 HEAD)
-            fi
-            
-            BREAKING_COUNT=$(git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --oneline | wc -l)
-            FEAT_COUNT=$(git log $LAST_TAG..HEAD --grep="^feat" --oneline | wc -l)
-            
-            if [[ $BREAKING_COUNT -gt 0 ]]; then
-              BUMP_TYPE="major"
-            elif [[ $FEAT_COUNT -gt 0 ]]; then
-              BUMP_TYPE="minor"
-            else
-              BUMP_TYPE="patch"
-            fi
-          fi
-          
-          # Calculate next version
-          case $BUMP_TYPE in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-          
-          NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
-          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
-          echo "Next version will be: $NEXT_VERSION (bump: $BUMP_TYPE)"
+      - name: Run tests
+        run: cargo test --all-features --locked
+
+      - name: Verify package contents
+        run: python3 scripts/check_package.py
+
+      - name: Verify crate package
+        run: cargo package --all-features --locked
 
   create-release:
-    name: Create Release
-    needs: check-for-release
-    if: needs.check-for-release.outputs.should_release == 'true'
+    name: Create Annotated Tag
+    needs: [check-version, verify-package]
+    if: needs.check-version.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
-      pull-requests: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c  # v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Update version in Cargo.toml
-        run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
-
-          # Also update Cargo.lock
-          cargo update -p openai_rust_sdk
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
-          if [ -z "$LAST_TAG" ]; then
-            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
-            echo "## 🎉 First Release - v$VERSION" > release_notes.md
-          else
-            echo "## 📦 Release v$VERSION" > release_notes.md
-          fi
-          
-          echo "" >> release_notes.md
-          echo "### 🚀 What's Changed" >> release_notes.md
-          echo "" >> release_notes.md
-          
-          # Group commits by type
-          if [ -n "$LAST_TAG" ]; then
-            # Breaking changes
-            BREAKING=$(git log $LAST_TAG..HEAD --grep="BREAKING CHANGE" --pretty=format:"- %s (%h)" --no-merges)
-            if [ -n "$BREAKING" ]; then
-              echo "#### 💥 Breaking Changes" >> release_notes.md
-              echo "$BREAKING" >> release_notes.md
-              echo "" >> release_notes.md
-            fi
-            
-            # Features
-            FEATURES=$(git log $LAST_TAG..HEAD --grep="^feat" --pretty=format:"- %s (%h)" --no-merges)
-            if [ -n "$FEATURES" ]; then
-              echo "#### ✨ Features" >> release_notes.md
-              echo "$FEATURES" >> release_notes.md
-              echo "" >> release_notes.md
-            fi
-            
-            # Bug fixes
-            FIXES=$(git log $LAST_TAG..HEAD --grep="^fix" --pretty=format:"- %s (%h)" --no-merges)
-            if [ -n "$FIXES" ]; then
-              echo "#### 🐛 Bug Fixes" >> release_notes.md
-              echo "$FIXES" >> release_notes.md
-              echo "" >> release_notes.md
-            fi
-            
-            # Documentation
-            DOCS=$(git log $LAST_TAG..HEAD --grep="^docs" --pretty=format:"- %s (%h)" --no-merges)
-            if [ -n "$DOCS" ]; then
-              echo "#### 📚 Documentation" >> release_notes.md
-              echo "$DOCS" >> release_notes.md
-              echo "" >> release_notes.md
-            fi
-            
-            # Other changes (use || true to prevent grep from failing when no matches)
-            OTHER=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges | { grep -v "^- feat" || true; } | { grep -v "^- fix" || true; } | { grep -v "^- docs" || true; } | { grep -v "BREAKING CHANGE" || true; })
-            if [ -n "$OTHER" ]; then
-              echo "#### 🔧 Other Changes" >> release_notes.md
-              echo "$OTHER" >> release_notes.md
-              echo "" >> release_notes.md
-            fi
-          fi
-          
-          echo "### 📊 Statistics" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "- **Version**: ${{ needs.check-for-release.outputs.current_version }} → $VERSION" >> release_notes.md
-          echo "- **Date**: $(date +'%Y-%m-%d')" >> release_notes.md
-          
-          if [ -n "$LAST_TAG" ]; then
-            COMMIT_COUNT=$(git log $LAST_TAG..HEAD --oneline --no-merges | wc -l)
-            CONTRIBUTOR_COUNT=$(git log $LAST_TAG..HEAD --format="%an" --no-merges | sort -u | wc -l)
-            echo "- **Commits**: $COMMIT_COUNT" >> release_notes.md
-            echo "- **Contributors**: $CONTRIBUTOR_COUNT" >> release_notes.md
-          fi
-          
-          echo "" >> release_notes.md
-          echo "---" >> release_notes.md
-          echo "*Released automatically by GitHub Actions* 🤖" >> release_notes.md
-      
-      - name: Update CHANGELOG.md
-        run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          DATE=$(date +'%Y-%m-%d')
-          
-          # Create new CHANGELOG entry
-          echo "# Changelog" > CHANGELOG.new.md
-          echo "" >> CHANGELOG.new.md
-          echo "## [$VERSION] - $DATE" >> CHANGELOG.new.md
-          echo "" >> CHANGELOG.new.md
-          
-          # Add the release notes content (without the header)
-          tail -n +2 release_notes.md | head -n -3 >> CHANGELOG.new.md
-          echo "" >> CHANGELOG.new.md
-          
-          # Append existing changelog if it exists
-          if [ -f CHANGELOG.md ]; then
-            # Skip the first line if it's "# Changelog"
-            if head -n 1 CHANGELOG.md | grep -q "^# Changelog"; then
-              tail -n +2 CHANGELOG.md >> CHANGELOG.new.md
-            else
-              cat CHANGELOG.md >> CHANGELOG.new.md
-            fi
-          fi
-          
-          mv CHANGELOG.new.md CHANGELOG.md
-      
-      - name: Create and push tag
+      - name: Create immutable annotated tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.check-version.outputs.new_version }}
+        shell: bash
         run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          # Tag the current HEAD directly — no push to main (branch protection blocks direct pushes)
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push origin "v$VERSION"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228  # v3.0.2
-        with:
-          tag_name: v${{ needs.check-for-release.outputs.next_version }}
-          name: Release v${{ needs.check-for-release.outputs.next_version }}
-          body_path: release_notes.md
-          draft: false
-          prerelease: false
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create version bump PR
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-        run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          BRANCH="chore/release-v${VERSION}"
-
-          git checkout -b "$BRANCH"
-          git add Cargo.toml Cargo.lock CHANGELOG.md
-          git commit -m "chore: bump version to v${VERSION} and update CHANGELOG
-
-          Automated post-release version bump:
-          - Version: ${{ needs.check-for-release.outputs.current_version }} → ${VERSION}
-          - Updated CHANGELOG.md"
-
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push origin "$BRANCH"
-
-          gh pr create \
-            --title "chore: release v${VERSION} version bump" \
-            --body "$(cat <<'PREOF'
-          ## Summary
-          - Bumps version in Cargo.toml to v${{ needs.check-for-release.outputs.next_version }}
-          - Updates CHANGELOG.md with release notes
-
-          Auto-generated by the release workflow.
-          PREOF
-          )" \
-            --base main \
-            --head "$BRANCH"
-
-          echo "✅ Release v${VERSION} created and version bump PR opened!"
-          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-crate:
-    name: Publish to crates.io
-    needs: [check-for-release, create-release]
-    if: needs.check-for-release.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c  # v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      
-      - name: Cache cargo registry
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-      
-      - name: Cache cargo index
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-      
-      - name: Verify package
-        run: |
-          echo "🔍 Verifying package before publishing..."
-          cargo package --all-features --allow-dirty
-          cargo package --list
-      
-      - name: Check if version exists on crates.io
-        id: check_published
-        run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          CRATE_NAME="openai_rust_sdk"
-          
-          # Check if version already exists
-          if cargo search $CRATE_NAME --limit 1 | grep -q "^$CRATE_NAME = \"$VERSION\""; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Version $VERSION already published to crates.io"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "✅ Version $VERSION not yet published, proceeding..."
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+            echo "main advanced after package verification; restart the release" >&2
+            exit 1
           fi
-      
-      - name: Publish to crates.io
-        if: steps.check_published.outputs.exists == 'false' && env.CARGO_REGISTRY_TOKEN != ''
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          echo "📦 Publishing to crates.io..."
-          
-          # Retry logic for transient failures
-          MAX_ATTEMPTS=3
-          ATTEMPT=1
-          
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
-            
-            if cargo publish --all-features --token $CARGO_REGISTRY_TOKEN; then
-              echo "✅ Successfully published to crates.io!"
-              break
-            else
-              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-                echo "❌ Failed to publish after $MAX_ATTEMPTS attempts"
-                exit 1
-              fi
-              echo "⚠️ Publish failed, retrying in 30 seconds..."
-              sleep 30
-            fi
-            
-            ATTEMPT=$((ATTEMPT + 1))
-          done
-      
-      - name: Verify publication
-        if: steps.check_published.outputs.exists == 'false' && env.CARGO_REGISTRY_TOKEN != ''
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          VERSION="${{ needs.check-for-release.outputs.next_version }}"
-          CRATE_NAME="openai_rust_sdk"
-          
-          echo "⏳ Waiting for crates.io to index the new version..."
-          sleep 10
-          
-          # Check if the version is now available
-          for i in {1..6}; do
-            if cargo search $CRATE_NAME --limit 1 | grep -q "^$CRATE_NAME = \"$VERSION\""; then
-              echo "✅ Version $VERSION is now available on crates.io!"
-              echo "🔗 View at: https://crates.io/crates/$CRATE_NAME/$VERSION"
-              exit 0
-            fi
-            echo "Waiting for indexing... ($i/6)"
-            sleep 10
-          done
-          
-          echo "⚠️ Could not verify publication, but it may still be processing"
-      
-      - name: Skip reason
-        if: steps.check_published.outputs.exists == 'true' || env.CARGO_REGISTRY_TOKEN == ''
-        run: |
-          if [ "${{ steps.check_published.outputs.exists }}" == "true" ]; then
-            echo "📋 Skipped: Version already published to crates.io"
-          else
-            echo "📋 Skipped: CARGO_REGISTRY_TOKEN not configured"
-            echo "To enable crates.io publishing, add CARGO_REGISTRY_TOKEN to repository secrets"
+          TAG="v${RELEASE_VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "$TAG already exists; refusing to move it" >&2
+            exit 1
           fi
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
 
-  notify-skip:
-    name: Notify Skip Reason
-    needs: check-for-release
-    if: needs.check-for-release.outputs.should_release == 'false'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Log skip reason
-        run: |
-          echo "📋 Auto-release skipped"
-          echo "Reason: Check output from check-for-release job"
-          echo "To manually trigger a release, use the workflow dispatch option"
+      - name: Dispatch release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.check-version.outputs.new_version }}
+        shell: bash
+        run: >-
+          gh workflow run release.yml
+          --ref "v${RELEASE_VERSION}"
+          --field "version=${RELEASE_VERSION}"
