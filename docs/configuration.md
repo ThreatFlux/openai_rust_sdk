@@ -107,6 +107,28 @@ OpenAI's Administration endpoints require an admin API key. `AdminApi` accepts
 an arbitrary non-empty bearer credential but does not verify that it is an
 admin key before sending a request.
 
+The Administration client covers organization and project administration,
+including admin-key rotation, users/invites, projects, groups and roles,
+certificates, retention, spend controls, permissions, service-account keys, and
+all organization usage categories. Fast-moving resource payloads are returned
+as `serde_json::Value` where OpenAI does not guarantee a stable schema:
+
+```rust,no_run
+use openai_rust_sdk::{AdminApi, CreateAdminApiKeyRequest};
+
+# async fn example() -> openai_rust_sdk::Result<()> {
+let admin = AdminApi::new(std::env::var("OPENAI_ADMIN_KEY").unwrap())?;
+let key = admin.create_admin_api_key(&CreateAdminApiKeyRequest {
+    name: "automation".into(),
+    expires_in_seconds: Some(30 * 24 * 60 * 60),
+}).await?;
+println!("created {}", key.id);
+let groups = admin.list_groups(None).await?;
+println!("{} groups", groups.data.len());
+# Ok(())
+# }
+```
+
 The high-level clients currently have no supported per-request header API for:
 
 - `OpenAI-Organization`
@@ -218,9 +240,9 @@ rather than only when opening the stream.
 
 ## Release source
 
-As of **2026-08-03**, crates.io publishes `openai_rust_sdk` **1.6.1** with
-`rust-version = 1.97.1`. The release tag, packaged crate, and matching docs.rs page
-describe the same source.
+This branch prepares `openai_rust_sdk` **1.7.0** with `rust-version = 1.97.1`.
+After publication, the release tag, packaged crate, and matching docs.rs page
+should describe the same source.
 
 The default branch can advance after a release. Let `cargo add openai_rust_sdk` select
 the published version, inspect the resolved version in `Cargo.lock`, and use the

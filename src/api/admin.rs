@@ -8,14 +8,15 @@ use crate::api::base::HttpClient;
 use crate::api::common::ApiClientConstructors;
 use crate::error::Result;
 use crate::models::admin::{
-    AuditLogList, CreateInviteRequest, CreateProjectRequest, CreateProjectServiceAccountRequest,
-    CreateProjectUserRequest, Invite, InviteDeleteResponse, InviteList, ListAdminParams,
-    ListAuditLogsParams, Project, ProjectApiKey, ProjectApiKeyDeleteResponse, ProjectApiKeyList,
-    ProjectList, ProjectRateLimit, ProjectRateLimitList, ProjectServiceAccount,
-    ProjectServiceAccountCreateResponse, ProjectServiceAccountDeleteResponse,
-    ProjectServiceAccountList, ProjectUser, ProjectUserDeleteResponse, ProjectUserList,
-    UpdateProjectRateLimitRequest, UpdateProjectRequest, UpdateProjectUserRequest,
-    UpdateUserRequest, UsageResponse, User, UserDeleteResponse, UserList,
+    AdminApiKey, AdminResourceList, AuditLogList, CreateAdminApiKeyRequest, CreateInviteRequest,
+    CreateProjectRequest, CreateProjectServiceAccountRequest, CreateProjectUserRequest, Invite,
+    InviteDeleteResponse, InviteList, ListAdminParams, ListAuditLogsParams, Project, ProjectApiKey,
+    ProjectApiKeyDeleteResponse, ProjectApiKeyList, ProjectList, ProjectRateLimit,
+    ProjectRateLimitList, ProjectServiceAccount, ProjectServiceAccountCreateResponse,
+    ProjectServiceAccountDeleteResponse, ProjectServiceAccountList, ProjectUser,
+    ProjectUserDeleteResponse, ProjectUserList, UpdateProjectRateLimitRequest,
+    UpdateProjectRequest, UpdateProjectUserRequest, UpdateUserRequest, UsageResponse, User,
+    UserDeleteResponse, UserList,
 };
 use serde_json::Value;
 
@@ -48,6 +49,7 @@ fn build_admin_list_params(params: &ListAdminParams) -> Vec<(String, String)> {
     query
 }
 
+#[allow(missing_docs)]
 impl AdminApi {
     // ─── Audit Logs ──────────────────────────────────────────────────────
 
@@ -67,6 +69,21 @@ impl AdminApi {
                 }
                 if let Some(ref b) = p.before {
                     query.push(("before".to_string(), b.clone()));
+                }
+                if let Some(ref effective_at) = p.effective_at {
+                    query.push(("effective_at".to_string(), effective_at.to_string()));
+                }
+                for (name, values) in [
+                    ("project_ids", &p.project_ids),
+                    ("event_types", &p.event_types),
+                    ("actor_ids", &p.actor_ids),
+                    ("actor_emails", &p.actor_emails),
+                ] {
+                    if let Some(values) = values {
+                        for value in values {
+                            query.push((name.to_string(), value.clone()));
+                        }
+                    }
                 }
                 self.client
                     .get_with_query("/v1/organization/audit_logs", &query)
@@ -404,6 +421,881 @@ impl AdminApi {
 
     // ─── Usage ───────────────────────────────────────────────────────────
 
+    // ─── Organization administration resources ──────────────────────────
+
+    /// List organization admin API keys.
+    pub async fn list_admin_api_keys(
+        &self,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json("/v1/organization/admin_api_keys", params)
+            .await
+    }
+
+    /// Create an organization admin API key. The secret is returned once.
+    pub async fn create_admin_api_key(
+        &self,
+        request: &CreateAdminApiKeyRequest,
+    ) -> Result<AdminApiKey> {
+        self.client
+            .post("/v1/organization/admin_api_keys", request)
+            .await
+    }
+
+    /// Retrieve an organization admin API key.
+    pub async fn retrieve_admin_api_key(&self, key_id: impl AsRef<str>) -> Result<AdminApiKey> {
+        self.client
+            .get(&format!(
+                "/v1/organization/admin_api_keys/{}",
+                key_id.as_ref()
+            ))
+            .await
+    }
+
+    /// Revoke an organization admin API key.
+    pub async fn delete_admin_api_key(&self, key_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/admin_api_keys/{}",
+                key_id.as_ref()
+            ))
+            .await
+    }
+
+    /// Generic GET for an administration resource (useful for newly added fields).
+    pub async fn get_admin_resource(
+        &self,
+        path: &str,
+        params: Option<&[(&str, &str)]>,
+    ) -> Result<Value> {
+        let path = if path.starts_with("/v1/") {
+            path.to_string()
+        } else {
+            format!("/v1/{}", path.trim_start_matches('/'))
+        };
+        if let Some(params) = params {
+            let query = params
+                .iter()
+                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .collect::<Vec<_>>();
+            self.client.get_with_query(&path, &query).await
+        } else {
+            self.client.get(&path).await
+        }
+    }
+
+    /// Create/update an administration resource with POST.
+    pub async fn post_admin_resource(&self, path: &str, body: &Value) -> Result<Value> {
+        let path = if path.starts_with("/v1/") {
+            path.to_string()
+        } else {
+            format!("/v1/{}", path.trim_start_matches('/'))
+        };
+        self.client.post(&path, body).await
+    }
+
+    /// Delete an administration resource.
+    pub async fn delete_admin_resource(&self, path: &str) -> Result<Value> {
+        let path = if path.starts_with("/v1/") {
+            path.to_string()
+        } else {
+            format!("/v1/{}", path.trim_start_matches('/'))
+        };
+        self.client.delete(&path).await
+    }
+
+    /// List a JSON administration collection.
+    async fn list_json(
+        &self,
+        path: &str,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        match params {
+            Some(p) => {
+                self.client
+                    .get_with_query(path, &build_admin_list_params(p))
+                    .await
+            }
+            None => self.client.get(path).await,
+        }
+    }
+
+    /// Organization certificates (upload, list, activate/deactivate, delete).
+    pub async fn list_certificates(
+        &self,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json("/v1/organization/certificates", params)
+            .await
+    }
+    pub async fn upload_certificate(&self, body: &Value) -> Result<Value> {
+        self.client
+            .post("/v1/organization/certificates", body)
+            .await
+    }
+    pub async fn retrieve_certificate(&self, certificate_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/certificates/{}",
+                certificate_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn delete_certificate(&self, certificate_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/certificates/{}",
+                certificate_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn activate_certificates(&self, body: &Value) -> Result<Value> {
+        self.client
+            .post("/v1/organization/certificates/activate", body)
+            .await
+    }
+    pub async fn deactivate_certificates(&self, body: &Value) -> Result<Value> {
+        self.client
+            .post("/v1/organization/certificates/deactivate", body)
+            .await
+    }
+
+    /// Organization data-retention controls.
+    pub async fn get_data_retention(&self) -> Result<Value> {
+        self.client.get("/v1/organization/data_retention").await
+    }
+    pub async fn update_data_retention(&self, body: &Value) -> Result<Value> {
+        self.client
+            .post("/v1/organization/data_retention", body)
+            .await
+    }
+
+    /// Organization groups and group membership/roles.
+    pub async fn list_groups(&self, params: Option<&ListAdminParams>) -> Result<AdminResourceList> {
+        self.list_json("/v1/organization/groups", params).await
+    }
+    pub async fn create_group(&self, body: &Value) -> Result<Value> {
+        self.client.post("/v1/organization/groups", body).await
+    }
+    pub async fn retrieve_group(&self, group_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .get(&format!("/v1/organization/groups/{}", group_id.as_ref()))
+            .await
+    }
+    pub async fn update_group(&self, group_id: impl AsRef<str>, body: &Value) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/groups/{}", group_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_group(&self, group_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .delete(&format!("/v1/organization/groups/{}", group_id.as_ref()))
+            .await
+    }
+    pub async fn list_group_users(
+        &self,
+        group_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!("/v1/organization/groups/{}/users", group_id.as_ref()),
+            params,
+        )
+        .await
+    }
+    pub async fn add_group_user(&self, group_id: impl AsRef<str>, body: &Value) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/groups/{}/users", group_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn remove_group_user(
+        &self,
+        group_id: impl AsRef<str>,
+        user_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/groups/{}/users/{}",
+                group_id.as_ref(),
+                user_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn list_group_roles(
+        &self,
+        group_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!("/v1/organization/groups/{}/roles", group_id.as_ref()),
+            params,
+        )
+        .await
+    }
+    pub async fn add_group_role(&self, group_id: impl AsRef<str>, body: &Value) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/groups/{}/roles", group_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn remove_group_role(
+        &self,
+        group_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/groups/{}/roles/{}",
+                group_id.as_ref(),
+                role_id.as_ref()
+            ))
+            .await
+    }
+
+    /// Organization roles and user role assignments.
+    pub async fn list_roles(&self, params: Option<&ListAdminParams>) -> Result<AdminResourceList> {
+        self.list_json("/v1/organization/roles", params).await
+    }
+    pub async fn create_role(&self, body: &Value) -> Result<Value> {
+        self.client.post("/v1/organization/roles", body).await
+    }
+    pub async fn retrieve_role(&self, role_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .get(&format!("/v1/organization/roles/{}", role_id.as_ref()))
+            .await
+    }
+    pub async fn update_role(&self, role_id: impl AsRef<str>, body: &Value) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/roles/{}", role_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_role(&self, role_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .delete(&format!("/v1/organization/roles/{}", role_id.as_ref()))
+            .await
+    }
+    pub async fn list_user_roles(
+        &self,
+        user_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!("/v1/organization/users/{}/roles", user_id.as_ref()),
+            params,
+        )
+        .await
+    }
+    pub async fn add_user_role(&self, user_id: impl AsRef<str>, body: &Value) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/users/{}/roles", user_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn remove_user_role(
+        &self,
+        user_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/users/{}/roles/{}",
+                user_id.as_ref(),
+                role_id.as_ref()
+            ))
+            .await
+    }
+
+    /// Organization spend limits and alerts.
+    pub async fn get_spend_limit(&self) -> Result<Value> {
+        self.client.get("/v1/organization/spend_limit").await
+    }
+    pub async fn update_spend_limit(&self, body: &Value) -> Result<Value> {
+        self.client.post("/v1/organization/spend_limit", body).await
+    }
+    pub async fn delete_spend_limit(&self) -> Result<Value> {
+        self.client.delete("/v1/organization/spend_limit").await
+    }
+    pub async fn list_spend_alerts(
+        &self,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json("/v1/organization/spend_alerts", params)
+            .await
+    }
+    pub async fn create_spend_alert(&self, body: &Value) -> Result<Value> {
+        self.client
+            .post("/v1/organization/spend_alerts", body)
+            .await
+    }
+    pub async fn retrieve_spend_alert(&self, alert_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/spend_alerts/{}",
+                alert_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_spend_alert(
+        &self,
+        alert_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/spend_alerts/{}", alert_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_spend_alert(&self, alert_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/spend_alerts/{}",
+                alert_id.as_ref()
+            ))
+            .await
+    }
+
+    /// Project-level controls and role/group assignments.
+    pub async fn get_project_data_retention(&self, project_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/data_retention",
+                project_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_data_retention(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/data_retention",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn list_project_groups(
+        &self,
+        project_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!("/v1/organization/projects/{}/groups", project_id.as_ref()),
+            params,
+        )
+        .await
+    }
+    pub async fn create_project_group(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!("/v1/organization/projects/{}/groups", project_id.as_ref()),
+                body,
+            )
+            .await
+    }
+    pub async fn retrieve_project_group(
+        &self,
+        project_id: impl AsRef<str>,
+        group_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/groups/{}",
+                project_id.as_ref(),
+                group_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_group(
+        &self,
+        project_id: impl AsRef<str>,
+        group_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/groups/{}",
+                    project_id.as_ref(),
+                    group_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_project_group(
+        &self,
+        project_id: impl AsRef<str>,
+        group_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/projects/{}/groups/{}",
+                project_id.as_ref(),
+                group_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn get_project_model_permissions(
+        &self,
+        project_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/model_permissions",
+                project_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_model_permissions(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/model_permissions",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn get_project_hosted_tool_permissions(
+        &self,
+        project_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/hosted_tool_permissions",
+                project_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_hosted_tool_permissions(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/hosted_tool_permissions",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn get_project_spend_limit(&self, project_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/spend_limit",
+                project_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_spend_limit(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/spend_limit",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_project_spend_limit(&self, project_id: impl AsRef<str>) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/projects/{}/spend_limit",
+                project_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn list_project_spend_alerts(
+        &self,
+        project_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!(
+                "/v1/organization/projects/{}/spend_alerts",
+                project_id.as_ref()
+            ),
+            params,
+        )
+        .await
+    }
+    pub async fn create_project_spend_alert(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/spend_alerts",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn retrieve_project_spend_alert(
+        &self,
+        project_id: impl AsRef<str>,
+        alert_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/spend_alerts/{}",
+                project_id.as_ref(),
+                alert_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_spend_alert(
+        &self,
+        project_id: impl AsRef<str>,
+        alert_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/spend_alerts/{}",
+                    project_id.as_ref(),
+                    alert_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_project_spend_alert(
+        &self,
+        project_id: impl AsRef<str>,
+        alert_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/projects/{}/spend_alerts/{}",
+                project_id.as_ref(),
+                alert_id.as_ref()
+            ))
+            .await
+    }
+
+    /// Project certificates and service-account API keys.
+    pub async fn list_project_certificates(
+        &self,
+        project_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!(
+                "/v1/organization/projects/{}/certificates",
+                project_id.as_ref()
+            ),
+            params,
+        )
+        .await
+    }
+    pub async fn upload_project_certificate(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/certificates",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn retrieve_project_certificate(
+        &self,
+        project_id: impl AsRef<str>,
+        certificate_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/organization/projects/{}/certificates/{}",
+                project_id.as_ref(),
+                certificate_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn delete_project_certificate(
+        &self,
+        project_id: impl AsRef<str>,
+        certificate_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/organization/projects/{}/certificates/{}",
+                project_id.as_ref(),
+                certificate_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn activate_project_certificates(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/certificates/activate",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn deactivate_project_certificates(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/certificates/deactivate",
+                    project_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn list_service_account_api_keys(
+        &self,
+        project_id: impl AsRef<str>,
+        service_account_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!(
+                "/v1/organization/projects/{}/service_accounts/{}/api_keys",
+                project_id.as_ref(),
+                service_account_id.as_ref()
+            ),
+            params,
+        )
+        .await
+    }
+    pub async fn create_service_account_api_key(
+        &self,
+        project_id: impl AsRef<str>,
+        service_account_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/organization/projects/{}/service_accounts/{}/api_keys",
+                    project_id.as_ref(),
+                    service_account_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+
+    /// Project RBAC endpoints (the API also exposes these under `/v1/projects`).
+    pub async fn list_project_roles(
+        &self,
+        project_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!("/v1/projects/{}/roles", project_id.as_ref()),
+            params,
+        )
+        .await
+    }
+    pub async fn create_project_role(
+        &self,
+        project_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(&format!("/v1/projects/{}/roles", project_id.as_ref()), body)
+            .await
+    }
+    pub async fn retrieve_project_role(
+        &self,
+        project_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .get(&format!(
+                "/v1/projects/{}/roles/{}",
+                project_id.as_ref(),
+                role_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn update_project_role(
+        &self,
+        project_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/projects/{}/roles/{}",
+                    project_id.as_ref(),
+                    role_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn delete_project_role(
+        &self,
+        project_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/projects/{}/roles/{}",
+                project_id.as_ref(),
+                role_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn list_project_group_roles(
+        &self,
+        project_id: impl AsRef<str>,
+        group_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!(
+                "/v1/projects/{}/groups/{}/roles",
+                project_id.as_ref(),
+                group_id.as_ref()
+            ),
+            params,
+        )
+        .await
+    }
+    pub async fn add_project_group_role(
+        &self,
+        project_id: impl AsRef<str>,
+        group_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/projects/{}/groups/{}/roles",
+                    project_id.as_ref(),
+                    group_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn remove_project_group_role(
+        &self,
+        project_id: impl AsRef<str>,
+        group_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/projects/{}/groups/{}/roles/{}",
+                project_id.as_ref(),
+                group_id.as_ref(),
+                role_id.as_ref()
+            ))
+            .await
+    }
+    pub async fn list_project_user_roles(
+        &self,
+        project_id: impl AsRef<str>,
+        user_id: impl AsRef<str>,
+        params: Option<&ListAdminParams>,
+    ) -> Result<AdminResourceList> {
+        self.list_json(
+            &format!(
+                "/v1/projects/{}/users/{}/roles",
+                project_id.as_ref(),
+                user_id.as_ref()
+            ),
+            params,
+        )
+        .await
+    }
+    pub async fn add_project_user_role(
+        &self,
+        project_id: impl AsRef<str>,
+        user_id: impl AsRef<str>,
+        body: &Value,
+    ) -> Result<Value> {
+        self.client
+            .post(
+                &format!(
+                    "/v1/projects/{}/users/{}/roles",
+                    project_id.as_ref(),
+                    user_id.as_ref()
+                ),
+                body,
+            )
+            .await
+    }
+    pub async fn remove_project_user_role(
+        &self,
+        project_id: impl AsRef<str>,
+        user_id: impl AsRef<str>,
+        role_id: impl AsRef<str>,
+    ) -> Result<Value> {
+        self.client
+            .delete(&format!(
+                "/v1/projects/{}/users/{}/roles/{}",
+                project_id.as_ref(),
+                user_id.as_ref(),
+                role_id.as_ref()
+            ))
+            .await
+    }
+
     /// Query completions usage data
     pub async fn get_completions_usage(
         &self,
@@ -538,6 +1430,25 @@ impl AdminApi {
         self.client
             .get_with_query("/v1/organization/usage/code_interpreter_sessions", &query)
             .await
+    }
+
+    /// Query file-search calls usage data.
+    pub async fn get_file_search_calls_usage(
+        &self,
+        start_time: u64,
+        params: Option<&[(&str, &str)]>,
+    ) -> Result<UsageResponse> {
+        self.get_usage("file_search_calls", start_time, params)
+            .await
+    }
+
+    /// Query web-search calls usage data.
+    pub async fn get_web_search_calls_usage(
+        &self,
+        start_time: u64,
+        params: Option<&[(&str, &str)]>,
+    ) -> Result<UsageResponse> {
+        self.get_usage("web_search_calls", start_time, params).await
     }
 
     /// Query generic usage data by category

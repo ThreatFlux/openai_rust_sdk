@@ -64,15 +64,15 @@ pub mod videos;
 
 // Admin API
 pub use admin::{
-    AuditLog, AuditLogList, CreateInviteRequest, CreateProjectRequest,
-    CreateProjectServiceAccountRequest, CreateProjectUserRequest, Invite, InviteDeleteResponse,
-    InviteList, ListAdminParams, ListAuditLogsParams, Project, ProjectApiKey,
-    ProjectApiKeyDeleteResponse, ProjectApiKeyList, ProjectList, ProjectRateLimit,
-    ProjectRateLimitList, ProjectServiceAccount, ProjectServiceAccountCreateResponse,
-    ProjectServiceAccountDeleteResponse, ProjectServiceAccountList, ProjectUser,
-    ProjectUserDeleteResponse, ProjectUserList, UpdateProjectRateLimitRequest,
-    UpdateProjectRequest, UpdateProjectUserRequest, UpdateUserRequest, UsageBucket, UsageResponse,
-    User as AdminUser, UserDeleteResponse, UserList,
+    AdminApiKey, AdminResourceList, AuditLog, AuditLogList, CreateAdminApiKeyRequest,
+    CreateInviteRequest, CreateProjectRequest, CreateProjectServiceAccountRequest,
+    CreateProjectUserRequest, Invite, InviteDeleteResponse, InviteList, ListAdminParams,
+    ListAuditLogsParams, Project, ProjectApiKey, ProjectApiKeyDeleteResponse, ProjectApiKeyList,
+    ProjectList, ProjectRateLimit, ProjectRateLimitList, ProjectServiceAccount,
+    ProjectServiceAccountCreateResponse, ProjectServiceAccountDeleteResponse,
+    ProjectServiceAccountList, ProjectUser, ProjectUserDeleteResponse, ProjectUserList,
+    UpdateProjectRateLimitRequest, UpdateProjectRequest, UpdateProjectUserRequest,
+    UpdateUserRequest, UsageBucket, UsageResponse, User as AdminUser, UserDeleteResponse, UserList,
 };
 
 // Assistants API
