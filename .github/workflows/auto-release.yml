@@ -1,141 +1,126 @@
 name: Auto Release
 
+concurrency:
+  group: auto-release-${{ github.event.workflow_run.head_branch || github.ref_name || 'main' }}
+  cancel-in-progress: true
+
 on:
+  workflow_run:
+    workflows: ["CI", "Security"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'Cargo.toml'
+    inputs:
+      version_bump:
+        description: Version bump type
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: read
 
-concurrency:
-  group: auto-release-${{ github.ref }}
-  cancel-in-progress: false
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_VERSION: 1.97.1
-
 jobs:
-  check-version:
-    name: Check Version
+  check:
+    name: Check for Release
     runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
+    permissions:
+      actions: read
+      contents: read
     outputs:
-      version_changed: ${{ steps.version.outputs.changed }}
-      new_version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.decide.outputs.should_release }}
+      target_sha: ${{ steps.target.outputs.sha }}
     steps:
-      - name: Checkout sources
+      - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref_name }}
 
-      - name: Verify release source
-        shell: bash
+      - name: Determine target SHA
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "Auto Release must run from main, got $GITHUB_REF" >&2
-            exit 1
-          fi
-          git fetch --no-tags origin main
-          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
-            echo "The selected commit is no longer the tip of origin/main" >&2
-            exit 1
-          fi
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Check release version
-        id: version
-        shell: bash
-        run: |
-          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
-          TAG="v${VERSION}"
-          git check-ref-format "refs/tags/$TAG"
-          if ! grep -Fq "## [$VERSION] -" CHANGELOG.md; then
-            echo "CHANGELOG.md does not contain a dated $VERSION release entry" >&2
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists; no release needed"
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+          if [[ "${EVENT_NAME}" == "workflow_run" ]]; then
+            if [[ ! "${WORKFLOW_RUN_HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Invalid workflow-run head SHA" >&2
+              exit 1
+            fi
+            echo "sha=${WORKFLOW_RUN_HEAD_SHA}" >> "$GITHUB_OUTPUT"
           else
-            echo "New release version: $TAG"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
-  verify-package:
-    name: Verify Package
-    needs: check-version
-    if: needs.check-version.outputs.version_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+      - name: Check CI status
+        id: ci_status
+        run: |
+          TARGET_SHA="${{ steps.target.outputs.sha }}"
+          CI_STATUS=$(gh run list --workflow=ci.yml --branch=main --commit="$TARGET_SHA" --event=push --limit=1 --json conclusion --jq '.[0].conclusion // ""')
+          SECURITY_STATUS=$(gh run list --workflow=security.yml --branch=main --commit="$TARGET_SHA" --event=push --limit=1 --json conclusion --jq '.[0].conclusion // ""')
+          if [[ "$CI_STATUS" == "success" ]] && [[ "$SECURITY_STATUS" == "success" ]]; then
+            echo "all_passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "all_passed=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
+      - name: Decide whether to attempt a release
+        id: decide
+        env:
+          ALL_PASSED: ${{ steps.ci_status.outputs.all_passed }}
+        run: |
+          # The release action itself no-ops when no conventional commit
+          # warrants a release, so this gate only enforces green required runs.
+          if [[ "${ALL_PASSED}" == "true" ]]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Run tests
-        run: cargo test --all-features --locked
-
-      - name: Verify package contents
-        run: python3 scripts/check_package.py
-
-      - name: Verify crate package
-        run: cargo package --all-features --locked
-
-  create-release:
-    name: Create Annotated Tag
-    needs: [check-version, verify-package]
-    if: needs.check-version.outputs.version_changed == 'true'
+  release:
+    name: Create Release
+    needs: check
+    if: needs.check.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: write
+      actions: write
     steps:
-      - name: Checkout sources
+      - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.check.outputs.target_sha }}
 
-      - name: Create immutable annotated tag
+      - name: Release
+        id: release
+        uses: ThreatFlux/github_actions/release@16d779cd569c34743eb6683ca4c0ce105e9ad234 # v0.4.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          bump: ${{ github.event.inputs.version_bump || 'auto' }}
+
+      # Tags created with GITHUB_TOKEN do not trigger tag-push workflows, so
+      # dispatch the tag pipelines explicitly.
+      - name: Trigger tag pipelines
+        if: steps.release.outputs.released == 'true'
         env:
-          RELEASE_VERSION: ${{ needs.check-version.outputs.new_version }}
-        shell: bash
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
-          git fetch --no-tags origin main
-          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
-            echo "main advanced after package verification; restart the release" >&2
-            exit 1
-          fi
-          TAG="v${RELEASE_VERSION}"
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists; refusing to move it" >&2
-            exit 1
-          fi
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
-
-      - name: Dispatch release workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ needs.check-version.outputs.new_version }}
-        shell: bash
-        run: >-
-          gh workflow run release.yml
-          --ref "v${RELEASE_VERSION}"
-          --field "version=${RELEASE_VERSION}"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f version="$VERSION"
+          gh workflow run docker.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
