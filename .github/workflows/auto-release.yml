@@ -6,7 +6,7 @@ concurrency:
 
 on:
   workflow_run:
-    workflows: ["CI", "Security"]
+    workflows: [CI, Security]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -23,104 +23,18 @@ on:
           - major
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
+  pull-requests: write
 
 jobs:
-  check:
-    name: Check for Release
-    runs-on: ubuntu-latest
-    if: >-
-      (github.event_name == 'workflow_run' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository) ||
-      github.event_name == 'workflow_dispatch'
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      should_release: ${{ steps.decide.outputs.should_release }}
-      target_sha: ${{ steps.target.outputs.sha }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref_name }}
-
-      - name: Determine target SHA
-        id: target
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          if [[ "${EVENT_NAME}" == "workflow_run" ]]; then
-            if [[ ! "${WORKFLOW_RUN_HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
-              echo "Invalid workflow-run head SHA" >&2
-              exit 1
-            fi
-            echo "sha=${WORKFLOW_RUN_HEAD_SHA}" >> "$GITHUB_OUTPUT"
-          else
-            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check CI status
-        id: ci_status
-        run: |
-          TARGET_SHA="${{ steps.target.outputs.sha }}"
-          CI_STATUS=$(gh run list --workflow=ci.yml --branch=main --commit="$TARGET_SHA" --event=push --limit=1 --json conclusion --jq '.[0].conclusion // ""')
-          SECURITY_STATUS=$(gh run list --workflow=security.yml --branch=main --commit="$TARGET_SHA" --event=push --limit=1 --json conclusion --jq '.[0].conclusion // ""')
-          if [[ "$CI_STATUS" == "success" ]] && [[ "$SECURITY_STATUS" == "success" ]]; then
-            echo "all_passed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "all_passed=false" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Decide whether to attempt a release
-        id: decide
-        env:
-          ALL_PASSED: ${{ steps.ci_status.outputs.all_passed }}
-        run: |
-          # The release action itself no-ops when no conventional commit
-          # warrants a release, so this gate only enforces green required runs.
-          if [[ "${ALL_PASSED}" == "true" ]]; then
-            echo "should_release=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_release=false" >> "$GITHUB_OUTPUT"
-          fi
-
   release:
-    name: Create Release
-    needs: check
-    if: needs.check.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          ref: ${{ needs.check.outputs.target_sha }}
+    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@e9bec9898080aa55bec9f3ce4351bae37f8b88cd # merged reusable workflow
+    with:
+      bump: ${{ github.event.inputs.version_bump || 'auto' }}
+      required-workflows: CI,Security
+      dispatch-workflows: release.yml,docker.yml
+      dispatch-version-workflow: release.yml
 
-      - name: Release
-        id: release
-        uses: ThreatFlux/github_actions/release@16d779cd569c34743eb6683ca4c0ce105e9ad234 # v0.4.2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          bump: ${{ github.event.inputs.version_bump || 'auto' }}
-
-      # Tags created with GITHUB_TOKEN do not trigger tag-push workflows, so
-      # dispatch the tag pipelines explicitly.
-      - name: Trigger tag pipelines
-        if: steps.release.outputs.released == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.release.outputs.version }}
-          TAG: ${{ steps.release.outputs.tag }}
-        run: |
-          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f version="$VERSION"
-          gh workflow run docker.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
+    # secrets:
+    #   release-token: ${{ secrets.RELEASE_TOKEN }}
