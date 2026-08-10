@@ -33,7 +33,7 @@ jobs:
       actions: write
       contents: write
       pull-requests: write
-    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@e9bec9898080aa55bec9f3ce4351bae37f8b88cd # merged reusable workflow
+    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@99bd76d2bd4d2e79eaa18abe89de2c352bc1b9a2 # v0.7.1
     with:
       bump: ${{ github.event.inputs.version_bump || 'auto' }}
       required-workflows: CI,Security
