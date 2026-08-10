@@ -74,7 +74,7 @@ jobs:
           echo "path=${config_path}" >> "${GITHUB_OUTPUT}"
 
       - name: Lint Markdown
-        uses: DavidAnson/markdownlint-cli2-action@3b11e4c3e2eac5207914843511bd517908954018 # v24.1.0
+        uses: DavidAnson/markdownlint-cli2-action@6bf21b07787794f89a243495939cd651942aeabe # v24.1.0
         with:
           config: ${{ steps.markdownlint-config.outputs.path }}
           globs: |
@@ -136,7 +136,7 @@ jobs:
           echo "value=${value}" >> "${GITHUB_OUTPUT}"
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # v1
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: ${{ steps.toolchain.outputs.value }}
 
@@ -166,7 +166,7 @@ jobs:
           persist-credentials: false
 
       - name: Install current stable Rust
-        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # v1
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: stable
 
