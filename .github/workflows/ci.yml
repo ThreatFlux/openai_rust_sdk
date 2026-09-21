@@ -49,7 +49,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
           components: rustfmt, clippy
@@ -106,7 +106,7 @@ jobs:
       # Free up disk space on GitHub runners
       - name: Free Disk Space (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be  # v1.3.1
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6  # v2.0.0
         with:
           tool-cache: false
           android: true
@@ -124,7 +124,7 @@ jobs:
           df -h
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ matrix.rust }}
       
@@ -183,7 +183,7 @@ jobs:
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
-        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad  # v2.85.10
+        uses: taiki-e/install-action@4076c08d76dba979c11a7285295b0716c1d67908  # v2.87.15
         with:
           tool: cargo-llvm-cov
       
@@ -193,7 +193,7 @@ jobs:
       
       - name: Upload coverage to Codecov
         if: matrix.coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
         with:
           files: lcov.info
           fail_ci_if_error: false
@@ -210,7 +210,7 @@ jobs:
           persist-credentials: false
       
       - name: Install MSRV toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -233,7 +233,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -279,7 +279,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -310,7 +310,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -341,7 +341,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
