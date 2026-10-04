@@ -9,10 +9,10 @@ use std::io::{self, Read};
 use openai_rust_sdk::webhooks::{WebhookHeaders, WebhookVerifier};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let secret = std::env::var("OPENAI_WEBHOOK_SECRET")?;
-    let id = std::env::var("OPENAI_WEBHOOK_ID")?;
-    let timestamp = std::env::var("OPENAI_WEBHOOK_TIMESTAMP")?;
-    let signature = std::env::var("OPENAI_WEBHOOK_SIGNATURE")?;
+    let secret = required_env("OPENAI_WEBHOOK_SECRET")?;
+    let id = required_env("OPENAI_WEBHOOK_ID")?;
+    let timestamp = required_env("OPENAI_WEBHOOK_TIMESTAMP")?;
+    let signature = required_env("OPENAI_WEBHOOK_SIGNATURE")?;
     let mut body = Vec::new();
     io::stdin()
         .take(8 * 1024 * 1024 + 1)
@@ -28,4 +28,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     println!("Webhook authenticated");
     Ok(())
+}
+
+/// Strip decoding errors that can retain secret bytes in `VarError::NotUnicode`.
+fn required_env(name: &str) -> io::Result<String> {
+    std::env::var(name).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("Set {name} to a valid Unicode value"),
+        )
+    })
 }
