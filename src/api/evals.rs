@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_build_list_params_none() {
         let params = build_list_params(None, None, None, None);
-        assert!(params.is_empty());
+        assert_eq!(params.len(), 0);
     }
 
     #[test]

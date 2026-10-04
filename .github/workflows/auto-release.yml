@@ -36,6 +36,7 @@ jobs:
     uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@7a5f08885a77520db023882c8de17d9e6580b7ae # v0.7.5
     with:
       bump: ${{ github.event.inputs.version_bump || 'auto' }}
+      create-pr: true
       required-workflows: CI,Security
       dispatch-workflows: release.yml,docker.yml
       dispatch-version-workflow: release.yml

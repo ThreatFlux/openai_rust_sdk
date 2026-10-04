@@ -113,7 +113,7 @@ impl FunctionsApi {
     }
 
     /// Parse the function response from the API
-    pub(crate) async fn parse_function_response(
+    pub(crate) fn parse_function_response(
         &self,
         response: Value,
     ) -> Result<FunctionResponseResult> {

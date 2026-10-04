@@ -6,10 +6,15 @@
 
 use crate::models::containers::{
     CodeExecutionRequest, CodeExecutionResult, Container, ContainerConfig, ContainerFile,
-    ContainerFileList, ContainerList, ListContainersParams,
+    ContainerFileList, ContainerFileMetadata, ContainerFileMetadataList, ContainerList,
+    ListContainersParams,
 };
 use crate::{
-    api::{base::HttpClient, common::ApiClientConstructors, shared_utilities::FormBuilder},
+    api::{
+        base::HttpClient,
+        common::{ApiClientConstructors, StandardListParams, build_list_query_params},
+        shared_utilities::FormBuilder,
+    },
     constants::endpoints,
     error::{OpenAIError, Result},
 };
@@ -133,6 +138,41 @@ impl ContainersApi {
     pub async fn list_files(&self, container_id: &str) -> Result<ContainerFileList> {
         let path = endpoints::containers::files(container_id);
         self.client.get(&path).await
+    }
+
+    /// Retrieve current metadata from the official container-file endpoint.
+    ///
+    /// This returns the wire-compatible model instead of the legacy upload helper
+    /// model, which expects fields such as `filename` that the endpoint omits.
+    pub async fn retrieve_file(
+        &self,
+        container_id: &str,
+        file_id: &str,
+    ) -> Result<ContainerFileMetadata> {
+        validate_resource_id(container_id)?;
+        validate_resource_id(file_id)?;
+        self.client
+            .get(&endpoints::containers::file_by_id(container_id, file_id))
+            .await
+    }
+
+    /// List current container-file metadata with cursor pagination.
+    ///
+    /// The official endpoint supports `after`, `limit`, and `order`; `before`
+    /// is rejected rather than being sent as an unsupported query option.
+    pub async fn list_files_with_params(
+        &self,
+        container_id: &str,
+        params: &StandardListParams,
+    ) -> Result<ContainerFileMetadataList> {
+        validate_resource_id(container_id)?;
+        validate_file_list_params(params)?;
+        self.client
+            .get_with_query(
+                &endpoints::containers::files(container_id),
+                &build_list_query_params(params),
+            )
+            .await
     }
 
     /// Download a file from a container
@@ -261,6 +301,47 @@ impl ContainersApi {
             self.client.handle_response::<()>(response).await
         }
     }
+}
+
+/// Reject identifiers that can change the request path or query.
+fn validate_resource_id(value: &str) -> Result<()> {
+    if value.is_empty()
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+    {
+        return Err(OpenAIError::invalid_request(
+            "Invalid container or file identifier",
+        ));
+    }
+    Ok(())
+}
+
+/// Enforce only the documented container-file pagination controls.
+fn validate_file_list_params(params: &StandardListParams) -> Result<()> {
+    if params.before.is_some() {
+        return Err(OpenAIError::invalid_request(
+            "Container file listing does not support before",
+        ));
+    }
+    if params
+        .limit
+        .is_some_and(|limit| !(1..=100).contains(&limit))
+    {
+        return Err(OpenAIError::invalid_request(
+            "Container file limit must be between 1 and 100",
+        ));
+    }
+    if params
+        .order
+        .as_deref()
+        .is_some_and(|order| !matches!(order, "asc" | "desc"))
+    {
+        return Err(OpenAIError::invalid_request(
+            "Container file order must be asc or desc",
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

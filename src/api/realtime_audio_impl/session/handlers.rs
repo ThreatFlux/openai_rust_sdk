@@ -7,7 +7,7 @@ use crate::models::realtime_audio::{AudioBuffer, RealtimeEvent};
 use log::warn;
 use rtc::media::Sample;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use webrtc::data_channel::RTCDataChannelMessage;
 use webrtc::media_stream::track_remote::{TrackRemote, TrackRemoteEvent};
@@ -44,7 +44,7 @@ impl RealtimeSession {
             let sample = Sample {
                 data: samples.iter().flat_map(|&s| s.to_le_bytes()).collect(),
                 duration: sample_duration,
-                ..Default::default()
+                ..Sample::new(Instant::now())
             };
 
             audio_track
@@ -63,6 +63,11 @@ impl RealtimeSession {
 
     /// Start audio streaming from microphone
     pub async fn start_audio_input(&self) -> Result<()> {
+        std::future::ready(self.start_audio_input_sync()).await
+    }
+
+    /// Apply the legacy local start action only when its public future is polled.
+    fn start_audio_input_sync(&self) -> Result<()> {
         // This would start capturing audio from microphone
         // For now, we'll just mark as started
         log::info!("Audio input started for session: {}", self.id);
@@ -71,6 +76,11 @@ impl RealtimeSession {
 
     /// Stop audio streaming
     pub async fn stop_audio_input(&self) -> Result<()> {
+        std::future::ready(self.stop_audio_input_sync()).await
+    }
+
+    /// Apply the legacy local stop action only when its public future is polled.
+    fn stop_audio_input_sync(&self) -> Result<()> {
         // This would stop capturing audio from microphone
         log::info!("Audio input stopped for session: {}", self.id);
         Ok(())
@@ -78,6 +88,11 @@ impl RealtimeSession {
 
     /// Handle incoming data channel message
     pub async fn handle_data_channel_message(&self, msg: RTCDataChannelMessage) -> Result<()> {
+        std::future::ready(self.handle_data_channel_message_sync(&msg)).await
+    }
+
+    /// Dispatch a local channel message without an asynchronous producer task.
+    fn handle_data_channel_message_sync(&self, msg: &RTCDataChannelMessage) -> Result<()> {
         if let Ok(text) = String::from_utf8(msg.data.to_vec()) {
             match serde_json::from_str::<RealtimeEvent>(&text) {
                 Ok(event) => {

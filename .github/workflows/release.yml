@@ -20,7 +20,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_VERSION: 1.97.1
+  RUST_VERSION: 1.99.0
 
 jobs:
   verify-package:
@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_VERSION }}
           components: clippy, rustfmt
@@ -48,7 +48,7 @@ jobs:
           REQUESTED_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
-          PACKAGE_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          PACKAGE_VERSION=$(cargo metadata --locked --no-deps --format-version 1 | jq -r '.packages[0].version')
           if [[ -n "$REQUESTED_VERSION" && "$PACKAGE_VERSION" != "$REQUESTED_VERSION" ]]; then
             echo "Cargo.toml version $PACKAGE_VERSION does not match requested version $REQUESTED_VERSION" >&2
             exit 1
@@ -141,7 +141,7 @@ jobs:
           fi
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
@@ -197,7 +197,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           body_path: RELEASE_NOTES.md
           draft: false

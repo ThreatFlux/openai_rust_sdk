@@ -91,11 +91,13 @@ impl HttpClient {
 
         if !query_params.is_empty() {
             url.push('?');
-            let query_string = query_params
-                .iter()
-                .map(|(k, v)| format!("{k}={v}"))
-                .collect::<Vec<_>>()
-                .join("&");
+            let query_string = url::form_urlencoded::Serializer::new(String::new())
+                .extend_pairs(
+                    query_params
+                        .iter()
+                        .map(|(key, value)| (key.as_str(), value.as_str())),
+                )
+                .finish();
             url.push_str(&query_string);
         }
 

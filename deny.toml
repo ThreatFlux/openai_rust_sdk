@@ -42,7 +42,7 @@ targets = [
 # If true, metadata will be collected with `--all-features`. Note that this can't
 # be toggled off if true, if you want to conditionally enable `--all-features` it
 # is recommended to pass `--all-features` on the cmd line instead
-all-features = false
+all-features = true
 # If true, metadata will be collected with `--no-default-features`. The same
 # caveat with `all-features` applies
 no-default-features = false
@@ -69,11 +69,15 @@ feature-depth = 1
 #db-urls = ["https://github.com/rustsec/advisory-db"]
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
+# These exceptions are guarded by scripts/check_yara_security.py.
+# They describe this repository's graph, not every downstream feature union.
 ignore = [
-    #"RUSTSEC-0000-0000",
-    #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
-    #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
-    #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
+    { id = "RUSTSEC-2023-0071", reason = "YARA-X 1.21.0 uses public RSA signature verification only, never private-key operations" },
+    { id = "RUSTSEC-2025-0141", reason = "Bincode 2.0.1 is unmaintained; stable YARA-X has no replacement and this SDK does not deserialize compiled rules" },
+    { id = "RUSTSEC-2026-0222", reason = "YARA-X 1.21.0 creates modules and stores with the same global Wasmtime Engine" },
+    { id = "RUSTSEC-2026-0269", reason = "The reviewed graph contains no wasmtime-wasi, cap-std or filesystem guest imports" },
+    { id = "RUSTSEC-2026-0316", reason = "Wasmtime component-model and the affected component::Val API are disabled" },
+    { id = "RUSTSEC-2026-0327", reason = "Wasmtime component-model-async is disabled, following the upstream workaround" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.

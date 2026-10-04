@@ -121,7 +121,7 @@ mod tests {
         match text_content {
             MessageContent::Text { text } => {
                 assert_eq!(text.value, "Hello, world!");
-                assert!(text.annotations.is_empty());
+                assert_eq!(text.annotations.len(), 0);
             }
             _ => panic!("Expected text content"),
         }

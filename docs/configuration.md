@@ -1,7 +1,7 @@
 # Configuration and operational behavior
 
-This document describes behavior verified in this repository's `main` source
-on **2026-08-02**. It is intentionally explicit about limitations that matter
+This document describes behavior verified in this repository's source
+on **2026-10-03**. It is intentionally explicit about limitations that matter
 in production. For endpoint availability, see [OpenAI API coverage](api-coverage.md).
 
 ## Environment-based setup
@@ -223,7 +223,10 @@ Two similarly named paths target different APIs:
 
 Responses streaming recognizes common event types and maps an unrecognized
 type to `ResponseStreamEvent::Unknown`; the unknown event payload is not
-retained. There is no automatic reconnect, event replay, or cursor resumption.
+retained by that compatibility stream. Use
+`ResponsesApiV2::stream_response_envelopes` to retain full JSON, sequence numbers,
+and SSE metadata for current and future events. There is no automatic reconnect,
+event replay, or cursor resumption.
 Every yielded item is a `Result`, so handle errors inside the consumption loop
 rather than only when opening the stream.
 
@@ -240,7 +243,12 @@ rather than only when opening the stream.
 
 ## Release source
 
-This branch prepares `openai_rust_sdk` **1.7.0** with `rust-version = 1.97.1`.
+The manifest remains at the last release, `openai_rust_sdk` **1.7.0**, with
+`rust-version = 1.97.1`. This source introduces a breaking WebRTC dependency-type
+migration and requires a maintainer-reviewed **2.0** version PR; see the
+[migration guide](migration-2.0.md).
+Development and CI use the pinned **1.99.0** toolchain; the separate MSRV check
+uses **1.97.1** with all features.
 After publication, the release tag, packaged crate, and matching docs.rs page
 should describe the same source.
 
@@ -252,3 +260,45 @@ a moving branch.
 The repository's `rust-toolchain.toml` and `Cargo.toml` are authoritative for a
 source build. The selected crate release's manifest is authoritative for a
 registry dependency.
+
+## Optional YARA-X dependency security review
+
+Reviewed on **2026-10-03** against the locked all-feature graph: YARA-X **1.21.0**,
+Wasmtime **45.0.3**, RSA **0.9.10**, and Bincode **2.0.1**. The latest stable
+[YARA-X manifest](https://github.com/VirusTotal/yara-x/blob/v1.21.0/Cargo.toml)
+requires Wasmtime 45; no compatible stable upgrade reaches the patched Wasmtime
+48/49 releases. The following exceptions apply to this repository's verified
+usage. They do not patch upstream dependencies.
+
+| Advisory | Reviewed applicability |
+| --- | --- |
+| [RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071) | The Marvin attack requires private RSA operations. YARA-X uses public keys for signature verification, with no private key, signing, or decryption operation. |
+| [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141) | Bincode is unmaintained. Stable YARA-X still depends on it; this is an accepted maintenance risk, not a claim that Bincode remains maintained. The SDK does not deserialize compiled rules. |
+| [RUSTSEC-2026-0222](https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-hgjw-h833-99q9) | The affected APIs require mixing objects from different Wasmtime engines. YARA-X creates compiler modules and scanner stores through the same global engine, following the upstream single-engine workaround. |
+| [RUSTSEC-2026-0269](https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-vqjp-4c8c-hfgg) | The filesystem escape affects Wasmtime-WASI/cap-std. Neither dependency is present; the validator does not provide WASI filesystem imports. |
+| [RUSTSEC-2026-0316](https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-jqpg-j7w6-42pr) | The affected API is `wasmtime::component::Val`. The component model is disabled and that API is unavailable. |
+| [RUSTSEC-2026-0327](https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-32h6-97mm-8q3c) | The affected component async callbacks are unavailable. Disabling `component-model-async` is the advisory's documented workaround. |
+
+The source evidence is YARA-X's
+[public-key verification](https://github.com/VirusTotal/yara-x/blob/v1.21.0/lib/src/modules/utils/crypto.rs),
+[global engine](https://github.com/VirusTotal/yara-x/blob/v1.21.0/lib/src/wasm/mod.rs),
+[compiler module creation](https://github.com/VirusTotal/yara-x/blob/v1.21.0/lib/src/compiler/mod.rs),
+and [scanner store creation](https://github.com/VirusTotal/yara-x/blob/v1.21.0/lib/src/scanner/context.rs).
+The resolved Wasmtime feature union is limited to core compilation/runtime and
+support features; it contains neither component-model feature.
+
+`make audit`, `make deny`, and both hosted security jobs first run
+`python3 scripts/check_yara_security.py`. The guard rejects changed reviewed
+versions, non-registry replacements, new Wasmtime features, WASI/cap-std
+packages, additional callers of the reviewed dependencies, mismatched exception
+policies, and direct SDK exposure of the
+excluded Wasmtime or compiled-rule APIs. New advisory IDs still fail the normal
+security checks. Re-review these exceptions when a fixed compatible YARA-X
+release becomes available; remove them when their dependencies are fixed or
+removed.
+
+Cargo unifies features across dependencies. A downstream application that adds
+Wasmtime component APIs, WASI, or new YARA-X entry points must perform its own
+applicability review; these repository exceptions do not establish safety for
+that application's feature graph. The YARA-X feature remains optional and is
+unnecessary for ordinary OpenAI SDK use.

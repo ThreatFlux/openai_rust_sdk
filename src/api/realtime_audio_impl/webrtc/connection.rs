@@ -12,6 +12,7 @@ use rtc::rtp_transceiver::rtp_sender::{
     RTCRtpCodec, RTCRtpCodingParameters, RTCRtpEncodingParameters, RtpCodecKind,
 };
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use webrtc::media_stream::MediaStreamTrack;
@@ -192,7 +193,7 @@ impl RealtimeAudioApi {
             }],
         );
 
-        TrackLocalStaticSample::new(track)
+        TrackLocalStaticSample::new(Instant::now(), track)
             .map(Arc::new)
             .map_err(crate::invalid_request_err!(
                 "Failed to create audio track: {}"

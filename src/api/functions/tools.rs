@@ -34,20 +34,24 @@ impl FunctionsApi {
                         "Function arguments must be a JSON object",
                     ));
                 }
-
-                Ok(())
             }
             Tool::Custom { custom_tool } => {
                 // Validate with custom tool grammar if available
                 self.custom_tools
                     .validate_input(&custom_tool.name, &call.arguments)?;
-                Ok(())
             }
         }
+        Ok(())
     }
 
     /// Execute a function call (placeholder - actual execution is application-specific)
     pub async fn execute_function_call(&self, call: &FunctionCall) -> Result<FunctionCallOutput> {
+        // Keep the public future lazy while adapting this local synchronous helper.
+        std::future::ready(self.execute_function_call_sync(call)).await
+    }
+
+    /// Compute the legacy placeholder result without asynchronous I/O.
+    fn execute_function_call_sync(&self, call: &FunctionCall) -> Result<FunctionCallOutput> {
         // This is a placeholder implementation
         // In practice, applications would provide their own function executors
 

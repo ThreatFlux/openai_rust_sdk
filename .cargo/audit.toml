@@ -1,19 +1,18 @@
-# Security audit configuration
-# Ignore known vulnerabilities that can't be fixed directly
+# Exceptions apply only to the graph verified by scripts/check_yara_security.py.
+# See docs/configuration.md for advisory/source evidence and downstream caveats.
 
 [advisories]
-# Ignore vulnerabilities that are in dependencies we can't control
 ignore = [
-    # RSA timing vulnerability in yara-x transitive dependency (rsa 0.9.x)
-    # Fix requires rsa 0.10.0 stable + yara-x adoption; low practical risk
-    # (used only for PE authenticode signature verification, not decryption)
+    # YARA-X 1.21.0 only verifies public RSA signatures; no private-key operations.
     "RUSTSEC-2023-0071",
-    # Instant is unmaintained - used by wiremock test dependency
-    "RUSTSEC-2024-0384",
-    # Bincode unmaintained - transitive dependency through yara-x
-    # yara-x has not yet migrated away from bincode; no direct fix available
+    # Bincode 2.0.1 is unmaintained; stable YARA-X has no replacement yet.
     "RUSTSEC-2025-0141",
-    # wasmtime is required by yara-x 1.19.0, which has not released a version
-    # using a fixed wasmtime range yet; remove this exception when yara-x ships it.
+    # YARA-X uses one global Engine for its modules and stores.
     "RUSTSEC-2026-0222",
+    # No wasmtime-wasi/cap-std dependency or filesystem guest imports.
+    "RUSTSEC-2026-0269",
+    # Wasmtime component-model is disabled; component::Val is unavailable.
+    "RUSTSEC-2026-0316",
+    # Wasmtime component-model-async is disabled (upstream workaround).
+    "RUSTSEC-2026-0327",
 ]

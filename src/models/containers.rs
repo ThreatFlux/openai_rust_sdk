@@ -2,6 +2,9 @@
 //!
 //! Data structures for container management and code execution
 
+mod file_metadata;
+pub use file_metadata::{ContainerFileMetadata, ContainerFileMetadataList};
+
 use crate::{De, Ser};
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;

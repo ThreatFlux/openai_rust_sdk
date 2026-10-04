@@ -3,7 +3,7 @@
 
 CARGO ?= cargo
 RUST_MSRV ?= 1.97.1
-RUST_TOOLCHAIN ?= 1.97.1
+RUST_TOOLCHAIN ?= 1.99.0
 
 DOCKER_IMAGE ?= openai-rust-sdk
 DOCKER_TAG ?= latest
@@ -54,14 +54,14 @@ help: ## Display this help message
 .PHONY: dev-setup
 dev-setup: ## Install development tools
 	@echo "$(CYAN)Installing development tools...$(NC)"
-	@rustup toolchain install $(RUST_TOOLCHAIN) --profile minimal >/dev/null 2>&1 || true
-	@rustup component add rustfmt clippy llvm-tools-preview 2>/dev/null || true
-	@cargo install cargo-llvm-cov --locked 2>/dev/null || echo "cargo-llvm-cov already installed"
-	@cargo install cargo-audit --locked 2>/dev/null || echo "cargo-audit already installed"
-	@cargo install cargo-deny --locked 2>/dev/null || echo "cargo-deny already installed"
-	@cargo install cargo-cyclonedx --locked 2>/dev/null || echo "cargo-cyclonedx already installed"
-	@cargo install cargo-hack --locked 2>/dev/null || echo "cargo-hack already installed"
-	@python3 -m pip install --user pre-commit 2>/dev/null || echo "pre-commit already available"
+	@rustup toolchain install $(RUST_TOOLCHAIN) --profile minimal
+	@rustup component add rustfmt clippy llvm-tools-preview
+	@cargo install cargo-llvm-cov --locked --version 0.9.1
+	@cargo install cargo-audit --locked --version 0.22.2
+	@cargo install cargo-deny --locked --version 0.20.2
+	@cargo install cargo-cyclonedx --locked --version 0.5.9
+	@cargo install cargo-hack --locked --version 0.6.45
+	@python3 -m pip install --user pre-commit==4.6.2
 	@echo "$(GREEN)Development tools installed!$(NC)"
 
 .PHONY: setup-dev
@@ -70,31 +70,32 @@ setup-dev: dev-setup ## Alias: install development tools
 .PHONY: install-hooks
 install-hooks: ## Install git hooks
 	@echo "$(CYAN)Installing git hooks...$(NC)"
-	@mkdir -p .git/hooks
-	@printf '#!/bin/sh\nmake pre-commit\n' > .git/hooks/pre-commit
-	@chmod +x .git/hooks/pre-commit
+	@hook_dir="$$(git rev-parse --git-path hooks)"; \
+		mkdir -p "$$hook_dir"; \
+		printf '#!/bin/sh\nmake pre-commit\n' > "$$hook_dir/pre-commit"; \
+		chmod +x "$$hook_dir/pre-commit"
 	@echo "$(GREEN)Git hooks installed!$(NC)"
 
 .PHONY: build
 build: ## Build the project (debug)
 	@echo "$(CYAN)Building project...$(NC)"
-	@$(CARGO) build --all-features
+	@$(CARGO) build --locked --all-features
 	@echo "$(GREEN)Build completed!$(NC)"
 
 .PHONY: build-release
 build-release: ## Build the project (release)
 	@echo "$(CYAN)Building release...$(NC)"
 	@if [ -n "$(BINARY_PACKAGE)" ]; then \
-		$(CARGO) build --release -p $(BINARY_PACKAGE) --bin $(BINARY_NAME) --all-features; \
+		$(CARGO) build --locked --release -p $(BINARY_PACKAGE) --bin $(BINARY_NAME) --all-features; \
 	else \
-		$(CARGO) build --release --bin $(BINARY_NAME) --all-features || $(CARGO) build --release --all-features; \
+		$(CARGO) build --locked --release --bin $(BINARY_NAME) --all-features || $(CARGO) build --release --all-features; \
 	fi
 	@echo "$(GREEN)Release build completed!$(NC)"
 
 .PHONY: check
 check: ## Check compilation without building
 	@echo "$(CYAN)Checking compilation...$(NC)"
-	@$(CARGO) check --all-features --all-targets
+	@$(CARGO) check --locked --all-features --all-targets
 
 .PHONY: fmt
 fmt: ## Format code
@@ -111,47 +112,47 @@ fmt-check: ## Check code formatting
 .PHONY: lint
 lint: ## Run clippy linter
 	@echo "$(CYAN)Running clippy...$(NC)"
-	@$(CARGO) clippy --all-features --all-targets -- -D warnings
+	@$(CARGO) clippy --locked --all-features --all-targets -- -D warnings
 	@echo "$(GREEN)Linting passed!$(NC)"
 
 .PHONY: lint-strict
 lint-strict: ## Run clippy with strict flags
 	@echo "$(CYAN)Running strict clippy...$(NC)"
-	@$(CARGO) clippy --all-features --all-targets -- $(CLIPPY_FLAGS)
+	@$(CARGO) clippy --locked --all-features --all-targets -- $(CLIPPY_FLAGS)
 	@echo "$(GREEN)Strict linting passed!$(NC)"
 
 .PHONY: lint-fix
 lint-fix: ## Run clippy and apply fixes
 	@echo "$(CYAN)Applying clippy fixes...$(NC)"
-	@$(CARGO) clippy --all-features --all-targets --fix --allow-dirty --allow-staged -- -D warnings
+	@$(CARGO) clippy --locked --all-features --all-targets --fix --allow-dirty --allow-staged -- -D warnings
 	@echo "$(GREEN)Fixes applied!$(NC)"
 
 .PHONY: test
 test: ## Run all tests
 	@echo "$(CYAN)Running tests...$(NC)"
-	@$(CARGO) test --all-features
+	@$(CARGO) test --locked --all-features
 	@echo "$(GREEN)Tests passed!$(NC)"
 
 .PHONY: test-verbose
 test-verbose: ## Run tests with output
 	@echo "$(CYAN)Running tests (verbose)...$(NC)"
-	@$(CARGO) test --all-features -- --nocapture
+	@$(CARGO) test --locked --all-features -- --nocapture
 
 .PHONY: test-doc
 test-doc: ## Run documentation tests
 	@echo "$(CYAN)Running doc tests...$(NC)"
-	@$(CARGO) test --doc --all-features
+	@$(CARGO) test --locked --doc --all-features
 	@echo "$(GREEN)Doc tests passed!$(NC)"
 
 .PHONY: test-features
 test-features: ## Test feature combinations
 	@echo "$(CYAN)Testing feature combinations...$(NC)"
 	@echo "$(BLUE)  No default features...$(NC)"
-	@$(CARGO) check --workspace --no-default-features
+	@$(CARGO) check --locked --workspace --no-default-features
 	@echo "$(BLUE)  All features...$(NC)"
-	@$(CARGO) check --workspace --all-features
+	@$(CARGO) check --locked --workspace --all-features
 	@echo "$(BLUE)  Default features only...$(NC)"
-	@$(CARGO) check --workspace
+	@$(CARGO) check --locked --workspace
 	@echo "$(GREEN)Feature checks passed!$(NC)"
 
 .PHONY: feature-check
@@ -180,14 +181,18 @@ coverage-summary: ## Show coverage summary
 	@echo "$(CYAN)Coverage summary:$(NC)"
 	@cargo llvm-cov --all-features --workspace --summary-only
 
+.PHONY: yara-security-check
+yara-security-check: ## Verify optional YARA-X advisory exception scope
+	@python3 scripts/check_yara_security.py
+
 .PHONY: audit
-audit: ## Run security audit
+audit: yara-security-check ## Run security audit
 	@echo "$(CYAN)Running security audit...$(NC)"
 	@cargo audit
 	@echo "$(GREEN)Security audit passed!$(NC)"
 
 .PHONY: deny
-deny: ## Check licenses and advisories
+deny: yara-security-check ## Check licenses and advisories
 	@echo "$(CYAN)Running cargo-deny...$(NC)"
 	@cargo deny check
 	@echo "$(GREEN)Deny checks passed!$(NC)"
@@ -208,29 +213,29 @@ security: audit deny ## Run all security checks
 .PHONY: docs
 docs: ## Build documentation
 	@echo "$(CYAN)Building documentation...$(NC)"
-	@RUSTDOCFLAGS="-D warnings" $(CARGO) doc --all-features --no-deps
+	@RUSTDOCFLAGS="-D warnings" $(CARGO) doc --locked --all-features --no-deps
 	@echo "$(GREEN)Documentation built!$(NC)"
 
 .PHONY: docs-open
 docs-open: ## Build and open documentation
-	@$(CARGO) doc --all-features --no-deps --open
+	@$(CARGO) doc --locked --all-features --no-deps --open
 
 .PHONY: bench
 bench: ## Run benchmarks
 	@echo "$(CYAN)Running benchmarks...$(NC)"
-	@$(CARGO) bench --all-features
+	@$(CARGO) bench --locked --all-features
 
 .PHONY: bench-check
 bench-check: ## Check benchmarks compile
 	@echo "$(CYAN)Checking benchmarks...$(NC)"
-	@$(CARGO) bench --all-features --no-run
+	@$(CARGO) bench --locked --all-features --no-run
 	@echo "$(GREEN)Benchmarks compile!$(NC)"
 
 .PHONY: msrv
 msrv: ## Check minimum supported Rust version
 	@echo "$(CYAN)Checking MSRV ($(RUST_MSRV))...$(NC)"
-	@rustup toolchain install $(RUST_MSRV) --profile minimal >/dev/null 2>&1 || true
-	@rustup run $(RUST_MSRV) cargo check --workspace --all-features
+	@rustup toolchain install $(RUST_MSRV) --profile minimal
+	@rustup run $(RUST_MSRV) cargo check --locked --workspace --all-features
 	@echo "$(GREEN)MSRV check passed!$(NC)"
 
 .PHONY: docker-build
@@ -289,9 +294,9 @@ all: ci coverage bench-check ## Full validation suite
 .PHONY: release-check
 release-check: package-check ## Check release readiness
 	@echo "$(CYAN)Checking release readiness...$(NC)"
-	@$(CARGO) check --all-features
-	@$(CARGO) test --all-features
-	@$(CARGO) clippy --all-features --all-targets -- -D warnings
+	@$(CARGO) check --locked --all-features
+	@$(CARGO) test --locked --all-features
+	@$(CARGO) clippy --locked --all-features --all-targets -- -D warnings
 	@python3 scripts/check_template_placeholders.py
 	@echo "$(GREEN)Release readiness checks passed!$(NC)"
 
