@@ -3,10 +3,11 @@ use crate::api::common::{
     ApiClientConstructors, ListQueryParams, StandardListParams, build_list_query_params,
 };
 use crate::api::shared_utilities::EnumConverter;
-use crate::error::{ApiErrorResponse, OpenAIError, Result};
+use crate::error::{OpenAIError, Result};
 use crate::models::responses_v2::{
-    ContentPart, CreateResponseRequest, InputTokenCountResponse, ResponseInput, ResponseItem,
-    ResponseObject, ResponseStreamEvent,
+    CompactResponseRequest, CompactedResponse, ContentPart, CreateResponseRequest,
+    InputTokenCountResponse, ResponseCreateOptions, ResponseInput, ResponseItem, ResponseObject,
+    ResponseStreamEnvelope, ResponseStreamEvent,
 };
 use crate::{De, Ser};
 use eventsource_stream::Eventsource;
@@ -20,6 +21,10 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 /// Streaming response type for the Responses API
 pub type ResponsesEventStream =
     Pin<Box<dyn futures::Stream<Item = Result<ResponseStreamEvent>> + Send>>;
+
+/// Lossless SSE stream retaining each event payload and transport metadata.
+pub type ResponsesEnvelopeStream =
+    Pin<Box<dyn futures::Stream<Item = Result<ResponseStreamEnvelope>> + Send>>;
 
 /// Client for the modern `/v1/responses` API surface
 #[derive(Clone)]
@@ -41,44 +46,60 @@ impl ResponsesApiV2 {
         self.http_client.post("/v1/responses", &payload).await
     }
 
+    /// Create a response with current options without changing the legacy request layout.
+    pub async fn create_response_with_options(
+        &self,
+        request: &CreateResponseRequest,
+        options: &ResponseCreateOptions,
+    ) -> Result<ResponseObject> {
+        self.http_client
+            .post("/v1/responses", &options.to_payload(request)?)
+            .await
+    }
+
     /// Create a streaming response using SSE
     pub async fn stream_response(
         &self,
         request: &CreateResponseRequest,
     ) -> Result<ResponsesEventStream> {
+        let stream = self.stream_response_envelopes(request).await?;
+        Ok(Box::pin(
+            stream.map(|event| event.map(|envelope| envelope.event)),
+        ))
+    }
+
+    /// Stream typed events alongside their complete JSON and SSE metadata.
+    ///
+    /// Unknown event types retain their payload. Dropping the stream releases
+    /// the HTTP response; no producer task continues reading in the background.
+    pub async fn stream_response_envelopes(
+        &self,
+        request: &CreateResponseRequest,
+    ) -> Result<ResponsesEnvelopeStream> {
+        self.stream_response_envelopes_with_options(request, &ResponseCreateOptions::default())
+            .await
+    }
+
+    /// Stream lossless SSE events with automatic compaction and cache-retention options.
+    pub async fn stream_response_envelopes_with_options(
+        &self,
+        request: &CreateResponseRequest,
+        options: &ResponseCreateOptions,
+    ) -> Result<ResponsesEnvelopeStream> {
         let mut streaming_request = request.clone();
         streaming_request.stream = Some(true);
-        let payload = streaming_request.to_payload()?;
-
-        let url = format!("{}{}", self.http_client.base_url(), "/v1/responses");
+        let payload = options.to_payload(&streaming_request)?;
         let response = self
             .http_client
-            .client()
-            .post(&url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.http_client.api_key()),
-            )
-            .header("Content-Type", "application/json")
-            .header("Accept", "text/event-stream")
-            .json(&payload)
-            .send()
+            .post_stream("/v1/responses", &payload)
             .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_response: ApiErrorResponse = response.json().await?;
-            return Err(OpenAIError::from_api_response(
-                status.as_u16(),
-                error_response,
-            ));
-        }
-
         let stream = response
             .bytes_stream()
             .eventsource()
-            .filter_map(|event| async move { parse_sse_event(event) });
-
+            .take_while(|event| {
+                futures::future::ready(!matches!(event, Ok(event) if event.data.trim() == "[DONE]"))
+            })
+            .filter_map(|event| async move { parse_sse_envelope(event) });
         Ok(Box::pin(stream))
     }
 
@@ -94,19 +115,9 @@ impl ResponsesApiV2 {
         {
             query.push(("include".into(), include.join(",")));
         }
-        let url = self
-            .http_client
-            .build_url(&format!("/v1/responses/{}", response_id.as_ref()), &query);
-        let headers = self.http_client.build_headers()?;
         self.http_client
-            .client()
-            .get(url)
-            .headers(headers)
-            .send()
-            .await?
-            .json()
+            .get_with_query(&format!("/v1/responses/{}", response_id.as_ref()), &query)
             .await
-            .map_err(OpenAIError::from)
     }
 
     /// Delete a stored response
@@ -121,7 +132,11 @@ impl ResponsesApiV2 {
         self.http_client.post(&url, &Value::Null).await
     }
 
-    /// List responses for the project
+    /// Query the compatibility stored-response listing endpoint.
+    ///
+    /// `GET /v1/responses` is not listed in the current official Responses
+    /// reference. This existing convenience is retained for compatible custom
+    /// servers; it does not establish support for an official list operation.
     pub async fn list_responses(&self, params: &ListResponsesParams) -> Result<ResponseList> {
         let mut query = build_list_query_params(params);
         if let Some(model) = &params.model {
@@ -130,17 +145,9 @@ impl ResponsesApiV2 {
         if let Some(status) = &params.status {
             query.push(("status".into(), status.clone()));
         }
-        let url = self.http_client.build_url("/v1/responses", &query);
-        let headers = self.http_client.build_headers()?;
         self.http_client
-            .client()
-            .get(url)
-            .headers(headers)
-            .send()
-            .await?
-            .json()
+            .get_with_query("/v1/responses", &query)
             .await
-            .map_err(OpenAIError::from)
     }
 
     /// Compact a conversation with the current Responses compaction endpoint.
@@ -151,22 +158,18 @@ impl ResponsesApiV2 {
         &self,
         request: &CreateResponseRequest,
     ) -> Result<ResponseObject> {
-        let mut body = request.to_payload()?;
-        if let Value::Object(payload) = &mut body {
-            payload.retain(|key, _| {
-                matches!(
-                    key.as_str(),
-                    "model"
-                        | "input"
-                        | "previous_response_id"
-                        | "instructions"
-                        | "prompt_cache_key"
-                        | "prompt_cache_options"
-                        | "service_tier"
-                )
-            });
-        }
+        let body = CompactResponseRequest::try_from(request)?.to_payload()?;
         self.http_client.post("/v1/responses/compact", &body).await
+    }
+
+    /// Compact context using the dedicated request and `response.compaction` model.
+    pub async fn compact_context(
+        &self,
+        request: &CompactResponseRequest,
+    ) -> Result<CompactedResponse> {
+        self.http_client
+            .post("/v1/responses/compact", &request.to_payload()?)
+            .await
     }
 
     /// Count input tokens for a Responses request.
@@ -176,7 +179,7 @@ impl ResponsesApiV2 {
         &self,
         request: &CreateResponseRequest,
     ) -> Result<InputTokenCountResponse> {
-        let body = request.to_payload()?;
+        let body = request.to_input_token_payload()?;
         self.http_client
             .post("/v1/responses/input_tokens", &body)
             .await
@@ -189,20 +192,12 @@ impl ResponsesApiV2 {
         params: &StandardListParams,
     ) -> Result<ResponseInputItemList> {
         let query = build_list_query_params(params);
-        let url = self.http_client.build_url(
-            &format!("/v1/responses/{}/input_items", response_id.as_ref()),
-            &query,
-        );
-        let headers = self.http_client.build_headers()?;
         self.http_client
-            .client()
-            .get(url)
-            .headers(headers)
-            .send()
-            .await?
-            .json()
+            .get_with_query(
+                &format!("/v1/responses/{}/input_items", response_id.as_ref()),
+                &query,
+            )
             .await
-            .map_err(OpenAIError::from)
     }
 }
 
@@ -283,25 +278,26 @@ impl ListQueryParams for ListResponsesParams {
 /// Parse an SSE event into a ResponseStreamEvent
 ///
 /// Returns None for ping events (keep-alive), and Some(Result) for data events
+#[cfg(test)]
 fn parse_sse_event(
     event: std::result::Result<
         eventsource_stream::Event,
         eventsource_stream::EventStreamError<reqwest::Error>,
     >,
 ) -> Option<Result<ResponseStreamEvent>> {
-    match event {
-        Ok(event) => {
-            if event.event == "ping" {
-                return None; // keep-alive
-            }
+    parse_sse_envelope(event).map(|result| result.map(|envelope| envelope.event))
+}
 
-            let data = event.data;
-            let value: serde_json::Result<ResponseStreamEvent> = serde_json::from_str(&data);
-            match value {
-                Ok(parsed) => Some(Ok(parsed)),
-                Err(err) => Some(Err(OpenAIError::Json(err))),
-            }
-        }
+/// Parse one framed event, retaining wire metadata and explicit errors.
+fn parse_sse_envelope(
+    event: std::result::Result<
+        eventsource_stream::Event,
+        eventsource_stream::EventStreamError<reqwest::Error>,
+    >,
+) -> Option<Result<ResponseStreamEnvelope>> {
+    match event {
+        Ok(event) if event.event == "ping" || event.data.trim() == "[DONE]" => None,
+        Ok(event) => Some(ResponseStreamEnvelope::from_sse(event)),
         Err(err) => Some(Err(OpenAIError::streaming(err.to_string()))),
     }
 }

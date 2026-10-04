@@ -75,7 +75,11 @@ impl HttpClient {
         B: serde::Serialize,
     {
         let url = self.build_simple_url(path);
-        let headers = self.build_headers()?;
+        let mut headers = self.build_headers()?;
+        headers.insert(
+            reqwest::header::ACCEPT,
+            reqwest::header::HeaderValue::from_static("text/event-stream"),
+        );
 
         let response = self
             .client()

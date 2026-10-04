@@ -140,11 +140,11 @@ mod tests {
     fn test_empty_params() {
         let empty_stores_params = ListVectorStoresParams::new();
         assert!(empty_stores_params.is_empty());
-        assert!(empty_stores_params.to_query_params().is_empty());
+        assert_eq!(empty_stores_params.to_query_params().len(), 0);
 
         let empty_files_params = ListVectorStoreFilesParams::new();
         assert!(empty_files_params.is_empty());
-        assert!(empty_files_params.to_query_params().is_empty());
+        assert_eq!(empty_files_params.to_query_params().len(), 0);
         assert!(!empty_files_params.has_pagination());
         assert!(!empty_files_params.has_filters());
     }
@@ -172,7 +172,7 @@ mod tests {
 
         let empty_params: Vec<(String, String)> = vec![];
         let empty_query = utils::build_query_string(&empty_params);
-        assert!(empty_query.is_empty());
+        assert_eq!(empty_query.len(), 0);
     }
 
     #[test]

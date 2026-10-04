@@ -60,24 +60,20 @@ BREAKING CHANGE: Client::new() now requires explicit API key parameter
 instead of reading from environment variable
 ```
 
-## Automatic Release Triggers
+## Release proposal and publication
 
-The auto-release workflow will create a new release when:
+The pinned reusable auto-release workflow requires passing CI and Security
+results for the target commit. With `create-pr: true`, it proposes version and
+release-note changes in an automation-owned PR for maintainer review. Ordinary
+feature merges do not directly publish a release.
 
-1. All CI checks pass (CI, Quality, Security workflows)
-2. There are conventional commits since the last release:
-   - Any `feat:` commits → Minor release
-   - Any `fix:` commits → Patch release  
-   - Any `BREAKING CHANGE:` → Major release
-3. Manual trigger via workflow dispatch
+Classification uses conventional commit subjects and footers: `feat` requires a
+minor bump, `fix` a patch bump, and a subject `!` or line-start `BREAKING CHANGE:`
+requires a major bump. Preserve these markers when squashing or rewriting a PR.
+Manual workflow dispatch can select a bump explicitly.
 
-## Release Process
-
-1. Push commits with conventional commit messages
-2. Wait for CI/CD to pass
-3. Auto-release workflow triggers automatically
-4. Version is bumped based on commit types
-5. CHANGELOG.md is updated
-6. Git tag is created
-7. GitHub Release is published
-8. Release artifacts are built and attached
+Maintainers review the proposed version, compatibility notes, and checks before
+merging the release PR. The reusable workflow then owns tags and GitHub releases
+and dispatches `release.yml` and `docker.yml` for the released tag. Do not add a
+second versioning or publishing path. A source PR must leave the manifest version
+unchanged unless a maintainer requests a version change.

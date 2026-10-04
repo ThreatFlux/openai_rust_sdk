@@ -142,6 +142,8 @@ pub mod prompt_engineering;
 pub mod schema;
 /// Utilities for the optional YARA-X Batch API example
 pub mod testing;
+/// Offline verification and parsing of OpenAI webhook deliveries.
+pub mod webhooks;
 
 // Re-export main OpenAI API types for convenience
 pub use api::batch::BatchApi;

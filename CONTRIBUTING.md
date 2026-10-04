@@ -9,7 +9,7 @@ open a public issue for them.
 ## Set up a development checkout
 
 The minimum supported Rust version is **1.97.1**. The checked-in `rust-toolchain.toml` selects the
-project toolchain automatically when Rustup is installed. Documentation checks additionally use
+**1.99.0** development toolchain automatically when Rustup is installed. Documentation checks additionally use
 Python 3.11 or newer.
 
 ```bash

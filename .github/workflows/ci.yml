@@ -33,7 +33,8 @@ env:
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
   RUSTUP_MAX_RETRIES: 10
-  RUST_STABLE_VERSION: 1.97.1
+  RUST_STABLE_VERSION: 1.99.0
+  RUST_MSRV_VERSION: 1.97.1
   # Reduce debug info and optimize for smaller binaries
   CARGO_PROFILE_TEST_DEBUG: 1
   CARGO_PROFILE_DEV_DEBUG: 1
@@ -49,7 +50,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
           components: rustfmt, clippy
@@ -75,8 +76,8 @@ jobs:
       
       - name: Run clippy
         run: |
-          cargo clippy --all-targets -- -D warnings
-          cargo clippy --all-targets --all-features -- -D warnings
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo clippy --locked --all-targets --all-features -- -D warnings
 
   # Test matrix across different OS and Rust versions
   test:
@@ -106,9 +107,9 @@ jobs:
       # Free up disk space on GitHub runners
       - name: Free Disk Space (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be  # v1.3.1
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
-          tool-cache: false
+          preinstalled-runtimes: false
           android: true
           dotnet: true
           haskell: true
@@ -124,7 +125,7 @@ jobs:
           df -h
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ matrix.rust }}
       
@@ -138,7 +139,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install openssl@3
-          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
       
       - name: Install dependencies (Windows)
         if: matrix.os == 'windows-latest'
@@ -154,17 +155,17 @@ jobs:
             ${{ runner.os }}-${{ matrix.rust }}-cargo-build-
       
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --locked --verbose
       
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --locked --verbose
         env:
           RUST_TEST_THREADS: 2
       
       - name: Run doc tests (split for disk space)
         run: |
           # Run doc tests in smaller batches to reduce disk usage
-          cargo test --doc
+          cargo test --locked --doc
       
       - name: Clean up test artifacts (Unix)
         if: matrix.os != 'windows-latest'
@@ -183,9 +184,9 @@ jobs:
       
       - name: Install cargo-llvm-cov (for coverage)
         if: matrix.coverage
-        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad  # v2.85.10
+        uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2.87.23
         with:
-          tool: cargo-llvm-cov
+          tool: cargo-llvm-cov@0.9.1
       
       - name: Generate coverage
         if: matrix.coverage
@@ -193,7 +194,7 @@ jobs:
       
       - name: Upload coverage to Codecov
         if: matrix.coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: lcov.info
           fail_ci_if_error: false
@@ -210,9 +211,9 @@ jobs:
           persist-credentials: false
       
       - name: Install MSRV toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
-          toolchain: ${{ env.RUST_STABLE_VERSION }}
+          toolchain: ${{ env.RUST_MSRV_VERSION }}
       
       - name: Install dependencies
         run: |
@@ -220,7 +221,7 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Check MSRV
-        run: cargo check
+        run: cargo check --locked --workspace --all-features
 
   # Feature combination testing
   feature-checks:
@@ -233,7 +234,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -251,21 +252,21 @@ jobs:
             ${{ runner.os }}-feature-checks-
       
       - name: Check no default features
-        run: cargo check --no-default-features
+        run: cargo check --locked --no-default-features
       
       - name: Check optional YARA feature
-        run: cargo check --no-default-features --features yara
+        run: cargo check --locked --no-default-features --features yara
 
       - name: Check full feature set
-        run: cargo check --all-features
+        run: cargo check --locked --all-features
       
       - name: Check each feature
         run: |
-          cargo metadata --no-deps --format-version 1 | \
+          cargo metadata --locked --no-deps --format-version 1 | \
           jq -r '.packages[0].features | keys[]' | \
-          while read feature; do
+          while IFS= read -r feature; do
             echo "Checking feature: $feature"
-            cargo check --no-default-features --features "$feature"
+            cargo check --locked --no-default-features --features "$feature"
           done
 
   # Benchmarks
@@ -279,7 +280,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -297,7 +298,7 @@ jobs:
             ${{ runner.os }}-bench-
       
       - name: Run benchmarks
-        run: cargo bench --no-run
+        run: cargo bench --locked --no-run
 
   # Documentation build
   docs:
@@ -310,7 +311,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -320,13 +321,13 @@ jobs:
           sudo apt-get install -y libssl-dev pkg-config
       
       - name: Build documentation
-        run: cargo doc --no-deps
+        run: cargo doc --locked --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
       
       - name: Check for broken links
         run: |
-          cargo doc --no-deps
+          cargo doc --locked --no-deps
           ! grep -r "unresolved link" target/doc/*.html || exit 0
 
   # Integration tests (only on main branch or release PRs)
@@ -341,7 +342,7 @@ jobs:
           persist-credentials: false
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772  # v1
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
         with:
           toolchain: ${{ env.RUST_STABLE_VERSION }}
       
@@ -352,7 +353,7 @@ jobs:
       
       - name: Run integration tests
         run: |
-          cargo test --test '*'
+          cargo test --locked --test '*'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         continue-on-error: true  # Don't fail if API key is not set

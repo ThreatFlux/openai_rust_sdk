@@ -25,7 +25,6 @@ impl FunctionStreamProcessor {
         &mut self.function_calls
     }
     /// Create a new function stream from a response stream
-    #[must_use]
     pub fn into_function_stream(stream: ResponseStream) -> FunctionStream {
         let processor = Self {
             stream,
@@ -49,7 +48,6 @@ impl FunctionStreamProcessor {
     }
 
     /// Create a function stream from a response stream
-    #[must_use]
     pub fn from_response_stream(stream: ResponseStream) -> FunctionStream {
         Self::into_function_stream(stream)
     }

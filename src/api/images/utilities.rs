@@ -10,10 +10,15 @@ pub struct ImageUtils;
 impl ImageUtils {
     /// Check if an image is square (required for edits/variations)
     pub async fn is_square_image(image_path: impl AsRef<Path>) -> Result<bool> {
+        // Preserve the public async contract; this legacy heuristic performs no I/O.
+        std::future::ready(Self::check_square_filename(image_path.as_ref())).await
+    }
+
+    /// Apply the legacy filename heuristic; this does not inspect image dimensions.
+    fn check_square_filename(image_path: &Path) -> Result<bool> {
         // This is a basic implementation that would need an image processing library
         // For now, we'll just assume PNG files with "square" in the name are square
         let filename = image_path
-            .as_ref()
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("");

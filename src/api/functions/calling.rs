@@ -19,7 +19,7 @@ impl FunctionsApi {
         self.add_function_config(&mut payload, config)?;
 
         let response = self.send_request(&payload).await?;
-        let result = self.parse_function_response(response).await?;
+        let result = self.parse_function_response(response)?;
 
         // Update conversation state with any function calls
         self.update_conversation_state(&result);

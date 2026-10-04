@@ -271,7 +271,7 @@ mod tests {
     fn test_generator_creation_default_model() {
         let generator = BatchJobGenerator::new(None);
         assert_eq!(generator.model, "gpt-4");
-        assert!(!generator.system_prompt.is_empty());
+        assert_ne!(generator.system_prompt.len(), 0);
     }
 
     #[test]
@@ -385,11 +385,11 @@ mod tests {
 
         // Check system message
         assert_eq!(request.body.messages[0].role, "system");
-        assert!(!request.body.messages[0].content.is_empty());
+        assert_ne!(request.body.messages[0].content.len(), 0);
 
         // Check user message
         assert_eq!(request.body.messages[1].role, "user");
-        assert!(!request.body.messages[1].content.is_empty());
+        assert_ne!(request.body.messages[1].content.len(), 0);
 
         // Check optional parameters
         assert!(request.body.max_tokens.is_some());
@@ -416,7 +416,7 @@ mod tests {
 
         // Each line should be valid JSON
         for line in content.lines() {
-            assert!(!line.is_empty());
+            assert_ne!(line.len(), 0);
             let _: serde_json::Value = serde_json::from_str(line).unwrap();
         }
 

@@ -1526,7 +1526,7 @@ mod tests {
     fn test_build_admin_list_params_empty() {
         let params = ListAdminParams::default();
         let query = build_admin_list_params(&params);
-        assert!(query.is_empty());
+        assert_eq!(query.len(), 0);
     }
 
     #[test]

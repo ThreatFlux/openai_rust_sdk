@@ -9,10 +9,22 @@ use crate::models::responses::schema_types::{JsonSchemaSpec, ResponseFormat};
 use crate::models::responses::usage_types::{PromptTemplate, PromptVariable};
 use crate::models::tools::{EnhancedTool, EnhancedToolChoice};
 use crate::schema::SchemaBuilder;
+
+mod current_options;
+mod endpoint_requests;
+mod stream_envelope;
+mod tool_payload;
+
 use crate::{De, Ser};
+pub use current_options::{ContextManagement, PromptCacheRetention, ResponseCreateOptions};
+pub use endpoint_requests::{
+    CompactResponseRequest, CompactedResponse, CompactionTokenDetails, CompactionUsage,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, HashMap};
+pub use stream_envelope::ResponseStreamEnvelope;
+use tool_payload::{convert_custom_tool, convert_enhanced_tool_choice, convert_tool_choice};
 
 // -----------------------------------------------------------------------------
 // Response Objects
@@ -210,7 +222,7 @@ pub struct ResponseItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<MessageRole>,
     /// Rich content associated with the item
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub content: Vec<ContentPart>,
     /// Additional fields depending on the item type
     #[serde(flatten)]
@@ -922,9 +934,12 @@ impl CreateResponseRequest {
         }
 
         if let Some(choice) = &self.tool_choice {
-            payload.insert("tool_choice".into(), serde_json::to_value(choice)?);
+            payload.insert(
+                "tool_choice".into(),
+                convert_tool_choice(choice, payload.get("tools"))?,
+            );
         } else if let Some(choice) = &self.enhanced_tool_choice {
-            payload.insert("tool_choice".into(), serde_json::to_value(choice)?);
+            payload.insert("tool_choice".into(), convert_enhanced_tool_choice(choice)?);
         }
 
         if let Some(parallel) = self.parallel_tool_calls {
@@ -938,69 +953,46 @@ impl CreateResponseRequest {
         &self,
         payload: &mut Map<String, Value>,
     ) -> serde_json::Result<()> {
-        if let Some(stream) = self.stream {
-            payload.insert("stream".into(), json!(stream));
-        }
-
-        if let Some(options) = &self.stream_options {
-            payload.insert("stream_options".into(), serde_json::to_value(options)?);
-        }
-
-        if let Some(prompt) = &self.prompt {
-            payload.insert("prompt".into(), serde_json::to_value(prompt)?);
-        }
-
-        if let Some(cache_key) = &self.prompt_cache_key {
-            payload.insert("prompt_cache_key".into(), Value::String(cache_key.clone()));
-        }
-
-        if let Some(cache_options) = &self.prompt_cache_options {
-            payload.insert(
-                "prompt_cache_options".into(),
-                serde_json::to_value(cache_options)?,
-            );
-        }
-
-        if let Some(truncation) = &self.truncation {
-            payload.insert("truncation".into(), serde_json::to_value(truncation)?);
-        }
-
-        if let Some(personality) = &self.personality {
-            payload.insert("personality".into(), Value::String(personality.clone()));
-        }
-
-        if let Some(reasoning) = &self.reasoning {
-            payload.insert("reasoning".into(), serde_json::to_value(reasoning)?);
-        }
-
-        if let Some(text) = &self.text {
-            payload.insert("text".into(), serde_json::to_value(text)?);
-        }
-
-        if let Some(tier) = &self.service_tier {
-            payload.insert("service_tier".into(), serde_json::to_value(tier)?);
-        }
-
-        if let Some(store) = self.store {
-            payload.insert("store".into(), json!(store));
-        }
-
-        if let Some(background) = self.background {
-            payload.insert("background".into(), json!(background));
-        }
+        insert_optional(payload, "stream", self.stream.as_ref())?;
+        insert_optional(payload, "stream_options", self.stream_options.as_ref())?;
+        insert_optional(payload, "prompt", self.prompt.as_ref())?;
+        insert_optional(payload, "prompt_cache_key", self.prompt_cache_key.as_ref())?;
+        insert_optional(
+            payload,
+            "prompt_cache_options",
+            self.prompt_cache_options.as_ref(),
+        )?;
+        insert_optional(payload, "truncation", self.truncation.as_ref())?;
+        insert_optional(payload, "personality", self.personality.as_ref())?;
+        insert_optional(payload, "reasoning", self.reasoning.as_ref())?;
+        insert_optional(payload, "text", self.text.as_ref())?;
+        insert_optional(payload, "service_tier", self.service_tier.as_ref())?;
+        insert_optional(payload, "store", self.store.as_ref())?;
+        insert_optional(payload, "background", self.background.as_ref())?;
 
         if let Some(format) = &self.response_format {
             let value = serialize_response_format(format);
-            if !value.is_null() {
-                payload.insert("response_format".into(), value);
+            let text = payload.entry("text").or_insert_with(|| json!({}));
+            if let Some(text) = text.as_object_mut() {
+                text.insert("format".into(), value);
             }
         }
 
-        if let Some(user) = &self.user {
-            payload.insert("user".into(), Value::String(user.clone()));
-        }
+        insert_optional(payload, "user", self.user.as_ref())?;
         Ok(())
     }
+}
+
+/// Insert an optional request field without serializing unrelated input payloads.
+fn insert_optional<T: Serialize>(
+    payload: &mut Map<String, Value>,
+    key: &str,
+    value: Option<&T>,
+) -> serde_json::Result<()> {
+    if let Some(value) = value {
+        payload.insert(key.into(), serde_json::to_value(value)?);
+    }
+    Ok(())
 }
 
 /// Convert an array of messages into the v1/responses input format
@@ -1042,19 +1034,14 @@ fn convert_message_content(
                 })),
                 MessageContent::Image { image_url } => {
                     let mut image = Map::new();
-                    image.insert(
-                        "type".into(),
-                        Value::String(image_part_type_for_role(role).to_string()),
-                    );
-                    let mut image_url_value = Map::new();
-                    image_url_value.insert("url".into(), Value::String(image_url.url.clone()));
+                    image.insert("type".into(), Value::String("input_image".to_string()));
+                    image.insert("image_url".into(), Value::String(image_url.url.clone()));
                     if let Some(detail) = &image_url.detail {
-                        image_url_value.insert(
+                        image.insert(
                             "detail".into(),
                             Value::String(image_detail_to_str(detail).to_string()),
                         );
                     }
-                    image.insert("image_url".into(), Value::Object(image_url_value));
                     Ok(Value::Object(image))
                 }
             })
@@ -1080,14 +1067,6 @@ fn text_part_type_for_role(role: &MessageRole) -> &'static str {
     }
 }
 
-/// Select the appropriate image content type for a given role
-fn image_part_type_for_role(role: &MessageRole) -> &'static str {
-    match role {
-        MessageRole::Assistant => "output_image",
-        _ => "input_image",
-    }
-}
-
 /// Convert an ImageDetail enum to its string representation
 fn image_detail_to_str(detail: &ImageDetail) -> &'static str {
     match detail {
@@ -1100,20 +1079,19 @@ fn image_detail_to_str(detail: &ImageDetail) -> &'static str {
 /// Serialize a ResponseFormat enum into its JSON representation
 fn serialize_response_format(format: &ResponseFormat) -> Value {
     match format {
-        ResponseFormat::Text => Value::Null,
-        ResponseFormat::JsonObject => json!({ "type": "json_object" }),
+        ResponseFormat::Text => json!({"type":"text"}),
+        ResponseFormat::JsonObject => json!({"type":"json_object"}),
         ResponseFormat::JsonSchema {
             json_schema,
             strict,
-        } => json!({
-            "type": "json_schema",
-            "json_schema": {
-                "name": json_schema.name,
-                "description": json_schema.description,
-                "schema": json_schema.schema,
-                "strict": json_schema.strict || *strict
+        } => {
+            let mut value = json!({"type":"json_schema", "name":json_schema.name,
+                "schema":json_schema.schema, "strict":json_schema.strict || *strict});
+            if let Some(description) = &json_schema.description {
+                value["description"] = json!(description);
             }
-        }),
+            value
+        }
     }
 }
 
@@ -1141,13 +1119,6 @@ fn ensure_function_metadata(
     }
 }
 
-/// Helper to ensure a default top-level name exists on tool payloads
-fn ensure_tool_name(map: &mut Map<String, Value>, name: &str) {
-    if !map.contains_key("name") {
-        map.insert("name".into(), Value::String(name.to_string()));
-    }
-}
-
 /// Convert a legacy Tool definition into the Responses API payload shape
 fn convert_request_tool(tool: &Tool) -> serde_json::Result<Value> {
     let mut value = serde_json::to_value(tool)?;
@@ -1161,21 +1132,9 @@ fn convert_request_tool(tool: &Tool) -> serde_json::Result<Value> {
                     &function.parameters,
                     function.strict,
                 );
+                map.remove("function");
             }
-            Tool::Custom { custom_tool } => {
-                ensure_tool_name(map, &custom_tool.name);
-                if !map.contains_key("description") {
-                    map.insert(
-                        "description".into(),
-                        Value::String(custom_tool.description.clone()),
-                    );
-                }
-                if let Some(grammar) = &custom_tool.grammar
-                    && !map.contains_key("grammar")
-                {
-                    map.insert("grammar".into(), serde_json::to_value(grammar)?);
-                }
-            }
+            Tool::Custom { custom_tool } => return convert_custom_tool(custom_tool),
         }
     }
     Ok(value)
@@ -1183,37 +1142,7 @@ fn convert_request_tool(tool: &Tool) -> serde_json::Result<Value> {
 
 /// Convert an enhanced tool definition into the Responses API payload shape
 fn convert_enhanced_request_tool(tool: &EnhancedTool) -> serde_json::Result<Value> {
-    let mut value = serde_json::to_value(tool)?;
-    if let Value::Object(ref mut map) = value {
-        match tool {
-            EnhancedTool::Function(function) => {
-                ensure_function_metadata(
-                    map,
-                    &function.name,
-                    &function.description,
-                    &function.parameters,
-                    function.strict,
-                );
-            }
-            EnhancedTool::WebSearchPreview => ensure_tool_name(map, "web_search_preview"),
-            EnhancedTool::WebSearch(_) => ensure_tool_name(map, "web_search"),
-            EnhancedTool::FileSearch(_) => ensure_tool_name(map, "file_search"),
-            EnhancedTool::Mcp(mcp) => ensure_tool_name(map, &mcp.server_label),
-            EnhancedTool::ImageGeneration(_) => ensure_tool_name(map, "image_generation"),
-            EnhancedTool::CodeInterpreter(_) => ensure_tool_name(map, "code_interpreter"),
-            EnhancedTool::ComputerUse(_) => ensure_tool_name(map, "computer_use"),
-            EnhancedTool::ToolSearch(_) => ensure_tool_name(map, "tool_search"),
-            EnhancedTool::ProgrammaticToolCalling => {
-                ensure_tool_name(map, "programmatic_tool_calling");
-            }
-            EnhancedTool::LocalShell => ensure_tool_name(map, "local_shell"),
-            EnhancedTool::Shell(_) => ensure_tool_name(map, "shell"),
-            EnhancedTool::ApplyPatch(_) => ensure_tool_name(map, "apply_patch"),
-            EnhancedTool::Custom(_) => ensure_tool_name(map, "custom"),
-            EnhancedTool::Namespace(_) => ensure_tool_name(map, "namespace"),
-        }
-    }
-    Ok(value)
+    serde_json::to_value(tool)
 }
 
 /// Convert a legacy `ResponseRequest` (chat completions style) into a modern request
@@ -1615,6 +1544,7 @@ mod tests {
     use crate::models::responses::ResponseRequest as LegacyResponseRequest;
     use crate::models::tools::{EnhancedTool, EnhancedToolChoice};
     use crate::schema::SchemaBuilder;
+
     use serde_json::json;
 
     #[test]
@@ -1841,7 +1771,8 @@ mod tests {
         assert_eq!(map["store"], Value::Bool(false));
         assert_eq!(map["background"], Value::Bool(true));
         assert_eq!(map["prompt_cache_key"], Value::String("cache-key".into()));
-        assert!(map.contains_key("response_format"));
+        assert!(map["text"].get("format").is_some());
+        assert!(!map.contains_key("response_format"));
         assert!(map.contains_key("include"));
         assert!(map.contains_key("metadata"));
     }
@@ -1872,10 +1803,7 @@ mod tests {
             .expect("content array");
         assert_eq!(content.len(), 2);
         assert_eq!(content[0]["type"], Value::String("input_text".into()));
-        assert_eq!(
-            content[1]["image_url"]["detail"],
-            Value::String("high".into())
-        );
+        assert_eq!(content[1]["detail"], Value::String("high".into()));
     }
 
     #[test]
@@ -1937,7 +1865,7 @@ mod tests {
             tools[0]["description"],
             Value::String("does testing".into())
         );
-        assert_eq!(tools[1]["name"], Value::String("web_search_preview".into()));
+        assert_eq!(tools[1], json!({"type":"web_search_preview"}));
         assert!(map.contains_key("tool_choice"));
         let stream_map = map["stream_options"].as_object().unwrap();
         assert!(stream_map["include_usage"].as_bool().unwrap());
@@ -2129,6 +2057,7 @@ pub enum ResponseStreamEvent {
     #[serde(rename = "response.output_item.added")]
     OutputItemAdded {
         event_id: Option<String>,
+        #[serde(default)]
         response_id: String,
         output_index: u32,
         item: ResponseItem,
@@ -2165,6 +2094,7 @@ pub enum ResponseStreamEvent {
     #[serde(rename = "response.output_text.delta")]
     OutputTextDelta {
         event_id: Option<String>,
+        #[serde(default)]
         response_id: String,
         output_index: u32,
         delta: String,
@@ -2173,6 +2103,7 @@ pub enum ResponseStreamEvent {
     #[serde(rename = "response.output_text.done")]
     OutputTextDone {
         event_id: Option<String>,
+        #[serde(default)]
         response_id: String,
         output_index: u32,
         text: String,

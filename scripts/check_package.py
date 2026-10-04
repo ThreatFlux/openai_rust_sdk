@@ -26,6 +26,8 @@ ALLOWED_FILES = frozenset(
         "README.md",
         "SECURITY.md",
         "docs/api-coverage.md",
+        "docs/sdk-feature-plan.md",
+        "docs/migration-2.0.md",
         "docs/configuration.md",
         "docs/examples/batch-yara-x.md",
     }

@@ -343,7 +343,7 @@ mod tests {
         let message = MessageRequest::new(MessageRole::User, "Hello");
         assert_eq!(message.role, MessageRole::User);
         assert_eq!(message.content, "Hello");
-        assert!(message.file_ids.is_empty());
+        assert_eq!(message.file_ids.len(), 0);
         assert!(message.metadata.is_empty());
     }
 }

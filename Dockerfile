@@ -3,7 +3,7 @@
 
 # Base images are pinned by digest for reproducibility (Scorecard Pinned-Dependencies).
 # Refresh with: docker buildx imagetools inspect <image> | awk '/^Digest:/{print $2}'
-FROM rust:1.97.1-bookworm@sha256:77fac8b98f9f46062bb680b6d25d5bcaabfc400143952ebc572e924bcbedc3fa AS rust-base
+FROM rust:1.99.0-bookworm@sha256:59037199c44290f2befcdd58dcc540164763fc296950255aaefeef096a1866b0 AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -41,7 +41,7 @@ RUN if [ -n "${BINARY_PACKAGE}" ]; then \
       cargo build --release --bin "${BINARY_NAME}" --all-features || cargo build --release --all-features; \
     fi
 
-RUN cargo install cargo-cyclonedx --locked --version 0.5.8 && \
+RUN cargo install cargo-cyclonedx --locked --version 0.5.9 && \
     cargo cyclonedx \
       --manifest-path "${SBOM_MANIFEST_PATH}" \
       --all-features \
@@ -62,7 +62,7 @@ RUN mkdir -p /home/builder/runtime-skel/data \
 # OpenSSL is required for HTTP; the `cc` variant still provides libssl for any
 # transitive -sys linkage. Runs as the built-in nonroot user (uid 65532).
 # Pinned by digest (Scorecard Pinned-Dependencies).
-FROM gcr.io/distroless/cc-debian12:nonroot@sha256:ce0d66bc0f64aae46e6a03add867b07f42cc7b8799c949c2e898057b7f75a151 AS runtime
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:9dac0a79194e45a7da0158a9c6da57b217585af0786db3845d1f0ec1a0dd182f AS runtime
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -86,7 +86,7 @@ LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
       org.opencontainers.image.documentation="https://github.com/threatflux/openai_rust_sdk/blob/main/README.md" \
       com.threatflux.category="AI/ML SDK" \
       com.threatflux.capabilities="openai,batch-jsonl-generation,yara-x-validation" \
-      com.threatflux.rust.version="1.97.1" \
+      com.threatflux.rust.version="1.99.0" \
       com.threatflux.rust.edition="2024"
 
 # tini is copied from the build stage for proper PID 1 signal handling/zombie
