@@ -46,25 +46,33 @@ def graph_errors(metadata: dict) -> list[str]:
         if len(matches) != 1 or matches[0]["version"] != version:
             errors.append(f"Re-review the {name} exception before changing {version}")
             continue
-        if matches[0]["source"] != "registry+https://github.com/rust-lang/crates.io-index":
-            errors.append(f"{name} must use the reviewed crates.io release")
-        allowed_parent = "openai_rust_sdk" if name == "yara-x" else "yara-x"
-        parents = {
-            names[node["id"]]
-            for node in nodes.values()
-            if any(dep["pkg"] == matches[0]["id"] for dep in node["deps"])
-        }
-        if parents != {allowed_parent}:
-            errors.append(f"Unreviewed {name} callers: {sorted(parents)}")
-        if name == "wasmtime":
-            features = set(nodes[matches[0]["id"]]["features"])
-            unexpected = features - REVIEWED_WASMTIME_FEATURES
-            if unexpected:
-                errors.append(f"Unreviewed Wasmtime features: {sorted(unexpected)}")
+        errors.extend(package_scope_errors(matches[0], nodes, names))
     for package in packages:
         name = package["name"]
         if name.startswith("wasmtime-wasi") or name in {"cap-std", "cap-primitives"}:
             errors.append(f"The filesystem exception does not permit {name}")
+    return errors
+
+
+def package_scope_errors(package: dict, nodes: dict, names: dict) -> list[str]:
+    """Check source, callers and feature reachability for one reviewed release."""
+    errors: list[str] = []
+    name = package["name"]
+    if package["source"] != "registry+https://github.com/rust-lang/crates.io-index":
+        errors.append(f"{name} must use the reviewed crates.io release")
+    allowed_parent = "openai_rust_sdk" if name == "yara-x" else "yara-x"
+    parents = {
+        names[node["id"]]
+        for node in nodes.values()
+        if any(dep["pkg"] == package["id"] for dep in node["deps"])
+    }
+    if parents != {allowed_parent}:
+        errors.append(f"Unreviewed {name} callers: {sorted(parents)}")
+    if name == "wasmtime":
+        features = set(nodes[package["id"]]["features"])
+        unexpected = features - REVIEWED_WASMTIME_FEATURES
+        if unexpected:
+            errors.append(f"Unreviewed Wasmtime features: {sorted(unexpected)}")
     return errors
 
 
