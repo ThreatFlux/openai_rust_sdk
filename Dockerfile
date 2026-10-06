@@ -1,9 +1,17 @@
 # ThreatFlux Rust Dockerfile
-# Multi-stage build for the OpenAI Rust SDK.
-
+# Multi-stage build for the OpenAI Rust SDK CLI.
+#
+# Follows ThreatFlux/rust-cicd-template's canonical layout: a Debian 13
+# (trixie) Rust builder and a distroless Debian 13 runtime with no shell,
+# package manager or coreutils.
+#
 # Base images are pinned by digest for reproducibility (Scorecard Pinned-Dependencies).
 # Refresh with: docker buildx imagetools inspect <image> | awk '/^Digest:/{print $2}'
-FROM rust:1.99.0-bookworm@sha256:59037199c44290f2befcdd58dcc540164763fc296950255aaefeef096a1866b0 AS rust-base
+# Dependabot refreshes the Rust builder; refresh the runtime digest with the
+# command above when it is updated.
+
+# rust 1.99.0 on Debian 13 (trixie); multi-arch index digest
+FROM rust:1.99.0-trixie@sha256:15ad267e7a4cb2dce5905c90c76765adb6714945c5ea6d7c82673897a5e4067b AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -17,7 +25,11 @@ ARG OCI_IMAGE_DESCRIPTION=Batch JSONL generation and local YARA-X validation CLI
 ARG OCI_IMAGE_VENDOR=ThreatFlux
 ARG OCI_IMAGE_SOURCE=https://github.com/threatflux/openai_rust_sdk
 
-RUN apt-get update && apt-get install -y \
+# tini is installed here so the runtime stage can copy it out: distroless ships
+# no init, and PID 1 must reap zombies and forward signals. Package revisions
+# follow the pinned base image's Debian 13 repositories.
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     pkg-config \
     libssl-dev \
@@ -35,10 +47,11 @@ ENV PATH="/home/builder/.cargo/bin:${PATH}"
 
 COPY --chown=builder:builder . .
 
-RUN if [ -n "${BINARY_PACKAGE}" ]; then \
-      cargo build --release -p "${BINARY_PACKAGE}" --bin "${BINARY_NAME}" --all-features; \
+RUN rustc --version --verbose && cargo --version && \
+    if [ -n "${BINARY_PACKAGE}" ]; then \
+      cargo build --locked --release -p "${BINARY_PACKAGE}" --bin "${BINARY_NAME}" --all-features; \
     else \
-      cargo build --release --bin "${BINARY_NAME}" --all-features || cargo build --release --all-features; \
+      cargo build --locked --release --bin "${BINARY_NAME}" --all-features; \
     fi
 
 RUN cargo install cargo-cyclonedx --locked --version 0.5.9 && \
@@ -61,8 +74,9 @@ RUN mkdir -p /home/builder/runtime-skel/data \
 # unfixable Debian base-image CVEs reported by Trivy. reqwest uses rustls, so no
 # OpenSSL is required for HTTP; the `cc` variant still provides libssl for any
 # transitive -sys linkage. Runs as the built-in nonroot user (uid 65532).
-# Pinned by digest (Scorecard Pinned-Dependencies).
-FROM gcr.io/distroless/cc-debian12:nonroot@sha256:9dac0a79194e45a7da0158a9c6da57b217585af0786db3845d1f0ec1a0dd182f AS runtime
+# distroless cc on Debian 13, nonroot tag; multi-arch index digest
+# (Scorecard Pinned-Dependencies).
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:e792ab3d241a468a4fd7519ddbbebe66b49b5f365771716ea688ad40b6c6f1c2 AS runtime
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
@@ -93,8 +107,10 @@ LABEL org.opencontainers.image.title="${OCI_IMAGE_TITLE}" \
 # reaping (distroless has no init).
 COPY --from=builder /usr/bin/tini /usr/bin/tini
 
-COPY --from=builder /build/target/release/${BINARY_NAME} /usr/local/bin/${CLI_NAME}
-COPY --from=builder /build/${BINARY_NAME}-sbom.json /usr/share/doc/openai-rust-sdk/sbom.cdx.json
+# The binary and SBOM stay root-owned so the runtime user cannot modify them;
+# only the working directories belong to the nonroot user.
+COPY --from=builder --chown=0:0 /build/target/release/${BINARY_NAME} /usr/local/bin/${CLI_NAME}
+COPY --from=builder --chown=0:0 /build/${BINARY_NAME}-sbom.json /usr/share/doc/openai-rust-sdk/sbom.cdx.json
 COPY --from=builder --chown=65532:65532 /home/builder/runtime-skel/data /data
 COPY --from=builder --chown=65532:65532 /home/builder/runtime-skel/config /config
 COPY --from=builder --chown=65532:65532 /home/builder/runtime-skel/output /output

@@ -35,7 +35,8 @@ on:
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
 
 concurrency:
   group: docs-${{ github.ref }}

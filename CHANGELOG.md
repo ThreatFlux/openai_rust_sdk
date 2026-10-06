@@ -2,6 +2,42 @@
 
 ## [Unreleased]
 
+### CI and release
+
+- Publish to crates.io through crates.io trusted publishing (OIDC) from
+  `release.yml` in the `crates-io` environment; no registry token is stored.
+  A re-run skips a version that is already published, and a failed publish
+  fails the release run.
+- Add a `dry_run` input to the release and auto-release workflows. A release
+  dry run builds every binary target, the SBOM, `cargo publish --dry-run`, and
+  the Docker image without tagging, releasing, publishing, or pushing.
+- Cut releases with the ThreatFlux automation GitHub App, so the release pull
+  request and the release tag start the repository's own workflows.
+- Release notes come from this changelog when it has a section for the
+  version, instead of failing the release when it does not.
+- Limit every workflow's default token to `contents: read` and upload
+  coverage to Codecov with OIDC instead of a stored token.
+- Build the container image on Debian 13 (trixie) and run it on distroless
+  `cc-debian13` as the nonroot user.
+
+## [2.0.0] - 2026-10-05
+
+### Breaking Changes
+
+- Public Realtime types now come from `webrtc` and `rtc` 0.21. Applications
+  that pass their own WebRTC objects to `RealtimeSession` must upgrade their
+  direct `webrtc` and `rtc` dependencies to 0.21; see the
+  [2.0 migration guide](docs/migration-2.0.md).
+
+### Features
+
+- Add lossless Responses stream envelopes that keep the full event JSON and
+  SSE metadata, current request serialization and options
+  (`ResponseCreateOptions`), input-token counting, and typed compaction.
+- Add container-file metadata and webhook signature verification.
+- Refresh the pinned stable Rust toolchain (1.99.0), crate dependencies,
+  Docker base images, and GitHub Actions. The MSRV remains 1.97.1.
+
 ## [1.7.0] - 2026-08-03
 
 ### Administration API

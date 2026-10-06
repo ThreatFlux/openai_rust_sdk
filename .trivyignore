@@ -1,6 +1,7 @@
-# OS-level CVEs in debian:bookworm-slim base image
-# These are low-severity issues in system packages, not in our application code.
-# They will be resolved when the base image is updated by the Debian maintainers.
+# OS-level CVEs from earlier Debian 12 base images (debian:bookworm-slim, then
+# distroless/cc-debian12). The runtime is distroless/cc-debian13 since
+# 2026-10-06; entries for packages it no longer ships are inert and can be
+# pruned when this list is next re-reviewed against Trivy's results.
 
 # glibc - low severity, long-standing issues with no practical exploit path
 CVE-2010-4756

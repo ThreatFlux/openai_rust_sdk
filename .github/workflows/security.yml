@@ -9,7 +9,10 @@ on:
     - cron: '15 3 * * 1'  # Weekly on Monday at 3:15 AM UTC
   workflow_dispatch:
 
-permissions: read-all
+# Read-only by default; jobs that upload SARIF, publish Scorecard results or
+# read pull request commits request those scopes themselves.
+permissions:
+  contents: read
 
 concurrency:
   group: security-${{ github.ref }}
@@ -247,6 +250,9 @@ jobs:
   secrets:
     name: Secret Scanning
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists the commits of a pull request.
     env:
       GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
     steps:
