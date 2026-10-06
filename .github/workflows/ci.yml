@@ -20,7 +20,9 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
-permissions: read-all
+# Read-only by default; the coverage job adds the OIDC token Codecov needs.
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -93,10 +95,6 @@ jobs:
             rust: beta
           - os: windows-latest
             rust: beta
-        include:
-          - os: ubuntu-latest
-            rust: stable
-            coverage: true
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.rust == 'nightly' }}
     steps:
@@ -181,25 +179,49 @@ jobs:
           if (Test-Path target/debug/deps/*.rmeta) { Remove-Item target/debug/deps/*.rmeta -Force }
           if (Test-Path target/debug/incremental) { Remove-Item target/debug/incremental -Recurse -Force }
         shell: pwsh
-      
-      - name: Install cargo-llvm-cov (for coverage)
-        if: matrix.coverage
+
+
+  # Coverage runs once, on stable Linux, so only this job holds an OIDC token.
+  coverage:
+    name: Coverage
+    needs: quick-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov tokenless upload via OIDC; no CODECOV_TOKEN secret.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        with:
+          toolchain: ${{ env.RUST_STABLE_VERSION }}
+          components: llvm-tools-preview
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@861a07ce7084f55488e375df125cdc99bba60eb7 # v2.87.23
         with:
           tool: cargo-llvm-cov@0.9.1
-      
+
       - name: Generate coverage
-        if: matrix.coverage
-        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
-      
+        run: cargo llvm-cov --locked --workspace --lcov --output-path lcov.info
+        env:
+          RUST_TEST_THREADS: 2
+
       - name: Upload coverage to Codecov
-        if: matrix.coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: lcov.info
           fail_ci_if_error: false
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
 
   # Minimum supported Rust version check
   msrv:
@@ -362,13 +384,14 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [quick-check, test, msrv, feature-checks, bench, docs]
+    needs: [quick-check, test, coverage, msrv, feature-checks, bench, docs]
     if: always()
     steps:
       - name: Check if all jobs succeeded
         run: |
           if [[ "${{ needs.quick-check.result }}" != "success" || \
                 "${{ needs.test.result }}" != "success" || \
+                "${{ needs.coverage.result }}" != "success" || \
                 "${{ needs.msrv.result }}" != "success" || \
                 "${{ needs.feature-checks.result }}" != "success" || \
                 "${{ needs.bench.result }}" != "success" || \
