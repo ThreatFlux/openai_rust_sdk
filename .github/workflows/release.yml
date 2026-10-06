@@ -22,7 +22,7 @@ on:
         type: boolean
         default: false
       dry_run:
-        description: Build every target, the SBOM, cargo publish --dry-run and the Docker image; no tag, release, upload, publish or push
+        description: Build every target, the SBOM, cargo publish --dry-run and the Docker image (kept as 5-day run artifacts); no tag, GitHub Release, release-asset upload, crates.io publish or image push
         required: false
         type: boolean
         default: false
@@ -393,7 +393,9 @@ jobs:
 
   publish:
     name: Publish to crates.io
-    needs: [prepare, build]
+    # crates.io versions are immutable, so publish only after every binary
+    # target and the SBOM have been produced for this commit.
+    needs: [prepare, build, sbom]
     runs-on: ubuntu-latest
     # Real publishes skip pre-releases (a version suffix such as 2.1.0-rc1, or the
     # prerelease dispatch input). A dry run always runs `cargo publish --dry-run`.

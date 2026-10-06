@@ -194,12 +194,18 @@ jobs:
             --html --output-dir coverage \
             --ignore-filename-regex '(tests?|examples?|benches?)/'
       
+      # Reads the profile data from the runs above; `--print-summary` is not a
+      # cargo-llvm-cov option, so the previous pipeline never checked anything.
       - name: Check coverage threshold
         run: |
-          cargo llvm-cov --workspace --print-summary | \
-          grep -E "TOTAL.*[0-9]+\.[0-9]+%" | \
-          awk '{print $NF}' | sed 's/%//' | \
-          awk '{if ($1 < 60) {print "❌ Coverage is below 60%: " $1 "%"; exit 1} else {print "✅ Coverage: " $1 "%"}}'
+          set -euo pipefail
+          coverage="$(cargo llvm-cov report --json --summary-only \
+            --ignore-filename-regex '(tests?|examples?|benches?)/' | jq -r '.data[0].totals.lines.percent')"
+          if awk -v c="${coverage}" 'BEGIN { exit !(c < 60) }'; then
+            echo "❌ Line coverage is below 60%: ${coverage}%"
+            exit 1
+          fi
+          echo "✅ Line coverage: ${coverage}%"
       
       - name: Upload coverage reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
