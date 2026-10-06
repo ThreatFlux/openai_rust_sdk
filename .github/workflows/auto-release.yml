@@ -47,7 +47,7 @@ jobs:
       actions: write
       contents: write
       pull-requests: write
-    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@2d8d792088f7873a931278b4e00036e0a63d7248 # v0.7.7
+    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@eb9f3cf78c3899be0c4c9323d5cc86de5e1fdee8 # v0.7.7
     with:
       bump: ${{ github.event.inputs.version_bump || 'auto' }}
       # inputs.* is empty for workflow_run events, so automatic runs stay real.
