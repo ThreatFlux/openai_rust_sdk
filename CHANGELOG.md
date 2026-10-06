@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The Windows release archive's `.sha256` file now ends in LF instead of
+  CRLF, so `shasum -a 256 -c` and `sha256sum -c` can verify it. Every release
+  build now checks its checksum file before uploading it. The v2.0.1 Windows
+  checksum file has the correct hash, but its CRLF ending makes those tools
+  report the archive as missing; compare the hash by hand for that release.
+
 ## [2.0.1] - 2026-10-06
 
 This is the first 2.x release on crates.io. Version 2.0.0 was tagged and

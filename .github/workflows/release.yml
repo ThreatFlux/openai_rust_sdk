@@ -309,8 +309,36 @@ jobs:
           Copy-Item "target/${env:TARGET}/release/${env:BINARY_NAME}.exe" dist/
           $archive = "${env:BINARY_NAME}-${env:ARTIFACT}.zip"
           Compress-Archive -Path dist/* -DestinationPath $archive
-          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
-          "$hash  $archive" | Out-File -Encoding ascii "$archive.sha256"
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          # The "<hash>  <file>" line shasum writes, with an LF ending, so
+          # `shasum -a 256 -c` and `sha256sum -c` verify it on any platform.
+          # Out-File would end the line in CRLF, and those tools then read the
+          # CR as part of the file name.
+          [System.IO.File]::WriteAllText((Join-Path $PWD "$archive.sha256"), "$hash  $archive`n")
+          Get-Content "$archive.sha256"
+
+      # Users verify an archive with `shasum -a 256 -c` or `sha256sum -c`, so
+      # every target's checksum file must be exactly one LF-terminated
+      # "<sha256>  <archive>" line, with no CR, that verifies the archive.
+      - name: Verify checksum file
+        run: |
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            archive="${BINARY_NAME}-${ARTIFACT}.zip"
+            hash="$(sha256sum -b "${archive}" | cut -d ' ' -f 1)"
+          else
+            archive="${BINARY_NAME}-${ARTIFACT}.tar.gz"
+            hash="$(shasum -a 256 -b "${archive}" | cut -d ' ' -f 1)"
+          fi
+          if ! printf '%s  %s\n' "${hash}" "${archive}" | cmp -s - "${archive}.sha256"; then
+            echo "::error file=${archive}.sha256::expected exactly one LF-terminated line: ${hash}  ${archive}"
+            od -c "${archive}.sha256"
+            exit 1
+          fi
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            sha256sum -c "${archive}.sha256"
+          else
+            shasum -a 256 -c "${archive}.sha256"
+          fi
 
       - name: Upload artifacts (Unix)
         if: runner.os != 'Windows'
