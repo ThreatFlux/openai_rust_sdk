@@ -73,7 +73,9 @@ requires a major bump. Preserve these markers when squashing or rewriting a PR.
 Manual workflow dispatch can select a bump explicitly.
 
 Maintainers review the proposed version, compatibility notes, and checks before
-merging the release PR. The reusable workflow then owns tags and GitHub releases
-and dispatches `release.yml` and `docker.yml` for the released tag. Do not add a
-second versioning or publishing path. A source PR must leave the manifest version
-unchanged unless a maintainer requests a version change.
+merging the release PR. The reusable workflow then owns tags and GitHub releases.
+It acts as the ThreatFlux automation GitHub App, so the tag it pushes starts
+`release.yml` (binaries, SBOM, crates.io trusted publishing) and `docker.yml`
+through their own tag triggers; without the App it dispatches both for the tag.
+Do not add a second versioning or publishing path. A source PR must leave the
+manifest version unchanged unless a maintainer requests a version change.
