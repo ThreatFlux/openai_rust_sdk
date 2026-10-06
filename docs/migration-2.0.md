@@ -1,10 +1,9 @@
-# Migration to the next major SDK release
+# Migration to SDK 2.0
 
-Reviewed on **2026-10-03**. This source update requires a **2.0** release because
-the stable `webrtc` and `rtc` upgrades change types exposed by the SDK's public
-Realtime API. The manifest remains at the last release, **1.7.0**, until the
-maintainer's version PR updates it. Development uses Rust **1.99.0**; the consumer
-MSRV remains **1.97.1** and is checked separately with all features.
+Reviewed on **2026-10-03**. Version **2.0.0** is a major release because the
+stable `webrtc` and `rtc` upgrades change types exposed by the SDK's public
+Realtime API. Development uses Rust **1.99.0**; the consumer MSRV remains
+**1.97.1** and is checked separately with all features.
 
 ## Align direct WebRTC dependencies
 

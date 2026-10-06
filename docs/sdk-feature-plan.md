@@ -37,8 +37,7 @@ or `TrackRemote` must upgrade matching direct dependencies too. This dependency
 type migration is a breaking compatibility change even though the new SDK
 request and event APIs are additive; release classification must account for it.
 The [2.0 migration guide](migration-2.0.md) lists affected methods and dependency
-adaptations. The manifest remains at the last published version until the
-maintainer's release PR updates it.
+adaptations. The 2.0.0 release carries this change.
 The existing Realtime transport remains a prototype.
 
 The compatibility `list_responses` method still queries `GET /v1/responses`.

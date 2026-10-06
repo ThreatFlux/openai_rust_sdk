@@ -243,9 +243,8 @@ rather than only when opening the stream.
 
 ## Release source
 
-The manifest remains at the last release, `openai_rust_sdk` **1.7.0**, with
-`rust-version = 1.97.1`. This source introduces a breaking WebRTC dependency-type
-migration and requires a maintainer-reviewed **2.0** version PR; see the
+The crate declares `rust-version = 1.97.1`. Version **2.0.0** introduced a
+breaking WebRTC dependency-type migration; see the
 [migration guide](migration-2.0.md).
 Development and CI use the pinned **1.99.0** toolchain; the separate MSRV check
 uses **1.97.1** with all features.
