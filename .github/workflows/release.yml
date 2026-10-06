@@ -102,6 +102,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           TAG="v${VERSION}"
@@ -116,6 +117,18 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+
+          # Only reviewed code is released: the commit must already be on the
+          # default branch, whether a tag push or a dispatch from any ref asked
+          # for it. "identical" or "ahead" means the default branch contains it.
+          MERGE_STATUS="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${TARGET_SHA}...${DEFAULT_BRANCH}" --jq '.status')"
+          case "${MERGE_STATUS}" in
+            identical | ahead) echo "${TARGET_SHA} is on ${DEFAULT_BRANCH}" ;;
+            *)
+              echo "::error::Release commit ${TARGET_SHA} is not on ${DEFAULT_BRANCH} (compare status: ${MERGE_STATUS}); merge it before releasing"
+              exit 1
+              ;;
+          esac
 
           # An existing tag is never moved; refuse to build a different commit
           # under it (the checkout fetched every tag).
