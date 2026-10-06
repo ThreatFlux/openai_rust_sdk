@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-06
+
+This is the first 2.x release on crates.io. Version 2.0.0 was tagged and
+released on GitHub, but its release run failed before publishing to
+crates.io, so upgrading from 1.7.0 brings in every change in the 2.0.0
+section of `CHANGELOG.md`, including the breaking Realtime change; see the
+[2.0 migration guide](https://github.com/ThreatFlux/openai_rust_sdk/blob/main/docs/migration-2.0.md).
+The library code is unchanged since 2.0.0.
+
 ### CI and release
 
 - Publish to crates.io through crates.io trusted publishing (OIDC) from
