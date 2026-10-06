@@ -387,6 +387,7 @@ jobs:
           persist-credentials: false
 
       - name: Generate release notes
+        id: notes
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
@@ -403,8 +404,10 @@ jobs:
           ' CHANGELOG.md > changelog_section.md
           if [[ -s changelog_section.md ]]; then
             cat changelog_section.md >> release_notes.md
+            echo "from_changelog=true" >> "$GITHUB_OUTPUT"
           else
             echo "See CHANGELOG.md for details." >> release_notes.md
+            echo "from_changelog=false" >> "$GITHUB_OUTPUT"
           fi
 
       # Guards against a stale run: the tag could have been deleted or moved
@@ -429,6 +432,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
           INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+          NOTES_FROM_CHANGELOG: ${{ steps.notes.outputs.from_changelog }}
         run: |
           set -euo pipefail
           TAG="v${VERSION}"
@@ -442,10 +446,16 @@ jobs:
           fi
 
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            # Keep notes already written by auto-release or a maintainer, but
-            # set the pre-release status this run decided (publish skips
-            # crates.io for a pre-release), in either direction.
-            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TITLE}" --prerelease="${IS_PRERELEASE}"
+            # Set the pre-release status this run decided (publish skips
+            # crates.io for a pre-release), in either direction. The curated
+            # CHANGELOG section replaces the notes auto-release generated,
+            # which only list feat and fix commits; without a section, the
+            # notes already written by auto-release or a maintainer are kept.
+            if [[ "${NOTES_FROM_CHANGELOG}" == "true" ]]; then
+              gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TITLE}" --prerelease="${IS_PRERELEASE}" --notes-file release_notes.md
+            else
+              gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TITLE}" --prerelease="${IS_PRERELEASE}"
+            fi
           elif [[ "${IS_PRERELEASE}" == "true" ]]; then
             gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md --prerelease
           else
@@ -677,12 +687,21 @@ jobs:
           done
 
   docker-dry-run:
-    name: Docker Build (dry run)
+    name: Docker Build (dry run, ${{ matrix.arch }})
     needs: prepare
-    # Real releases build, scan, sign and push images from docker.yml on the
-    # tag; a dry run only proves the image builds and starts, and pushes nothing.
+    # Real releases build, scan, sign and push the multi-arch image from
+    # docker.yml on the tag; a dry run only proves each platform's image builds
+    # and starts on a native runner, and pushes nothing.
     if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -705,10 +724,17 @@ jobs:
             .
 
       - name: Smoke test image
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
           docker run --rm release-dry-run:local --version
           docker run --rm release-dry-run:local --help > /dev/null
+          image_arch="$(docker image inspect --format '{{ .Architecture }}' release-dry-run:local)"
+          if [[ "${image_arch}" != "${ARCH}" ]]; then
+            echo "::error::Image architecture is '${image_arch}', expected '${ARCH}'"
+            exit 1
+          fi
           image_user="$(docker image inspect --format '{{ .Config.User }}' release-dry-run:local)"
           if [[ "${image_user}" != "65532:65532" ]]; then
             echo "::error::Image runs as '${image_user}', expected the distroless nonroot user 65532:65532"

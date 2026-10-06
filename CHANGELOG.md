@@ -14,11 +14,16 @@
 - Cut releases with the ThreatFlux automation GitHub App, so the release pull
   request and the release tag start the repository's own workflows.
 - Release notes come from this changelog when it has a section for the
-  version, instead of failing the release when it does not.
+  version, instead of failing the release when it does not. That section
+  also replaces the notes auto-release writes, which list only `feat` and
+  `fix` commits.
 - Limit every workflow's default token to `contents: read` and upload
   coverage to Codecov with OIDC instead of a stored token.
 - Build the container image on Debian 13 (trixie) and run it on distroless
   `cc-debian13` as the nonroot user.
+- Publish the container image for `linux/amd64` and `linux/arm64` as one
+  multi-arch index on GHCR and Docker Hub. Each platform is built and
+  smoke-tested on a native runner, and the cosign signature covers the index.
 
 ## [2.0.0] - 2026-10-05
 
