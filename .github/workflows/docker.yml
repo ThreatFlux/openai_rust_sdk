@@ -30,7 +30,6 @@ env:
   DOCKERHUB_REGISTRY: docker.io
   DOCKERHUB_NAMESPACE: ${{ vars.RUST_TEMPLATE_DOCKERHUB_NAMESPACE || 'threatflux' }}
   DOCKER_BUILDKIT: 1
-  DOCKER_PLATFORMS: ${{ vars.RUST_TEMPLATE_DOCKER_PLATFORMS || 'linux/amd64' }}
   BINARY_NAME: ${{ vars.RUST_TEMPLATE_BINARY_NAME || 'openai_rust_sdk' }}
   BINARY_PACKAGE: ${{ vars.RUST_TEMPLATE_BINARY_PACKAGE || '' }}
   CLI_NAME: ${{ vars.RUST_TEMPLATE_CLI_NAME || 'openai-rust-sdk' }}
@@ -41,31 +40,36 @@ env:
   OCI_IMAGE_SOURCE: https://github.com/threatflux/openai_rust_sdk
 
 jobs:
+  # The image is published for linux/amd64 and linux/arm64. Each platform is
+  # built natively on its own runner (no QEMU emulation, which would make the
+  # YARA-X and wasmtime build take hours) and pushed by digest; the merge job
+  # then publishes one multi-arch index under every tag.
   build:
-    name: Build Docker Image
-    runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
+    name: Build Docker Image (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: arm64
+            platform: linux/arm64
+    runs-on: ${{ matrix.arch == 'arm64' && (vars.RUST_TEMPLATE_RUNNER_UBUNTU_ARM || 'ubuntu-24.04-arm') || (vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest') }}
     permissions:
       contents: read
-      packages: write
-      security-events: write
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-      image_name: ${{ steps.lowercase.outputs.image_name }}
+      packages: write # Push the per-platform image and the base image to GHCR.
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Lowercase image name
-        id: lowercase
-        run: echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Docker Hub repository name
-        id: dockerhub_repo
+      - name: Image names
+        id: names
         run: |
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          echo "name=$(echo "${REPO_NAME}" | tr '[:upper:]_' '[:lower:]-')" >> "$GITHUB_OUTPUT"
+          echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "dockerhub_name=$(echo "${REPO_NAME}" | tr '[:upper:]_' '[:lower:]-')" >> "$GITHUB_OUTPUT"
 
       - name: Detect Rust base image version
         id: rust_base
@@ -76,21 +80,6 @@ jobs:
             exit 1
           fi
           echo "version=${RUST_BASE_VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Select build platforms
-        id: platforms
-        run: |
-          PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64}"
-          echo "value=${PLATFORMS}" >> "$GITHUB_OUTPUT"
-          if echo "${PLATFORMS}" | grep -Eq 'linux/(arm64|arm/v[0-9]+)'; then
-            echo "needs_qemu=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "needs_qemu=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up QEMU
-        if: steps.platforms.outputs.needs_qemu == 'true'
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -111,21 +100,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Labels only: tags are applied to the multi-arch index in the merge job.
       - name: Extract runtime metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.image_name }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.dockerhub_repo.outputs.name }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
           labels: |
             org.opencontainers.image.title=${{ env.OCI_IMAGE_TITLE }}
             org.opencontainers.image.description=${{ env.OCI_IMAGE_DESCRIPTION }}
@@ -135,11 +117,12 @@ jobs:
 
       - name: Extract base image metadata
         id: base_meta
+        if: github.event_name != 'pull_request' && matrix.arch == 'amd64'
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.image_name }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.dockerhub_repo.outputs.name }}
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
           tags: |
             type=raw,value=base-rust-${{ steps.rust_base.outputs.version }}
             type=raw,value=base-rust-latest,enable={{is_default_branch}}
@@ -149,18 +132,20 @@ jobs:
             org.opencontainers.image.vendor=${{ env.OCI_IMAGE_VENDOR }}
             org.opencontainers.image.source=${{ env.OCI_IMAGE_SOURCE }}
 
+      # The Rust base image stays linux/amd64, as before; only the runtime
+      # image is published for both platforms.
       - name: Build base image
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && matrix.arch == 'amd64'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: rust-base
-          platforms: ${{ steps.platforms.outputs.value }}
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.base_meta.outputs.tags }}
           labels: ${{ steps.base_meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=docker-${{ matrix.arch }}
+          cache-to: type=gha,scope=docker-${{ matrix.arch }},mode=max
           build-args: |
             VERSION=${{ github.ref_name }}
             BUILD_DATE=${{ github.event.repository.updated_at }}
@@ -179,12 +164,12 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          platforms: linux/amd64
-          tags: ${{ steps.lowercase.outputs.image_name }}:scan
+          platforms: ${{ matrix.platform }}
+          tags: ${{ steps.names.outputs.image_name }}:scan
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=docker,dest=/tmp/image.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+          cache-from: type=gha,scope=docker-${{ matrix.arch }}
+          cache-to: type=gha,scope=docker-${{ matrix.arch }},mode=max
           build-args: |
             VERSION=${{ github.ref_name }}
             BUILD_DATE=${{ github.event.repository.updated_at }}
@@ -198,18 +183,19 @@ jobs:
             OCI_IMAGE_VENDOR=${{ env.OCI_IMAGE_VENDOR }}
             OCI_IMAGE_SOURCE=${{ env.OCI_IMAGE_SOURCE }}
 
-      - name: Build and push runtime image (non-PR)
+      # Pushed untagged, by digest, to both registries; the merge job tags the
+      # multi-arch index that references every platform's digest.
+      - name: Build and push runtime image by digest (non-PR)
         if: github.event_name != 'pull_request'
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          platforms: ${{ steps.platforms.outputs.value }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: type=image,"name=${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }},${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}",push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=docker-${{ matrix.arch }}
+          cache-to: type=gha,scope=docker-${{ matrix.arch }},mode=max
           build-args: |
             VERSION=${{ github.ref_name }}
             BUILD_DATE=${{ github.event.repository.updated_at }}
@@ -223,17 +209,150 @@ jobs:
             OCI_IMAGE_VENDOR=${{ env.OCI_IMAGE_VENDOR }}
             OCI_IMAGE_SOURCE=${{ env.OCI_IMAGE_SOURCE }}
 
-      - name: Upload image artifact
+      - name: Export image digest (non-PR)
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::Unexpected image digest '${DIGEST}'"
+            exit 1
+          fi
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload image digest (non-PR)
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload image artifact (PRs)
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: docker-image
-          path: /tmp/image.tar
+          name: docker-image-${{ matrix.arch }}
+          path: ${{ runner.temp }}/image.tar
+          if-no-files-found: error
           retention-days: 1
+
+  merge:
+    name: Publish Multi-Arch Image
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      packages: write # Push the multi-arch index and its tags to GHCR.
+    outputs:
+      digest: ${{ steps.index.outputs.digest }}
+      image_name: ${{ steps.names.outputs.image_name }}
+    steps:
+      - name: Download image digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Image names
+        id: names
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "dockerhub_name=$(echo "${REPO_NAME}" | tr '[:upper:]_' '[:lower:]-')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract runtime metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # One index per registry, built from the platform digests pushed to that
+      # same registry, so no blob has to be copied between registries.
+      - name: Create and push multi-arch index
+        env:
+          GHCR_IMAGE: ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
+          DIGESTS_DIR: ${{ runner.temp }}/digests
+        run: |
+          set -euo pipefail
+          mapfile -t digests < <(find "${DIGESTS_DIR}" -type f -printf '%f\n' | sort)
+          if [[ "${#digests[@]}" -ne 2 ]]; then
+            echo "::error::Expected 2 platform digests (amd64, arm64), found ${#digests[@]}"
+            exit 1
+          fi
+          for image in "${GHCR_IMAGE}" "${DOCKERHUB_IMAGE}"; do
+            mapfile -t tags < <(jq -r --arg image "${image}" '.tags[] | select(startswith($image + ":"))' <<< "${DOCKER_METADATA_OUTPUT_JSON}")
+            if [[ "${#tags[@]}" -eq 0 ]]; then
+              echo "::error::No tags computed for ${image}"
+              exit 1
+            fi
+            args=()
+            for tag in "${tags[@]}"; do
+              args+=(--tag "${tag}")
+            done
+            for digest in "${digests[@]}"; do
+              args+=("${image}@sha256:${digest}")
+            done
+            docker buildx imagetools create "${args[@]}"
+          done
+
+      - name: Inspect multi-arch index
+        id: index
+        env:
+          GHCR_IMAGE: ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
+        run: |
+          set -euo pipefail
+          # Every run tags the short commit SHA; scan and test pull the same tag.
+          ref="${GHCR_IMAGE}:${GITHUB_SHA::7}"
+          docker buildx imagetools inspect "${ref}"
+          manifest="$(docker buildx imagetools inspect "${ref}" --format '{{ json .Manifest }}')"
+          digest="$(jq -r '.digest' <<< "${manifest}")"
+          platforms="$(jq -r '[.manifests[].platform | select(.os != "unknown") | "\(.os)/\(.architecture)"] | sort | join(",")' <<< "${manifest}")"
+          if [[ "${platforms}" != "linux/amd64,linux/arm64" ]]; then
+            echo "::error::${ref} lists platforms '${platforms}', expected linux/amd64,linux/arm64"
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+          echo "Published ${GHCR_IMAGE}@${digest} for ${platforms}" >> "$GITHUB_STEP_SUMMARY"
 
   scan:
     name: Security Scan
-    needs: build
+    needs: [build, merge]
+    if: >-
+      !cancelled() && needs.build.result == 'success' &&
+      (github.event_name == 'pull_request' || needs.merge.result == 'success')
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
     permissions:
       contents: read
@@ -249,16 +368,22 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: docker-image
-          path: /tmp
+          name: docker-image-amd64
+          path: ${{ runner.temp }}
 
       - name: Load image (PRs)
         if: github.event_name == 'pull_request'
-        run: docker load -i /tmp/image.tar
+        run: docker load -i "${RUNNER_TEMP}/image.tar"
 
-      - name: Get short SHA
-        id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Image reference
+        id: image
+        run: |
+          image_name="${GITHUB_REPOSITORY,,}"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "ref=${image_name}:scan" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${REGISTRY}/${image_name}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Log in to registry
         if: github.event_name != 'pull_request'
@@ -270,12 +395,14 @@ jobs:
 
       - name: Pull image
         if: github.event_name != 'pull_request'
-        run: docker pull ${{ env.REGISTRY }}/${{ needs.build.outputs.image_name }}:${{ steps.sha.outputs.short }}
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: docker pull --platform linux/amd64 "${IMAGE}"
 
       - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ github.event_name == 'pull_request' && format('{0}:scan', needs.build.outputs.image_name) || format('{0}/{1}:{2}', env.REGISTRY, needs.build.outputs.image_name, steps.sha.outputs.short) }}
+          image-ref: ${{ steps.image.outputs.ref }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
@@ -290,9 +417,17 @@ jobs:
         if: always() && hashFiles('trivy-results.sarif') != ''
 
   test:
-    name: Test Docker Image
-    needs: build
-    runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
+    name: Test Docker Image (${{ matrix.arch }})
+    needs: [build, merge]
+    if: >-
+      !cancelled() && needs.build.result == 'success' &&
+      (github.event_name == 'pull_request' || needs.merge.result == 'success')
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    # Each platform's image runs natively on a runner of that architecture.
+    runs-on: ${{ matrix.arch == 'arm64' && (vars.RUST_TEMPLATE_RUNNER_UBUNTU_ARM || 'ubuntu-24.04-arm') || (vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest') }}
     permissions:
       contents: read
       packages: read # Pull the pushed image from GHCR.
@@ -301,16 +436,22 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: docker-image
-          path: /tmp
+          name: docker-image-${{ matrix.arch }}
+          path: ${{ runner.temp }}
 
       - name: Load image (PRs)
         if: github.event_name == 'pull_request'
-        run: docker load -i /tmp/image.tar
+        run: docker load -i "${RUNNER_TEMP}/image.tar"
 
-      - name: Get short SHA
-        id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Image reference
+        id: image
+        run: |
+          image_name="${GITHUB_REPOSITORY,,}"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "ref=${image_name}:scan" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${REGISTRY}/${image_name}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Log in to registry
         if: github.event_name != 'pull_request'
@@ -322,18 +463,21 @@ jobs:
 
       - name: Pull image
         if: github.event_name != 'pull_request'
-        run: docker pull ${{ env.REGISTRY }}/${{ needs.build.outputs.image_name }}:${{ steps.sha.outputs.short }}
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          PLATFORM: linux/${{ matrix.arch }}
+        run: docker pull --platform "${PLATFORM}" "${IMAGE}"
 
       - name: Test image startup
         env:
-          PR_IMAGE: ${{ needs.build.outputs.image_name }}:scan
-          RELEASE_IMAGE: ${{ env.REGISTRY }}/${{ needs.build.outputs.image_name }}:${{ steps.sha.outputs.short }}
+          IMAGE: ${{ steps.image.outputs.ref }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            IMAGE="${PR_IMAGE}"
-          else
-            IMAGE="${RELEASE_IMAGE}"
+          image_arch="$(docker image inspect --format '{{ .Architecture }}' "${IMAGE}")"
+          if [[ "${image_arch}" != "${ARCH}" ]]; then
+            echo "Image architecture is '${image_arch}', expected '${ARCH}'" >&2
+            exit 1
           fi
           docker run --rm "${IMAGE}" --version
           docker run --rm "${IMAGE}" --help > /dev/null
@@ -353,7 +497,7 @@ jobs:
       - name: Test container health check
         if: github.event_name == 'pull_request'
         env:
-          IMAGE: ${{ needs.build.outputs.image_name }}:scan
+          IMAGE: ${{ steps.image.outputs.ref }}
         run: |
           docker run -d --name test-container "${IMAGE}" --version
           sleep 5
@@ -363,9 +507,12 @@ jobs:
 
   sign:
     name: Sign Container
-    needs: [build, scan, test]
+    needs: [merge, scan, test]
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: >-
+      !cancelled() && needs.merge.result == 'success' && needs.scan.result == 'success' &&
+      needs.test.result == 'success' && github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: read
       packages: write
@@ -381,14 +528,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Signs the multi-arch index; `cosign verify` on any of its tags checks
+      # this signature.
       - name: Sign container image
-        run: cosign sign --yes ${{ env.REGISTRY }}/${{ needs.build.outputs.image_name }}@${{ needs.build.outputs.digest }}
         env:
-          COSIGN_EXPERIMENTAL: 1
+          IMAGE: ${{ env.REGISTRY }}/${{ needs.merge.outputs.image_name }}@${{ needs.merge.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}"
 
   sbom:
     name: Generate SBOM
-    needs: build
+    needs: merge
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
     if: github.event_name != 'pull_request'
     permissions:
@@ -409,7 +558,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          image: ${{ env.REGISTRY }}/${{ needs.build.outputs.image_name }}:${{ steps.sha.outputs.short }}
+          image: ${{ env.REGISTRY }}/${{ needs.merge.outputs.image_name }}:${{ steps.sha.outputs.short }}
           artifact-name: sbom.spdx.json
           format: spdx-json
         continue-on-error: true
@@ -417,20 +566,29 @@ jobs:
   docker-success:
     name: Docker Build Success
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
-    needs: [build, scan, test]
+    needs: [build, merge, scan, test]
     if: always()
     steps:
       - name: Check results
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          MERGE_RESULT: ${{ needs.merge.result }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+          TEST_RESULT: ${{ needs.test.result }}
         run: |
-          if [[ "${{ needs.build.result }}" != "success" ]]; then
+          if [[ "${BUILD_RESULT}" != "success" ]]; then
             echo "Docker build failed"
             exit 1
           fi
-          if [[ "${{ needs.scan.result }}" != "success" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" != "pull_request" && "${MERGE_RESULT}" != "success" ]]; then
+            echo "Publishing the multi-arch image failed"
+            exit 1
+          fi
+          if [[ "${SCAN_RESULT}" != "success" ]]; then
             echo "Security scan did not complete successfully"
             exit 1
           fi
-          if [[ "${{ needs.test.result }}" != "success" ]]; then
+          if [[ "${TEST_RESULT}" != "success" ]]; then
             echo "Docker image tests failed"
             exit 1
           fi
