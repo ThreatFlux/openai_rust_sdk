@@ -22,7 +22,8 @@ on:
 
 # Least-privilege default; jobs that need more declare their own permissions
 # (Scorecard Token-Permissions).
-permissions: read-all
+permissions:
+  contents: read
 
 env:
   REGISTRY: ghcr.io
@@ -236,6 +237,7 @@ jobs:
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
     permissions:
       contents: read
+      packages: read # Pull the pushed image from GHCR.
       security-events: write
     steps:
       - name: Checkout
@@ -291,6 +293,9 @@ jobs:
     name: Test Docker Image
     needs: build
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      packages: read # Pull the pushed image from GHCR.
     steps:
       - name: Download image (PRs)
         if: github.event_name == 'pull_request'
@@ -324,13 +329,26 @@ jobs:
           PR_IMAGE: ${{ needs.build.outputs.image_name }}:scan
           RELEASE_IMAGE: ${{ env.REGISTRY }}/${{ needs.build.outputs.image_name }}:${{ steps.sha.outputs.short }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             IMAGE="${PR_IMAGE}"
           else
             IMAGE="${RELEASE_IMAGE}"
           fi
           docker run --rm "${IMAGE}" --version
-          docker run --rm "${IMAGE}" --help
+          docker run --rm "${IMAGE}" --help > /dev/null
+          docker run --rm "${IMAGE}" validate-rule --help > /dev/null
+          # The runtime is distroless (no shell), so check the non-root user
+          # and the embedded SBOM from outside the container.
+          image_user="$(docker image inspect --format '{{ .Config.User }}' "${IMAGE}")"
+          if [[ "${image_user}" != "65532:65532" ]]; then
+            echo "Image runs as '${image_user}', expected the distroless nonroot user 65532:65532" >&2
+            exit 1
+          fi
+          container="$(docker create "${IMAGE}")"
+          trap 'docker rm "${container}" > /dev/null' EXIT
+          docker cp "${container}:/usr/share/doc/openai-rust-sdk/sbom.cdx.json" "${RUNNER_TEMP}/sbom.cdx.json"
+          jq -e '.bomFormat == "CycloneDX" and (.components | length > 0)' "${RUNNER_TEMP}/sbom.cdx.json" > /dev/null
 
       - name: Test container health check
         if: github.event_name == 'pull_request'
@@ -373,6 +391,9 @@ jobs:
     needs: build
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
     if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: read # Pull the pushed image from GHCR.
     steps:
       - name: Get short SHA
         id: sha
