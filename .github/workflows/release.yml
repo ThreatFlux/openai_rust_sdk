@@ -399,8 +399,10 @@ jobs:
             echo "See CHANGELOG.md for details." >> release_notes.md
           fi
 
-      # The tag could have been deleted or moved while the build ran; publish
-      # nothing unless it still names the commit that prepare validated.
+      # Guards against a stale run: the tag could have been deleted or moved
+      # while the build ran, so publish nothing unless it still names the
+      # commit that prepare validated. Tag immutability itself is a repository
+      # setting (a tag ruleset), not something this workflow can enforce.
       - name: Recheck release tag
         if: env.DRY_RUN != 'true'
         env:
@@ -432,8 +434,14 @@ jobs:
           fi
 
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            # Keep notes already written by auto-release or a maintainer.
-            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TITLE}"
+            # Keep notes already written by auto-release or a maintainer, but
+            # apply a requested pre-release status (publish skips crates.io
+            # for it too).
+            edit_args=(--title "${TITLE}")
+            if [[ "${IS_PRERELEASE}" == "true" ]]; then
+              edit_args+=(--prerelease)
+            fi
+            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" "${edit_args[@]}"
           elif [[ "${IS_PRERELEASE}" == "true" ]]; then
             gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md --prerelease
           else
@@ -608,8 +616,10 @@ jobs:
           cargo package --locked --all-features --list "${package_args[@]}"
           cargo publish --locked --all-features --dry-run "${package_args[@]}"
 
-      # The tag could have been deleted or moved while the build ran; publish
-      # nothing unless it still names the commit that prepare validated.
+      # Guards against a stale run: the tag could have been deleted or moved
+      # while the build ran, so publish nothing unless it still names the
+      # commit that prepare validated. Tag immutability itself is a repository
+      # setting (a tag ruleset), not something this workflow can enforce.
       - name: Recheck release tag
         if: steps.gate.outputs.mode == 'publish' && steps.packages.outputs.pending != ''
         env:
