@@ -164,6 +164,46 @@ jobs:
             exit 1
           fi
 
+  # The same gates CI applies, re-run on the exact release commit, so a tag
+  # push or manual dispatch cannot publish a commit whose checks fail.
+  verify:
+    name: Verify Release Source
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Run tests (including doc tests)
+        run: cargo test --locked --all-features
+
+      - name: Build documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --all-features --no-deps
+
+      - name: Build examples
+        run: cargo build --locked --all-features --examples
+
   build:
     name: Build (${{ matrix.target }})
     needs: prepare
@@ -326,7 +366,7 @@ jobs:
 
   upload-assets:
     name: Upload Release Assets
-    needs: [prepare, build, sbom]
+    needs: [prepare, verify, build, sbom]
     if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
     runs-on: ubuntu-latest
     permissions:
@@ -357,6 +397,21 @@ jobs:
             cat changelog_section.md >> release_notes.md
           else
             echo "See CHANGELOG.md for details." >> release_notes.md
+          fi
+
+      # The tag could have been deleted or moved while the build ran; publish
+      # nothing unless it still names the commit that prepare validated.
+      - name: Recheck release tag
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          REMOTE_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/refs/tags/v${VERSION}" --jq '.sha')"
+          if [[ "${REMOTE_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::Tag v${VERSION} now resolves to ${REMOTE_SHA}, not the validated commit ${GITHUB_SHA}"
+            exit 1
           fi
 
       - name: Create or update GitHub Release
@@ -406,9 +461,9 @@ jobs:
 
   publish:
     name: Publish to crates.io
-    # crates.io versions are immutable, so publish only after every binary
-    # target and the SBOM have been produced for this commit.
-    needs: [prepare, build, sbom]
+    # crates.io versions are immutable, so publish only after the release
+    # source passed verification and every binary target and the SBOM built.
+    needs: [prepare, verify, build, sbom]
     runs-on: ubuntu-latest
     # Real publishes skip pre-releases (a version suffix such as 2.1.0-rc1, or the
     # prerelease dispatch input). A dry run always runs `cargo publish --dry-run`.
@@ -552,6 +607,21 @@ jobs:
           done
           cargo package --locked --all-features --list "${package_args[@]}"
           cargo publish --locked --all-features --dry-run "${package_args[@]}"
+
+      # The tag could have been deleted or moved while the build ran; publish
+      # nothing unless it still names the commit that prepare validated.
+      - name: Recheck release tag
+        if: steps.gate.outputs.mode == 'publish' && steps.packages.outputs.pending != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          REMOTE_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/refs/tags/v${VERSION}" --jq '.sha')"
+          if [[ "${REMOTE_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::Tag v${VERSION} now resolves to ${REMOTE_SHA}, not the validated commit ${GITHUB_SHA}"
+            exit 1
+          fi
 
       - name: Authenticate with crates.io
         id: crates-io-auth
