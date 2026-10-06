@@ -687,7 +687,10 @@ jobs:
           done
 
   docker-dry-run:
-    name: Docker Build (dry run, ${{ matrix.arch }})
+    # No matrix expression in the name: a real release skips this job before
+    # the matrix expands, and the name would show the raw expression. GitHub
+    # appends the architecture when the job runs.
+    name: Docker Build (dry run)
     needs: prepare
     # Real releases build, scan, sign and push the multi-arch image from
     # docker.yml on the tag; a dry run only proves each platform's image builds
@@ -696,12 +699,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-latest
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
