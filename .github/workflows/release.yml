@@ -366,8 +366,16 @@ jobs:
 
   upload-assets:
     name: Upload Release Assets
-    needs: [prepare, verify, build, sbom]
-    if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
+    # Runs after publish, so a failed crates.io publish leaves no new GitHub
+    # Release or assets behind. publish is skipped for a pre-release, which
+    # still gets its GitHub Release and assets.
+    needs: [prepare, verify, build, sbom, publish]
+    if: >-
+      !cancelled() &&
+      (github.event_name != 'workflow_dispatch' || !inputs.dry_run) &&
+      needs.prepare.result == 'success' && needs.verify.result == 'success' &&
+      needs.build.result == 'success' && needs.sbom.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       # Create or update the GitHub Release and upload its assets.
@@ -435,13 +443,9 @@ jobs:
 
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             # Keep notes already written by auto-release or a maintainer, but
-            # apply a requested pre-release status (publish skips crates.io
-            # for it too).
-            edit_args=(--title "${TITLE}")
-            if [[ "${IS_PRERELEASE}" == "true" ]]; then
-              edit_args+=(--prerelease)
-            fi
-            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" "${edit_args[@]}"
+            # set the pre-release status this run decided (publish skips
+            # crates.io for a pre-release), in either direction.
+            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TITLE}" --prerelease="${IS_PRERELEASE}"
           elif [[ "${IS_PRERELEASE}" == "true" ]]; then
             gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md --prerelease
           else
