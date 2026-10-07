@@ -115,7 +115,8 @@ Before requesting review, confirm that:
 - the README and coverage matrix still make claims the implementation supports.
 
 Project maintainers handle versioning, release notes, tags, and crates.io publication after a
-change is merged.
+change is merged. `docs/RELEASING.md` in the repository covers where the container image is
+published and how to turn Docker Hub publishing on or off.
 
 ## Getting help
 
