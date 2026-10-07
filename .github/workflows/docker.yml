@@ -29,6 +29,10 @@ env:
   REGISTRY: ghcr.io
   DOCKERHUB_REGISTRY: docker.io
   DOCKERHUB_NAMESPACE: ${{ vars.RUST_TEMPLATE_DOCKERHUB_NAMESPACE || 'threatflux' }}
+  # GHCR is always published. Docker Hub is opt-in: set the repository or
+  # organization variable RUST_TEMPLATE_PUBLISH_DOCKERHUB to 'true' (see
+  # docs/RELEASING.md). Unset or 'false' publishes to GHCR only.
+  PUBLISH_DOCKERHUB: ${{ vars.RUST_TEMPLATE_PUBLISH_DOCKERHUB || 'false' }}
   DOCKER_BUILDKIT: 1
   BINARY_NAME: ${{ vars.RUST_TEMPLATE_BINARY_NAME || 'openai_rust_sdk' }}
   BINARY_PACKAGE: ${{ vars.RUST_TEMPLATE_BINARY_PACKAGE || '' }}
@@ -64,12 +68,51 @@ jobs:
         with:
           persist-credentials: false
 
+      # The Docker Hub credentials are read only when publishing there is
+      # switched on; without them the run warns and publishes to GHCR alone.
+      - name: Check Docker Hub credentials
+        id: dockerhub
+        if: github.event_name != 'pull_request' && env.PUBLISH_DOCKERHUB == 'true'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::RUST_TEMPLATE_PUBLISH_DOCKERHUB is 'true' but DOCKERHUB_USERNAME or DOCKERHUB_TOKEN is not set; publishing to GHCR only"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # GHCR is always a target; Docker Hub only when the check above passed.
       - name: Image names
         id: names
+        env:
+          DOCKERHUB_ENABLED: ${{ steps.dockerhub.outputs.enabled == 'true' }}
         run: |
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "dockerhub_name=$(echo "${REPO_NAME}" | tr '[:upper:]_' '[:lower:]-')" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          image_name="${GITHUB_REPOSITORY,,}"
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          ghcr_image="${REGISTRY}/${image_name}"
+          dockerhub_image=""
+          push_names="${ghcr_image}"
+          if [[ "${DOCKERHUB_ENABLED}" == "true" ]]; then
+            dockerhub_image="${DOCKERHUB_REGISTRY}/${DOCKERHUB_NAMESPACE}/$(tr '[:upper:]_' '[:lower:]-' <<< "${repo_name}")"
+            push_names+=",${dockerhub_image}"
+          fi
+          {
+            echo "image_name=${image_name}"
+            echo "ghcr_image=${ghcr_image}"
+            echo "dockerhub_image=${dockerhub_image}"
+            echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
+            echo "push_names=${push_names}"
+            echo "images<<EOF"
+            echo "${ghcr_image}"
+            if [[ -n "${dockerhub_image}" ]]; then
+              echo "${dockerhub_image}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Detect Rust base image version
         id: rust_base
@@ -93,7 +136,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && steps.names.outputs.dockerhub_enabled == 'true'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ env.DOCKERHUB_REGISTRY }}
@@ -105,9 +148,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
+          images: ${{ steps.names.outputs.images }}
           labels: |
             org.opencontainers.image.title=${{ env.OCI_IMAGE_TITLE }}
             org.opencontainers.image.description=${{ env.OCI_IMAGE_DESCRIPTION }}
@@ -120,9 +161,7 @@ jobs:
         if: github.event_name != 'pull_request' && matrix.arch == 'amd64'
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
+          images: ${{ steps.names.outputs.images }}
           tags: |
             type=raw,value=base-rust-${{ steps.rust_base.outputs.version }}
             type=raw,value=base-rust-latest,enable={{is_default_branch}}
@@ -183,8 +222,9 @@ jobs:
             OCI_IMAGE_VENDOR=${{ env.OCI_IMAGE_VENDOR }}
             OCI_IMAGE_SOURCE=${{ env.OCI_IMAGE_SOURCE }}
 
-      # Pushed untagged, by digest, to both registries; the merge job tags the
-      # multi-arch index that references every platform's digest.
+      # Pushed untagged, by digest, to GHCR (and Docker Hub when enabled); the
+      # merge job tags the multi-arch index that references every platform's
+      # digest.
       - name: Build and push runtime image by digest (non-PR)
         if: github.event_name != 'pull_request'
         id: build
@@ -193,7 +233,7 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,"name=${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }},${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}",push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,"name=${{ steps.names.outputs.push_names }}",push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=docker-${{ matrix.arch }}
           cache-to: type=gha,scope=docker-${{ matrix.arch }},mode=max
           build-args: |
@@ -248,9 +288,13 @@ jobs:
     permissions:
       contents: read
       packages: write # Push the multi-arch index and its tags to GHCR.
+    # No image names here: a job output that contains a secret's value is
+    # dropped, and a Docker Hub organization access token logs in as the
+    # organization, so DOCKERHUB_USERNAME can equal the owner in every name.
+    # Downstream jobs derive the names from GITHUB_REPOSITORY instead.
     outputs:
       digest: ${{ steps.index.outputs.digest }}
-      image_name: ${{ steps.names.outputs.image_name }}
+      dockerhub_enabled: ${{ steps.names.outputs.dockerhub_enabled }}
     steps:
       - name: Download image digests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -259,12 +303,50 @@ jobs:
           pattern: digests-*
           merge-multiple: true
 
+      # Same two steps as in the build job, so both jobs reach the same
+      # decision from the same variable and secrets.
+      - name: Check Docker Hub credentials
+        id: dockerhub
+        if: github.event_name != 'pull_request' && env.PUBLISH_DOCKERHUB == 'true'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::RUST_TEMPLATE_PUBLISH_DOCKERHUB is 'true' but DOCKERHUB_USERNAME or DOCKERHUB_TOKEN is not set; publishing to GHCR only"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Image names
         id: names
+        env:
+          DOCKERHUB_ENABLED: ${{ steps.dockerhub.outputs.enabled == 'true' }}
         run: |
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "dockerhub_name=$(echo "${REPO_NAME}" | tr '[:upper:]_' '[:lower:]-')" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          image_name="${GITHUB_REPOSITORY,,}"
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          ghcr_image="${REGISTRY}/${image_name}"
+          dockerhub_image=""
+          push_names="${ghcr_image}"
+          if [[ "${DOCKERHUB_ENABLED}" == "true" ]]; then
+            dockerhub_image="${DOCKERHUB_REGISTRY}/${DOCKERHUB_NAMESPACE}/$(tr '[:upper:]_' '[:lower:]-' <<< "${repo_name}")"
+            push_names+=",${dockerhub_image}"
+          fi
+          {
+            echo "image_name=${image_name}"
+            echo "ghcr_image=${ghcr_image}"
+            echo "dockerhub_image=${dockerhub_image}"
+            echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
+            echo "push_names=${push_names}"
+            echo "images<<EOF"
+            echo "${ghcr_image}"
+            if [[ -n "${dockerhub_image}" ]]; then
+              echo "${dockerhub_image}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -277,6 +359,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
+        if: steps.names.outputs.dockerhub_enabled == 'true'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ env.DOCKERHUB_REGISTRY }}
@@ -287,9 +370,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
+          images: ${{ steps.names.outputs.images }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -302,8 +383,8 @@ jobs:
       # same registry, so no blob has to be copied between registries.
       - name: Create and push multi-arch index
         env:
-          GHCR_IMAGE: ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
-          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.names.outputs.dockerhub_name }}
+          GHCR_IMAGE: ${{ steps.names.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ steps.names.outputs.dockerhub_image }}
           DIGESTS_DIR: ${{ runner.temp }}/digests
         run: |
           set -euo pipefail
@@ -312,7 +393,11 @@ jobs:
             echo "::error::Expected 2 platform digests (amd64, arm64), found ${#digests[@]}"
             exit 1
           fi
-          for image in "${GHCR_IMAGE}" "${DOCKERHUB_IMAGE}"; do
+          images=("${GHCR_IMAGE}")
+          if [[ -n "${DOCKERHUB_IMAGE}" ]]; then
+            images+=("${DOCKERHUB_IMAGE}")
+          fi
+          for image in "${images[@]}"; do
             mapfile -t tags < <(jq -r --arg image "${image}" '.tags[] | select(startswith($image + ":"))' <<< "${DOCKER_METADATA_OUTPUT_JSON}")
             if [[ "${#tags[@]}" -eq 0 ]]; then
               echo "::error::No tags computed for ${image}"
@@ -331,7 +416,8 @@ jobs:
       - name: Inspect multi-arch index
         id: index
         env:
-          GHCR_IMAGE: ${{ env.REGISTRY }}/${{ steps.names.outputs.image_name }}
+          GHCR_IMAGE: ${{ steps.names.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ steps.names.outputs.dockerhub_image }}
         run: |
           set -euo pipefail
           # Every run tags the short commit SHA; scan and test pull the same tag.
@@ -344,8 +430,23 @@ jobs:
             echo "::error::${ref} lists platforms '${platforms}', expected linux/amd64,linux/arm64"
             exit 1
           fi
+          # The sign job signs Docker Hub at the GHCR digest, so both indexes
+          # must be byte-identical (same platform digests, same order).
+          if [[ -n "${DOCKERHUB_IMAGE}" ]]; then
+            dockerhub_ref="${DOCKERHUB_IMAGE}:${GITHUB_SHA::7}"
+            dockerhub_digest="$(docker buildx imagetools inspect "${dockerhub_ref}" --format '{{ json .Manifest }}' | jq -r '.digest')"
+            if [[ "${dockerhub_digest}" != "${digest}" ]]; then
+              echo "::error::${dockerhub_ref} is ${dockerhub_digest}, expected the GHCR index digest ${digest}"
+              exit 1
+            fi
+          fi
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
           echo "Published ${GHCR_IMAGE}@${digest} for ${platforms}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${DOCKERHUB_IMAGE}" ]]; then
+            echo "Published ${DOCKERHUB_IMAGE}@${digest} for ${platforms}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Docker Hub not published: RUST_TEMPLATE_PUBLISH_DOCKERHUB is not 'true' or its credentials are missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   scan:
     name: Security Scan
@@ -528,12 +629,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: needs.merge.outputs.dockerhub_enabled == 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       # Signs the multi-arch index; `cosign verify` on any of its tags checks
       # this signature.
       - name: Sign container image
         env:
-          IMAGE: ${{ env.REGISTRY }}/${{ needs.merge.outputs.image_name }}@${{ needs.merge.outputs.digest }}
-        run: cosign sign --yes "${IMAGE}"
+          DIGEST: ${{ needs.merge.outputs.digest }}
+        run: cosign sign --yes "${REGISTRY}/${GITHUB_REPOSITORY,,}@${DIGEST}"
+
+      # Docker Hub holds the same index digest (the merge job checks it); it is
+      # signed in this job, so its signature carries the same keyless identity.
+      - name: Sign Docker Hub image
+        if: needs.merge.outputs.dockerhub_enabled == 'true'
+        env:
+          DIGEST: ${{ needs.merge.outputs.digest }}
+        run: |
+          set -euo pipefail
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          image="${DOCKERHUB_REGISTRY}/${DOCKERHUB_NAMESPACE}/$(tr '[:upper:]_' '[:lower:]-' <<< "${repo_name}")"
+          cosign sign --yes "${image}@${DIGEST}"
 
   sbom:
     name: Generate SBOM
@@ -544,9 +665,9 @@ jobs:
       contents: read
       packages: read # Pull the pushed image from GHCR.
     steps:
-      - name: Get short SHA
-        id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Image reference
+        id: image
+        run: echo "ref=${REGISTRY}/${GITHUB_REPOSITORY,,}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -558,7 +679,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          image: ${{ env.REGISTRY }}/${{ needs.merge.outputs.image_name }}:${{ steps.sha.outputs.short }}
+          image: ${{ steps.image.outputs.ref }}
           artifact-name: sbom.spdx.json
           format: spdx-json
         continue-on-error: true
