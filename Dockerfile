@@ -11,7 +11,7 @@
 # command above when it is updated.
 
 # rust 1.99.0 on Debian 13 (trixie); multi-arch index digest
-FROM rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c27b541a6238a181 AS rust-base
+FROM rust:1.99.0-trixie@sha256:81015672d6939b0265f09adf96d5de125482bb1330106076956b0518e74edc90 AS rust-base
 
 ARG VERSION=0.0.0
 ARG BUILD_DATE=unknown
