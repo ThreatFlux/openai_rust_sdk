@@ -12,9 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEWED_VERSIONS = {
-    "yara-x": "1.21.0",
-    "wasmtime": "45.0.3",
-    "rsa": "0.9.10",
+    "yara-x": "1.22.0",
+    "wasmtime": "48.0.7",
+    "rsa": "0.10.0-rc.19",
     "bincode": "2.0.1",
 }
 REVIEWED_WASMTIME_FEATURES = {
@@ -23,15 +23,10 @@ REVIEWED_WASMTIME_FEATURES = {
     "runtime",
     "std",
     "wasmtime-jit-icache-coherence",
-    "wasmtime-unwinder",
 }
 REVIEWED_ADVISORIES = {
     "RUSTSEC-2023-0071",
     "RUSTSEC-2025-0141",
-    "RUSTSEC-2026-0222",
-    "RUSTSEC-2026-0269",
-    "RUSTSEC-2026-0316",
-    "RUSTSEC-2026-0327",
 }
 
 

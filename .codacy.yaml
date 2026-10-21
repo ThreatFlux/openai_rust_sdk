@@ -1,0 +1,6 @@
+---
+# Cargo generates dependency lockfiles. Keep them pinned and security-audited,
+# but do not measure them as handwritten source code.
+exclude_paths:
+  - "Cargo.lock"
+  - "fuzz/Cargo.lock"

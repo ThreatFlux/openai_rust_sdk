@@ -87,6 +87,8 @@ jobs:
             !CHANGELOG.md
             !docs/BRANCH_PROTECTION.md
 
+      # Alert pages require security access and return 404 to public HTTP checks.
+      # Their IDs/dispositions are verified through the authenticated GitHub API.
       - name: Check external links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
@@ -101,6 +103,7 @@ jobs:
             --accept '100..=103,200..=299,429'
             --exclude '^https://platform\.openai\.com/api-keys$'
             --exclude '^https://help\.openai\.com/?$'
+            --exclude '^https://github[.]com/ThreatFlux/openai_rust_sdk/security/code-scanning/[0-9]+$'
             README.md
             CHANGELOG.md
             CONTRIBUTING.md
@@ -137,7 +140,7 @@ jobs:
           echo "value=${value}" >> "${GITHUB_OUTPUT}"
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: ${{ steps.toolchain.outputs.value }}
 
@@ -167,7 +170,7 @@ jobs:
           persist-credentials: false
 
       - name: Install current stable Rust
-        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
 

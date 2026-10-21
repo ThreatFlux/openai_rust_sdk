@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Security and dependencies
+
+- Consolidate stable Rust 1.99.1, crate/lockfile and CI tool updates. Preserve
+  consumer MSRV 1.97.1 and every optional feature.
+- Upgrade YARA-X to 1.22.0/Wasmtime 48.0.7 and remove four superseded Wasmtime
+  advisory exceptions; keep the remaining scoped review guarded.
+- Remove glibc/zlib/GCC shared runtimes from the container using verified
+  maintained musl static PIE, fixed CA supplier data/provenance and static init.
+  Test real YARA compilation and batch generation on both architectures.
+- Remove historical image ignores and report all severities. Record all 31
+  alert dispositions and owner/process follow-ups in `docs/security/`.
+- Add scheduled and PR libFuzzer coverage for response/structured JSON parsing.
+
 ### Fixed
 
 - The Windows release archive's `.sha256` file now ends in LF instead of
