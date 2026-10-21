@@ -205,3 +205,10 @@ result-*
 .codacy/
 plan.md
 resposnes_api.md
+
+# Local fuzzing output (seed corpus and lockfile are committed).
+fuzz/target/
+fuzz/artifacts/
+fuzz/coverage/
+fuzz/corpus/response-json/*
+!fuzz/corpus/response-json/structured.json

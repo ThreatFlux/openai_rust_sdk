@@ -1,0 +1,42 @@
+name: Fuzz
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["src/**", "fuzz/**", "Cargo.toml", "Cargo.lock", ".github/workflows/fuzz.yml"]
+  push:
+    branches: [main]
+    paths: ["src/**", "fuzz/**", "Cargo.toml", "Cargo.lock", ".github/workflows/fuzz.yml"]
+  schedule:
+    - cron: "21 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  response-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # libFuzzer sanitizer instrumentation requires nightly; SDK builds use stable.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: nightly
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            fuzz/target
+          key: fuzz-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'fuzz/Cargo.lock') }}
+      - run: cargo install cargo-fuzz --locked --version 0.13.2
+      - run: cargo +nightly fetch --locked --manifest-path fuzz/Cargo.toml
+      - run: cargo +nightly fuzz run response-json -- -max_total_time=60 -max_len=65536
+        env:
+          CARGO_NET_OFFLINE: "true"
