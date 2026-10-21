@@ -27,7 +27,7 @@ The installed libstdc++6 files are byte-identical to the independently
 Those exact allocator implementations call unaffected `posix_memalign` without
 vulnerable alignment rounding. PBDS template defects do not belong to the
 runtime/metadata packages. See the
-[upstream allocator fix](https://github.com/gcc-mirror/gcc/commit/200183d4ab5d57575f3dfebc6af3af649910b9e)
+[upstream allocator fix](https://github.com/gcc-mirror/gcc/commit/200183d4ab5d57575f3dfebc6af3baf649910b9e)
 and [PBDS fix](https://github.com/gcc-mirror/gcc/commit/aaa8351f4d2e636f9680a1f0a8ebc2f0a60611e6).
 Each FP is dismissed individually with original-artifact evidence; package
 removal alone is not the reason for any FP disposition.

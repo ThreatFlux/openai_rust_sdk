@@ -87,6 +87,8 @@ jobs:
             !CHANGELOG.md
             !docs/BRANCH_PROTECTION.md
 
+      # Alert pages require security access and return 404 to public HTTP checks.
+      # Their IDs/dispositions are verified through the authenticated GitHub API.
       - name: Check external links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
