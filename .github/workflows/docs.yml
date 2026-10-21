@@ -103,6 +103,7 @@ jobs:
             --accept '100..=103,200..=299,429'
             --exclude '^https://platform\.openai\.com/api-keys$'
             --exclude '^https://help\.openai\.com/?$'
+            --exclude '^https://github[.]com/ThreatFlux/openai_rust_sdk/security/code-scanning/[0-9]+$'
             README.md
             CHANGELOG.md
             CONTRIBUTING.md
