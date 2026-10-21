@@ -3,18 +3,24 @@
 import argparse
 import json
 from pathlib import Path
-import subprocess
+# Docker is a trusted CI tool; the command always uses an argv list without a shell.
+import subprocess  # nosec B404
 import tempfile
 
 
 def run(image, platform, arguments, mounts=()):
-    command = ["docker", "run", "--rm", "--platform", platform, "--read-only",
-               "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
-               "--tmpfs", "/tmp:rw,nosuid,noexec"]
+    mount_args = []
     for mount in mounts:
-        command.extend(["-v", mount])
-    result = subprocess.run(command + ["--", image] + arguments,
-                            check=True, capture_output=True, text=True, timeout=180)
+        mount_args.extend(["-v", mount])
+    # /tmp is a private container tmpfs, not a predictable host temporary file.
+    tmpfs = "/tmp:rw,nosuid,noexec"  # nosec B108
+    # Explicit executable and option terminator keep image/CLI args as data.
+    result = subprocess.run(  # nosec B603, B607
+        ["docker", "run", "--rm", "--platform", platform, "--read-only",
+         "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+         "--tmpfs", tmpfs, *mount_args, "--", image, *arguments],
+        check=True, capture_output=True, text=True, timeout=180, shell=False,
+    )
     return result.stdout
 
 

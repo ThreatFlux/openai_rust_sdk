@@ -5,7 +5,8 @@ import argparse
 import json
 from pathlib import PurePosixPath
 import struct
-import subprocess
+# Docker and OpenSSL are trusted CI tools; every call uses an argv list, never a shell.
+import subprocess  # nosec B404
 import tarfile
 import tempfile
 
@@ -14,10 +15,10 @@ BINARIES = {"usr/local/bin/app", "usr/bin/tini"}
 
 
 def check_ca_trust(bundle):
-    encoded = subprocess.check_output(
+    encoded = subprocess.check_output(  # nosec B603, B607
         ["openssl", "crl2pkcs7", "-nocrl", "-certfile", "/dev/stdin"], input=bundle
     )
-    subjects = subprocess.check_output(
+    subjects = subprocess.check_output(  # nosec B603, B607
         ["openssl", "pkcs7", "-print_certs", "-noout"], input=encoded
     ).decode().lower()
     for distrusted in ("emsign ecc root ca - g3", "aaa certificate services"):
@@ -120,7 +121,8 @@ def check_support_files(filesystem, files, architecture):
 
 def check_filesystem(container, architecture):
     with tempfile.TemporaryFile() as archive:
-        subprocess.run(["docker", "export", container], stdout=archive, check=True)
+        # The container ID comes from Docker, not shell text.
+        subprocess.run(["docker", "export", "--", container], stdout=archive, check=True)  # nosec B603, B607
         archive.seek(0)
         with tarfile.open(fileobj=archive) as filesystem:
             files = {str(PurePosixPath(m.name)): m for m in filesystem if m.isfile()}
@@ -133,18 +135,21 @@ def main():
     parser.add_argument("image")
     parser.add_argument("--platform", choices=("linux/amd64", "linux/arm64"))
     args = parser.parse_args()
-    create = ["docker", "create"]
-    if args.platform:
-        create += ["--platform", args.platform]
-    container = subprocess.check_output(create + ["--", args.image], text=True).strip()
+    platform_args = ["--platform", args.platform] if args.platform else []
+    # Keep the executable explicit and terminate Docker options before the image.
+    container = subprocess.check_output(  # nosec B603, B607
+        ["docker", "create", *platform_args, "--", args.image], text=True, shell=False
+    ).strip()
     try:
-        info = json.loads(subprocess.check_output(["docker", "inspect", container]))[0]
-        image = json.loads(subprocess.check_output(["docker", "image", "inspect", info["Image"]]))[0]
+        info = json.loads(subprocess.check_output(["docker", "inspect", "--", container]))[0]  # nosec B603, B607
+        image = json.loads(
+            subprocess.check_output(["docker", "image", "inspect", "--", info["Image"]])  # nosec B603, B607
+        )[0]
         check_configuration(info)
         check_filesystem(container, image["Architecture"])
         print(f"Static runtime verified: {args.image} ({image['Architecture']})")
     finally:
-        subprocess.run(["docker", "rm", container], stdout=subprocess.DEVNULL, check=True)
+        subprocess.run(["docker", "rm", "--", container], stdout=subprocess.DEVNULL, check=True)  # nosec B603, B607
 
 
 if __name__ == "__main__":
