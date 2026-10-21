@@ -141,10 +141,14 @@ def main():
         ["docker", "create", *platform_args, "--", args.image], text=True, shell=False
     ).strip()
     try:
-        info = json.loads(subprocess.check_output(["docker", "inspect", "--", container]))[0]  # nosec B603, B607
-        image = json.loads(
-            subprocess.check_output(["docker", "image", "inspect", "--", info["Image"]])  # nosec B603, B607
-        )[0]
+        container_json = subprocess.check_output(  # nosec B603, B607
+            ["docker", "inspect", "--", container], shell=False
+        )
+        info = json.loads(container_json)[0]
+        image_json = subprocess.check_output(  # nosec B603, B607
+            ["docker", "image", "inspect", "--", info["Image"]], shell=False
+        )
+        image = json.loads(image_json)[0]
         check_configuration(info)
         check_filesystem(container, image["Architecture"])
         print(f"Static runtime verified: {args.image} ({image['Architecture']})")
