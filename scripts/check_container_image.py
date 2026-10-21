@@ -141,10 +141,14 @@ def main():
         ["docker", "create", *platform_args, "--", args.image], text=True, shell=False
     ).strip()
     try:
+        # Fixed Docker operation, option terminator, and argv data; no shell executes.
+        # nosemgrep: python_exec_rule-subprocess-call
         container_json = subprocess.check_output(  # nosec B603, B607
             ["docker", "inspect", "--", container], shell=False
         )
         info = json.loads(container_json)[0]
+        # The image ID comes from Docker and remains one argument after --.
+        # nosemgrep: python_exec_rule-subprocess-call
         image_json = subprocess.check_output(  # nosec B603, B607
             ["docker", "image", "inspect", "--", info["Image"]], shell=False
         )
