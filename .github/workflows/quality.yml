@@ -14,8 +14,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: quality-${{ github.ref }}
-  cancel-in-progress: true
+  # GitHub replaces pending runs in the same group even when cancellation is off.
+  # Group PR updates together, but give each push its own group for full coverage.
+  group: quality-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always

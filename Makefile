@@ -188,7 +188,10 @@ yara-security-check: ## Verify optional YARA-X advisory exception scope
 .PHONY: audit
 audit: yara-security-check ## Run security audit
 	@echo "$(CYAN)Running security audit...$(NC)"
-	@cargo audit
+	@status=0; \
+		cargo audit || status=1; \
+		cargo audit --file fuzz/Cargo.lock || status=1; \
+		exit $$status
 	@echo "$(GREEN)Security audit passed!$(NC)"
 
 .PHONY: deny
