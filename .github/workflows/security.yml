@@ -15,8 +15,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: security-${{ github.ref }}
-  cancel-in-progress: true
+  # GitHub replaces pending runs in the same group even when cancellation is off.
+  # Group PR updates together, but give each push its own group for full coverage.
+  group: security-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Security audit for dependencies
@@ -44,16 +46,25 @@ jobs:
 
       - name: Run cargo audit
         run: cargo audit
+
+      - name: Run fuzz cargo audit
+        run: cargo audit --file fuzz/Cargo.lock
       
       - name: Run cargo audit (json output)
         run: cargo audit --json > audit-report.json
+        continue-on-error: true
+
+      - name: Run fuzz cargo audit (json output)
+        run: cargo audit --file fuzz/Cargo.lock --json > fuzz-audit-report.json
         continue-on-error: true
       
       - name: Upload audit report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: audit-report
-          path: audit-report.json
+          path: |
+            audit-report.json
+            fuzz-audit-report.json
           retention-days: 30
 
   # Dependency license check
