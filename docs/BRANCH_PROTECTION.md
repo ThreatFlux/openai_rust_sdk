@@ -1,98 +1,32 @@
-# Branch Protection Rules
+# Branch protection for `main`
 
-This document outlines the recommended branch protection rules for the OpenAI Rust SDK repository. These settings should be configured in GitHub Settings → Branches.
+Both repository maintainers are listed in [CODEOWNERS](../.github/CODEOWNERS).
+Require one approving code-owner review so a pull request author needs the
+other maintainer's approval. Dismiss approvals after a new commit and require
+approval of the most recent push.
 
-## Main Branch Protection
+Configure the `main` branch protection rule with:
 
-### Rule Pattern: `main`
+- Require a pull request, one approving review from a code owner, and resolution
+  of review conversations.
+- Apply the rule to administrators. Do not allow force pushes or branch deletion.
+- Require the branch to be up to date before merging and these current check
+  names (without a workflow-name prefix):
+  - `Test Suite (ubuntu-latest, stable)`
+  - `Test Suite (macos-latest, stable)`
+  - `Test Suite (windows-latest, stable)`
+  - `Security Audit`
+  - `CodeQL Analysis`
+  - `Quality Gate`
 
-#### Required Status Checks
-Enable "Require status checks to pass before merging" with these checks:
-- [ ] CI / Quick Check
-- [ ] CI / Test Suite (ubuntu-latest)
-- [ ] CI / Test Suite (macos-latest)
-- [ ] CI / Test Suite (windows-latest)
-- [ ] CI / CI Success
-- [ ] Security / Security Audit
-- [ ] Code Quality / Lint
-- [ ] Code Quality / Test Coverage
-- [ ] Code Quality / Quality Gate
-- [ ] Docker / Docker Build Success
+The check names above are the job names emitted by the CI, Security, and Code
+Quality workflows. Keep this list aligned with those workflows when renaming
+jobs. The previous list included names that are not emitted as checks, which
+would leave pull requests permanently pending if required.
 
-#### Pull Request Requirements
-- [ ] **Require pull request reviews before merging**
-  - Required approving reviews: 1
-  - Dismiss stale pull request approvals when new commits are pushed
-  - Require review from CODEOWNERS (if configured)
-  
-- [ ] **Require conversation resolution before merging**
+The auto-release workflow creates a release pull request and tags the merged
+main commit. It does not require a direct push to `main`; release pull requests
+must satisfy the same protection rule.
 
-#### Additional Settings
-- [ ] **Require branches to be up to date before merging**
-- [ ] **Require signed commits** (optional but recommended)
-- [ ] **Include administrators** (enforce for everyone)
-- [ ] **Restrict who can push to matching branches**
-  - Add specific users/teams who can push directly
-- [ ] **Allow force pushes**: Disabled
-- [ ] **Allow deletions**: Disabled
-
-## Develop Branch Protection (if used)
-
-### Rule Pattern: `develop`
-
-#### Required Status Checks
-- [ ] CI / Quick Check
-- [ ] CI / Test Suite (ubuntu-latest)
-- [ ] Security / Security Audit
-
-#### Pull Request Requirements
-- [ ] **Require pull request reviews before merging**
-  - Required approving reviews: 1
-  
-## How to Configure in GitHub
-
-1. Navigate to your repository on GitHub
-2. Go to **Settings** → **Branches**
-3. Click **Add rule** under "Branch protection rules"
-4. Enter the branch name pattern (e.g., `main`)
-5. Configure the settings as outlined above
-6. Click **Create** or **Save changes**
-
-## Automation with GitHub CLI
-
-You can also set up branch protection using the GitHub CLI:
-
-```bash
-# For main branch
-gh api repos/threatflux/openai_rust_sdk/branches/main/protection \
-  --method PUT \
-  --field required_status_checks='{"strict":true,"contexts":["CI / Quick Check","CI / Test Suite (ubuntu-latest)","CI / CI Success","Security / Security Audit","Code Quality / Lint","Code Quality / Test Coverage"]}' \
-  --field enforce_admins=true \
-  --field required_pull_request_reviews='{"required_approving_review_count":1,"dismiss_stale_reviews":true}' \
-  --field restrictions=null \
-  --field allow_force_pushes=false \
-  --field allow_deletions=false \
-  --field required_conversation_resolution=true
-```
-
-## Benefits of These Rules
-
-1. **Code Quality**: Ensures all code passes tests, linting, and security checks
-2. **Review Process**: Guarantees code review before merging
-3. **Stability**: Prevents direct pushes to protected branches
-4. **Security**: Runs security audits on all changes
-5. **Consistency**: Enforces coding standards through automated checks
-
-## Exceptions and Overrides
-
-In emergency situations, repository administrators can:
-1. Temporarily disable branch protection
-2. Use admin override to merge critical fixes
-3. Re-enable protection after the emergency
-
-Always document any emergency overrides in the PR description.
-
-## Related Documentation
-
-- [GitHub Branch Protection Documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches)
-- [CODEOWNERS file format](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
+Repository administrators can inspect the live rule at **Settings → Branches**
+or with `gh api repos/ThreatFlux/openai_rust_sdk/branches/main/protection`.
