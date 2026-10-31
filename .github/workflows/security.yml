@@ -53,6 +53,28 @@ jobs:
         id: fuzz_audit
         run: cargo audit --file fuzz/Cargo.lock --json > fuzz-audit-report.json
         continue-on-error: true
+
+      - name: Capture unfiltered root and fuzz audits
+        id: raw_audit
+        run: |
+          # cargo-audit loads .cargo/audit.toml from its working directory or home.
+          # Run outside the checkout and fail if a home policy could filter results.
+          if [ -f "$HOME/.cargo/audit.toml" ]; then
+            echo "::error::A home cargo-audit policy prevents an unfiltered report."
+            exit 1
+          fi
+          audit_dir="$(mktemp -d "$RUNNER_TEMP/yara-raw-audit.XXXXXX")"
+          cd "$audit_dir"
+          set +e
+          cargo audit --no-fetch --file "$GITHUB_WORKSPACE/Cargo.lock" --json > "$GITHUB_WORKSPACE/audit-unfiltered.json"
+          root_status=$?
+          cargo audit --no-fetch --file "$GITHUB_WORKSPACE/fuzz/Cargo.lock" --json > "$GITHUB_WORKSPACE/fuzz-audit-unfiltered.json"
+          fuzz_status=$?
+          set -e
+          echo "Unfiltered audit exit codes (advisories expected): root=$root_status fuzz=$fuzz_status"
+          jq -e . "$GITHUB_WORKSPACE/audit-unfiltered.json" > /dev/null
+          jq -e . "$GITHUB_WORKSPACE/fuzz-audit-unfiltered.json" > /dev/null
+        continue-on-error: true
       
       - name: Upload audit reports
         if: ${{ !cancelled() }}
@@ -62,12 +84,14 @@ jobs:
           path: |
             audit-report.json
             fuzz-audit-report.json
+            audit-unfiltered.json
+            fuzz-audit-unfiltered.json
           retention-days: 30
 
       - name: Enforce audit results
-        if: ${{ !cancelled() && (steps.root_audit.outcome == 'failure' || steps.fuzz_audit.outcome == 'failure') }}
+        if: ${{ !cancelled() && (steps.root_audit.outcome == 'failure' || steps.fuzz_audit.outcome == 'failure' || steps.raw_audit.outcome == 'failure') }}
         run: |
-          echo "::error::A Cargo lockfile audit failed. Inspect the audit-report artifact."
+          echo "::error::A Cargo lockfile audit or report capture failed. Inspect the audit-report artifact."
           exit 1
 
   # Dependency license check

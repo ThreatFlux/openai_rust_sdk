@@ -28,6 +28,45 @@ REVIEWED_ADVISORIES = {
     "RUSTSEC-2023-0071",
     "RUSTSEC-2025-0141",
 }
+RESIDUAL_PACKAGES = {"yara-x", "rsa", "bincode"}
+REVIEWED_YARA_FEATURES = {
+    "console-module",
+    "constant-folding",
+    "crx-module",
+    "crypto",
+    "cuckoo-module",
+    "default",
+    "default-modules",
+    "dex-module",
+    "dotnet-module",
+    "elf-module",
+    "exact-atoms",
+    "fast-regexp",
+    "generate-proto-code",
+    "hash-module",
+    "lnk-module",
+    "macho-module",
+    "math-module",
+    "pe-module",
+    "string-module",
+    "time-module",
+    "vt-module",
+    "zip-module",
+}
+
+
+def cargo_metadata(*args: str) -> dict:
+    """Resolve one locked SDK or fuzz feature profile."""
+    result = subprocess.run(  # nosec B603, B607
+        ["cargo", "metadata", "--locked", "--format-version", "1", *args],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        raise RuntimeError(result.stderr or "cargo metadata failed")
+    return json.loads(result.stdout)
 
 
 def graph_errors(metadata: dict) -> list[str]:
@@ -49,6 +88,29 @@ def graph_errors(metadata: dict) -> list[str]:
     return errors
 
 
+def feature_scope_errors(profiles: dict[str, dict]) -> list[str]:
+    """Keep reviewed advisories behind the optional YARA feature."""
+    errors: list[str] = []
+    for profile, metadata in profiles.items():
+        packages = {package["id"]: package for package in metadata["packages"]}
+        active = {packages[node["id"]]["name"] for node in metadata["resolve"]["nodes"]}
+        found = active & RESIDUAL_PACKAGES
+        expected = RESIDUAL_PACKAGES if profile in {"yara", "full", "all"} else set()
+        if found != expected:
+            errors.append(
+                f"Re-review {profile} feature scope: expected {sorted(expected)}, found {sorted(found)}"
+            )
+        if "yara-x" in found:
+            yara = next(package for package in packages.values() if package["name"] == "yara-x")
+            node = next(
+                node for node in metadata["resolve"]["nodes"] if node["id"] == yara["id"]
+            )
+            features = set(node["features"])
+            if features != REVIEWED_YARA_FEATURES:
+                errors.append(f"Re-review {profile} YARA-X features: {sorted(features)}")
+    return errors
+
+
 def package_scope_errors(package: dict, nodes: dict, names: dict) -> list[str]:
     """Check source, callers and feature reachability for one reviewed release."""
     errors: list[str] = []
@@ -65,9 +127,8 @@ def package_scope_errors(package: dict, nodes: dict, names: dict) -> list[str]:
         errors.append(f"Unreviewed {name} callers: {sorted(parents)}")
     if name == "wasmtime":
         features = set(nodes[package["id"]]["features"])
-        unexpected = features - REVIEWED_WASMTIME_FEATURES
-        if unexpected:
-            errors.append(f"Unreviewed Wasmtime features: {sorted(unexpected)}")
+        if features != REVIEWED_WASMTIME_FEATURES:
+            errors.append(f"Re-review Wasmtime features: {sorted(features)}")
     return errors
 
 
@@ -103,23 +164,29 @@ def source_errors() -> list[str]:
 
 
 def main() -> int:
-    # The fixed command uses the checked-in lockfile and never invokes a shell.
-    result = subprocess.run(  # nosec B603, B607
-        ["cargo", "metadata", "--locked", "--all-features", "--format-version", "1"],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
+    # Resolve each profile from its checked-in lockfile without invoking a shell.
+    try:
+        profiles = {
+            "default": cargo_metadata(),
+            "yara": cargo_metadata("--no-default-features", "--features", "yara"),
+            "full": cargo_metadata("--features", "full"),
+            "all": cargo_metadata("--all-features"),
+            "fuzz": cargo_metadata("--manifest-path", "fuzz/Cargo.toml"),
+        }
+    except RuntimeError as error:
+        print(error, file=sys.stderr, end="")
+        return 1
+    errors = (
+        graph_errors(profiles["all"])
+        + feature_scope_errors(profiles)
+        + policy_errors()
+        + source_errors()
     )
-    if result.returncode:
-        print(result.stderr, file=sys.stderr, end="")
-        return result.returncode
-    errors = graph_errors(json.loads(result.stdout)) + policy_errors() + source_errors()
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    print("YARA-X advisory scope verified: reviewed releases, core Wasm, no WASI or component APIs")
+    print("YARA-X advisory scope verified: locked profiles, reviewed features and APIs")
     return 0
 
 
