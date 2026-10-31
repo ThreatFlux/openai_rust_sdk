@@ -3,9 +3,11 @@
 
 version: 2
 updates:
-  # Rust dependencies (Cargo)
+  # Rust dependencies (Cargo): root and independent fuzz workspaces
   - package-ecosystem: "cargo"
-    directory: "/"
+    directories:
+      - "/"
+      - "/fuzz"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -79,4 +81,5 @@ updates:
       prefix: "build"
       include: "scope"
 
-# Security updates are enabled by default and run separately from the above schedule
+# Dependabot security updates must be enabled separately in repository settings.
+# This version-update configuration does not enable them.
