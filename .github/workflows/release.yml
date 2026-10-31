@@ -372,7 +372,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo-cyclonedx
-        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
           tool: cargo-cyclonedx@0.5.9
 
@@ -678,7 +678,7 @@ jobs:
       - name: Authenticate with crates.io
         id: crates-io-auth
         if: steps.gate.outputs.mode == 'publish' && steps.packages.outputs.pending != ''
-        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
 
       # A failed publish fails the release run, so a tag and GitHub Release
       # without a crate behind them cannot pass unnoticed.
