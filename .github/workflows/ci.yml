@@ -281,6 +281,11 @@ jobs:
             cargo check --locked --no-default-features --features "$feature"
           done
 
+      - name: Exercise optional YARA validator
+        run: cargo test --locked --no-default-features --features yara --lib testing::yara_validator::tests
+        env:
+          RUST_TEST_THREADS: 2
+
   # Benchmarks
   bench:
     name: Benchmarks

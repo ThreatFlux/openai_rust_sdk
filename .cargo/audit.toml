@@ -1,9 +1,11 @@
-# Guarded by scripts/check_yara_security.py; reviewed 2026-10-21.
+# Guarded by scripts/check_yara_security.py; reviewed 2026-10-31.
+# ThreatFlux SDK security maintainers own the residual review due 2026-11-30.
 # Wasmtime exceptions were removed after upgrading to YARA-X1.22/Wasmtime48.
 [advisories]
 ignore = [
-    # Public signature verification only; no private-key RSA operation in YARA-X.
+    # Inspected YARA-X crypto helper uses public-key verification; no private
+    # RSA operation was found on the SDK validation path.
     "RUSTSEC-2023-0071",
-    # Bincode2.0.1 remains upstream-required and unmaintained, not a fixed defect.
+    # Bincode 2.0.1 is unmaintained and used for internal YARA-X globals.
     "RUSTSEC-2025-0141",
 ]
