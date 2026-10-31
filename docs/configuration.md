@@ -262,10 +262,10 @@ registry dependency.
 
 ## Optional YARA-X dependency security review
 
-Reviewed on **2026-10-21** against the locked all-feature graph: YARA-X **1.22.0**,
-Wasmtime **48.0.7**, RSA **0.10.0-rc.19**, and Bincode **2.0.1**. The latest stable
+Reviewed on **2026-10-31** against the locked all-feature graph: YARA-X **1.22.0**,
+Wasmtime **48.0.8**, RSA **0.10.0-rc.19**, and Bincode **2.0.1**. The latest stable
 [YARA-X manifest](https://github.com/VirusTotal/yara-x/blob/v1.22.0/Cargo.toml)
-now resolves patched Wasmtime 48.0.7. The following remaining exceptions apply
+now resolves patched Wasmtime 48.0.8. The following remaining exceptions apply
 to this repository's verified usage. They do not patch upstream dependencies.
 
 | Advisory | Reviewed applicability |
@@ -297,9 +297,11 @@ applicability review; these repository exceptions do not establish safety for
 that application's feature graph. The YARA-X feature remains optional and is
 unnecessary for ordinary OpenAI SDK use.
 
-The 2026-10-21 dependency refresh upgrades Wasmtime to 48.0.7 and removes all
-four earlier Wasmtime advisory exceptions. An unfiltered audit of the locked
-graph now reports only RSA private-key timing (unreachable through YARA-X's
-public verification calls) and the Bincode maintenance warning above. RSA's
+The 2026-10-21 dependency refresh upgraded Wasmtime to 48.0.7 and removed four
+earlier Wasmtime advisory exceptions. The 2026-10-31 refresh moves to 48.0.8 to
+address RUSTSEC-2026-0422, RUSTSEC-2026-0423, and RUSTSEC-2026-0424. An
+unfiltered audit of the locked graph now reports only RSA private-key timing
+(unreachable through YARA-X's public verification calls) and the Bincode
+maintenance warning above. RSA's
 release-candidate version is required transitively by the stable YARA-X
 release; this repository selects stable releases for its direct dependencies.
