@@ -57,14 +57,14 @@ jobs:
       - name: Capture unfiltered root and fuzz audits
         id: raw_audit
         run: |
-          # cargo-audit loads .cargo/audit.toml from its working directory or home.
-          # Run outside the checkout and fail if a home policy could filter results.
-          if [ -f "$HOME/.cargo/audit.toml" ]; then
+          # Run outside the checkout and reject policy in the effective Cargo home.
+          audit_dir="$(mktemp -d "$RUNNER_TEMP/yara-raw-audit.XXXXXX")"
+          cd "$audit_dir"
+          cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+          if [ -f "$cargo_home/audit.toml" ]; then
             echo "::error::A home cargo-audit policy prevents an unfiltered report."
             exit 1
           fi
-          audit_dir="$(mktemp -d "$RUNNER_TEMP/yara-raw-audit.XXXXXX")"
-          cd "$audit_dir"
           set +e
           cargo audit --no-fetch --file "$GITHUB_WORKSPACE/Cargo.lock" --json > "$GITHUB_WORKSPACE/audit-unfiltered.json"
           root_status=$?
