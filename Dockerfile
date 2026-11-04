@@ -18,7 +18,7 @@
 # Refresh trust data and its package provenance together. Distroless currently
 # has fixed CA data but stale package metadata; never globally dismiss the
 # advisory while older published images still trust the distrusted roots.
-FROM --platform=$BUILDPLATFORM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad AS trust-store
+FROM --platform=$BUILDPLATFORM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4 AS trust-store
 
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
