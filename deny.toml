@@ -72,8 +72,8 @@ feature-depth = 1
 # These exceptions are guarded by scripts/check_yara_security.py.
 # They describe this repository's graph, not every downstream feature union.
 ignore = [
-    { id = "RUSTSEC-2023-0071", reason = "YARA-X 1.22.0 uses public RSA signature verification only, never private-key operations" },
-    { id = "RUSTSEC-2025-0141", reason = "Bincode 2.0.1 is unmaintained; stable YARA-X has no replacement and this SDK does not deserialize compiled rules" },
+    { id = "RUSTSEC-2023-0071", reason = "Inspected YARA-X 1.22.0 helper verifies public-key signatures; no private RSA operation found on SDK validation path" },
+    { id = "RUSTSEC-2025-0141", reason = "YARA-X 1.22.0 uses unmaintained Bincode for internal globals; SDK does not deserialize externally supplied compiled rules" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
