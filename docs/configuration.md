@@ -262,26 +262,25 @@ registry dependency.
 
 ## Optional YARA-X dependency security review
 
-Reviewed on **2026-10-31** against the locked all-feature graph and the published
-YARA-X **1.22.0** source: Wasmtime **48.0.8**, RSA **0.10.0-rc.19**, and Bincode
+Reviewed on **2026-11-12** against the locked all-feature graph and the published
+YARA-X **1.23.0** source: Wasmtime **48.0.8**, RSA **0.10.0**, and Bincode
 **2.0.1**. The reviewed
-[YARA-X manifest](https://github.com/VirusTotal/yara-x/blob/v1.22.0/Cargo.toml)
+[YARA-X manifest](https://github.com/VirusTotal/yara-x/blob/v1.23.0/Cargo.toml)
 permits this repository's locked Wasmtime 48.0.8. The following remaining
 exceptions apply to the inspected feature graph and SDK operations. They do not
 patch dependencies or clear the Scorecard finding.
 
 | Advisory | Reviewed applicability |
 | --- | --- |
-| [RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071) | The advisory concerns timing leakage from private RSA operations. The inspected YARA-X crypto helper parses public keys and verifies signatures; no private-key operation was found on this path. YARA-X's default `pe`, `crx`, and `macho` modules retain the RSA dependency. This review does not prove every upstream or downstream call path. |
 | [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141) | Bincode 2.0.1 is unmaintained and is an unconditional YARA-X dependency. The SDK's optional validator exercises Bincode when YARA-X encodes compiler globals and decodes them while creating a scanner. The SDK does not call `Rules::deserialize` on externally supplied compiled rules. The maintenance finding remains valid. |
 
 The source evidence is YARA-X's
-[public-key verification](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/modules/utils/crypto.rs),
-[compiler globals encoding](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/compiler/mod.rs),
-[scanner globals decoding](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/compiler/rules.rs),
-[global engine](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/wasm/mod.rs),
-[compiler module creation](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/compiler/mod.rs),
-and [scanner store creation](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/scanner/context.rs).
+[public-key verification](https://github.com/VirusTotal/yara-x/blob/v1.23.0/lib/src/modules/utils/crypto.rs),
+[compiler globals encoding](https://github.com/VirusTotal/yara-x/blob/v1.23.0/lib/src/compiler/mod.rs),
+[scanner globals decoding](https://github.com/VirusTotal/yara-x/blob/v1.23.0/lib/src/compiler/rules.rs),
+[global engine](https://github.com/VirusTotal/yara-x/blob/v1.23.0/lib/src/wasm/mod.rs),
+[compiler module creation](https://github.com/VirusTotal/yara-x/blob/v1.23.0/lib/src/compiler/mod.rs),
+and [scanner store creation](https://github.com/VirusTotal/yara-x/blob/v1.23.0/lib/src/scanner/context.rs).
 The resolved Wasmtime feature union is limited to core compilation/runtime and
 support features; it contains neither component-model feature.
 
@@ -312,8 +311,10 @@ unnecessary for ordinary OpenAI SDK use.
 
 The 2026-10-21 dependency refresh upgraded Wasmtime to 48.0.7 and removed four
 earlier Wasmtime advisory exceptions. The 2026-10-31 refresh moves to 48.0.8 to
-address RUSTSEC-2026-0422, RUSTSEC-2026-0423, and RUSTSEC-2026-0424. A
-previous unfiltered audit of the locked graph reported the RSA private-key
-timing advisory and Bincode maintenance warning above. RSA's
-release-candidate version is required transitively by the stable YARA-X
-release; this repository selects stable releases for its direct dependencies.
+address RUSTSEC-2026-0422, RUSTSEC-2026-0423, and RUSTSEC-2026-0424.
+The 2026-11-12 refresh selects stable RSA 0.10.0, which RustSec lists as patched
+for RUSTSEC-2023-0071, and removes that exception from both advisory policies.
+The optional `yara` feature explicitly enables RSA's `pkcs1v15` feature because
+the stable RSA release makes the public-signature scheme used by YARA-X opt-in.
+The SDK exposes no RSA operations. The Bincode maintenance exception remains
+scoped to the unchanged internal-globals path described above.
