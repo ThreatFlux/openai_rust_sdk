@@ -105,8 +105,13 @@ class PublicationPolicyTests(unittest.TestCase):
         result = POLICY.api("repos/ThreatFlux/example/tags?per_page=100", pages=True)
         self.assertEqual(result, first_page + last_page)
         self.assertEqual(
-            connect.call_args_list, [mock.call("api.github.com", timeout=60)] * 2
+            [call.args for call in connect.call_args_list], [("api.github.com",)] * 2
         )
+        for call in connect.call_args_list:
+            self.assertEqual(call.kwargs["timeout"], 60)
+            context = call.kwargs["context"]
+            self.assertTrue(context.check_hostname)
+            self.assertEqual(context.verify_mode, POLICY.ssl.CERT_REQUIRED)
         paths = [call.args[1] for call in connection.request.call_args_list]
         self.assertEqual(
             paths,

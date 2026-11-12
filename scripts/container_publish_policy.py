@@ -8,6 +8,7 @@ import http.client
 import json
 import os
 import re
+import ssl
 import tomllib
 from pathlib import Path
 
@@ -71,7 +72,13 @@ def api_request(path: str):
         "User-Agent": "ThreatFlux-container-publication",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    connection = http.client.HTTPSConnection("api.github.com", timeout=60)
+    # Python >=3.11 (tomllib) verifies both CAs and hostnames; make that explicit.
+    # https://docs.python.org/3/library/http.client.html#http.client.HTTPSConnection
+    context = ssl.create_default_context()
+    context.set_alpn_protocols(["http/1.1"])
+    connection = http.client.HTTPSConnection(  # nosemgrep: python.lang.security.audit.httpsconnection-detected.httpsconnection-detected
+        "api.github.com", timeout=60, context=context
+    )
     try:
         connection.request("GET", "/" + path, headers=headers)
         response = connection.getresponse()
