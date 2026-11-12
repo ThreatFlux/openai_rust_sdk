@@ -262,19 +262,23 @@ registry dependency.
 
 ## Optional YARA-X dependency security review
 
-Reviewed on **2026-10-31** against the locked all-feature graph: YARA-X **1.22.0**,
-Wasmtime **48.0.8**, RSA **0.10.0-rc.19**, and Bincode **2.0.1**. The latest stable
+Reviewed on **2026-10-31** against the locked all-feature graph and the published
+YARA-X **1.22.0** source: Wasmtime **48.0.8**, RSA **0.10.0-rc.19**, and Bincode
+**2.0.1**. The reviewed
 [YARA-X manifest](https://github.com/VirusTotal/yara-x/blob/v1.22.0/Cargo.toml)
-now resolves patched Wasmtime 48.0.8. The following remaining exceptions apply
-to this repository's verified usage. They do not patch upstream dependencies.
+permits this repository's locked Wasmtime 48.0.8. The following remaining
+exceptions apply to the inspected feature graph and SDK operations. They do not
+patch dependencies or clear the Scorecard finding.
 
 | Advisory | Reviewed applicability |
 | --- | --- |
-| [RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071) | The Marvin attack requires private RSA operations. YARA-X uses public keys for signature verification, with no private key, signing, or decryption operation. |
-| [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141) | Bincode is unmaintained. Stable YARA-X still depends on it; this is an accepted maintenance risk, not a claim that Bincode remains maintained. The SDK does not deserialize compiled rules. |
+| [RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071) | The advisory concerns timing leakage from private RSA operations. The inspected YARA-X crypto helper parses public keys and verifies signatures; no private-key operation was found on this path. YARA-X's default `pe`, `crx`, and `macho` modules retain the RSA dependency. This review does not prove every upstream or downstream call path. |
+| [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141) | Bincode 2.0.1 is unmaintained and is an unconditional YARA-X dependency. The SDK's optional validator exercises Bincode when YARA-X encodes compiler globals and decodes them while creating a scanner. The SDK does not call `Rules::deserialize` on externally supplied compiled rules. The maintenance finding remains valid. |
 
 The source evidence is YARA-X's
 [public-key verification](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/modules/utils/crypto.rs),
+[compiler globals encoding](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/compiler/mod.rs),
+[scanner globals decoding](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/compiler/rules.rs),
 [global engine](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/wasm/mod.rs),
 [compiler module creation](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/compiler/mod.rs),
 and [scanner store creation](https://github.com/VirusTotal/yara-x/blob/v1.22.0/lib/src/scanner/context.rs).
@@ -283,13 +287,22 @@ support features; it contains neither component-model feature.
 
 `make audit`, `make deny`, and both hosted security jobs first run
 `python3 scripts/check_yara_security.py`. The guard rejects changed reviewed
-versions, non-registry replacements, new Wasmtime features, WASI/cap-std
-packages, additional callers of the reviewed dependencies, mismatched exception
+versions, non-registry replacements, changed YARA-X or Wasmtime features,
+YARA-X exposure in ordinary SDK or fuzz builds, WASI/cap-std packages,
+additional callers of the reviewed dependencies, mismatched exception
 policies, and direct SDK exposure of the
 excluded Wasmtime or compiled-rule APIs. New advisory IDs still fail the normal
-security checks. Re-review these exceptions when a fixed compatible YARA-X
-release becomes available; remove them when their dependencies are fixed or
-removed.
+security checks. Hosted CI runs the optional validator's synthetic valid,
+invalid, and scan cases. The Security Audit job retains policy-filtered and
+unfiltered reports for both root and fuzz lockfiles.
+
+**Decision owner:** ThreatFlux SDK security maintainers, reachable at
+[security@threatflux.ai](mailto:security@threatflux.ai). **Next review due:**
+**2026-11-30**, or earlier when YARA-X publishes a new release, either advisory
+changes, or the SDK's YARA feature/API changes. At review, compare published
+source and feature graphs, inspect both unfiltered and filtered hosted reports,
+and remove the exceptions only when the resolved dependencies or evidence
+justify it. A missed review date makes this acceptance stale.
 
 Cargo unifies features across dependencies. A downstream application that adds
 Wasmtime component APIs, WASI, or new YARA-X entry points must perform its own
@@ -299,9 +312,8 @@ unnecessary for ordinary OpenAI SDK use.
 
 The 2026-10-21 dependency refresh upgraded Wasmtime to 48.0.7 and removed four
 earlier Wasmtime advisory exceptions. The 2026-10-31 refresh moves to 48.0.8 to
-address RUSTSEC-2026-0422, RUSTSEC-2026-0423, and RUSTSEC-2026-0424. An
-unfiltered audit of the locked graph now reports only RSA private-key timing
-(unreachable through YARA-X's public verification calls) and the Bincode
-maintenance warning above. RSA's
+address RUSTSEC-2026-0422, RUSTSEC-2026-0423, and RUSTSEC-2026-0424. A
+previous unfiltered audit of the locked graph reported the RSA private-key
+timing advisory and Bincode maintenance warning above. RSA's
 release-candidate version is required transitively by the stable YARA-X
 release; this repository selects stable releases for its direct dependencies.
