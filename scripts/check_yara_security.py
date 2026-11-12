@@ -12,9 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEWED_VERSIONS = {
-    "yara-x": "1.22.0",
+    "yara-x": "1.23.0",
     "wasmtime": "48.0.8",
-    "rsa": "0.10.0-rc.19",
+    "rsa": "0.10.0",
     "bincode": "2.0.1",
 }
 REVIEWED_WASMTIME_FEATURES = {
@@ -25,7 +25,6 @@ REVIEWED_WASMTIME_FEATURES = {
     "wasmtime-jit-icache-coherence",
 }
 REVIEWED_ADVISORIES = {
-    "RUSTSEC-2023-0071",
     "RUSTSEC-2025-0141",
 }
 RESIDUAL_PACKAGES = {"yara-x", "rsa", "bincode"}
@@ -117,13 +116,17 @@ def package_scope_errors(package: dict, nodes: dict, names: dict) -> list[str]:
     name = package["name"]
     if package["source"] != "registry+https://github.com/rust-lang/crates.io-index":
         errors.append(f"{name} must use the reviewed crates.io release")
-    allowed_parent = "openai_rust_sdk" if name == "yara-x" else "yara-x"
+    allowed_parents = {"openai_rust_sdk"} if name == "yara-x" else {"yara-x"}
+    if name == "rsa":
+        # The SDK enables the upstream public-signature feature omitted by
+        # YARA-X when rsa 0.10 made PKCS#1 v1.5 opt-in. No SDK RSA API is exposed.
+        allowed_parents.add("openai_rust_sdk")
     parents = {
         names[node["id"]]
         for node in nodes.values()
         if any(dep["pkg"] == package["id"] for dep in node["deps"])
     }
-    if parents != {allowed_parent}:
+    if parents != allowed_parents:
         errors.append(f"Unreviewed {name} callers: {sorted(parents)}")
     if name == "wasmtime":
         features = set(nodes[package["id"]]["features"])

@@ -9,6 +9,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/docker.yml"
+      - "scripts/container_publish_policy.py"
+      - "scripts/test_container_publish_policy.py"
       - "Dockerfile"
       - ".dockerignore"
       - "Cargo.toml"
@@ -73,6 +75,12 @@ jobs:
 
       # The Docker Hub credentials are read only when publishing there is
       # switched on; without them the run warns and publishes to GHCR alone.
+      - name: Validate release image source
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/container_publish_policy.py --validate
+
       - name: Check Docker Hub credentials
         id: dockerhub
         if: github.event_name != 'pull_request' && env.PUBLISH_DOCKERHUB == 'true'
@@ -129,6 +137,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: image=moby/buildkit:v0.35.0@sha256:aa632b921ef07411d2cb77292cd34213d4f7b384001d6fceef1e1f25bf9752bb
+          version: v0.39.0
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -165,9 +176,10 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ steps.names.outputs.images }}
+          flavor: latest=false
           tags: |
-            type=raw,value=base-rust-${{ steps.rust_base.outputs.version }}
-            type=raw,value=base-rust-latest,enable={{is_default_branch}}
+            type=raw,value=base-${{ github.sha }}
+            type=raw,value=base-rust-${{ steps.rust_base.outputs.version }}-${{ github.sha }}
           labels: |
             org.opencontainers.image.title=${{ env.OCI_IMAGE_TITLE }} Rust Base
             org.opencontainers.image.description=Rust ${{ steps.rust_base.outputs.version }} base image for ${{ env.OCI_IMAGE_TITLE }}
@@ -177,6 +189,7 @@ jobs:
       # The Rust base image stays linux/amd64, as before; only the runtime
       # image is published for both platforms.
       - name: Build base image
+        id: base_build
         if: github.event_name != 'pull_request' && matrix.arch == 'amd64'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -200,6 +213,25 @@ jobs:
             OCI_IMAGE_DESCRIPTION=${{ env.OCI_IMAGE_DESCRIPTION }}
             OCI_IMAGE_VENDOR=${{ env.OCI_IMAGE_VENDOR }}
             OCI_IMAGE_SOURCE=${{ env.OCI_IMAGE_SOURCE }}
+
+      - name: Record the base image digest
+        if: github.event_name != 'pull_request' && matrix.arch == 'amd64'
+        env:
+          BASE_DIGEST: ${{ steps.base_build.outputs.digest }}
+          RUST_VERSION: ${{ steps.rust_base.outputs.version }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/base-image"
+          printf '%s\n' "$BASE_DIGEST" > "${RUNNER_TEMP}/base-image/digest.txt"
+          printf '%s\n' "$RUST_VERSION" > "${RUNNER_TEMP}/base-image/rust-version.txt"
+
+      - name: Upload the base image digest
+        if: github.event_name != 'pull_request' && matrix.arch == 'amd64'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: base-image-digest
+          path: ${{ runner.temp }}/base-image
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Build and export (PRs)
         if: github.event_name == 'pull_request'
@@ -353,6 +385,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: image=moby/buildkit:v0.35.0@sha256:aa632b921ef07411d2cb77292cd34213d4f7b384001d6fceef1e1f25bf9752bb
+          version: v0.39.0
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
@@ -374,14 +409,11 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ steps.names.outputs.images }}
+          flavor: latest=false
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
             type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
-
+            type=sha,format=long,prefix=
       # One index per registry, built from the platform digests pushed to that
       # same registry, so no blob has to be copied between registries.
       - name: Create and push multi-arch index
@@ -481,12 +513,14 @@ jobs:
 
       - name: Image reference
         id: image
+        env:
+          IMAGE_DIGEST: ${{ needs.merge.outputs.digest }}
         run: |
           image_name="${GITHUB_REPOSITORY,,}"
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             echo "ref=${image_name}:scan" >> "$GITHUB_OUTPUT"
           else
-            echo "ref=${REGISTRY}/${image_name}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "ref=${REGISTRY}/${image_name}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Log in to registry
@@ -506,7 +540,7 @@ jobs:
       - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          version: v0.76.0
+          version: v0.76.2
           image-ref: ${{ steps.image.outputs.ref }}
           format: sarif
           output: trivy-results.sarif
@@ -554,12 +588,14 @@ jobs:
 
       - name: Image reference
         id: image
+        env:
+          IMAGE_DIGEST: ${{ needs.merge.outputs.digest }}
         run: |
           image_name="${GITHUB_REPOSITORY,,}"
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             echo "ref=${image_name}:scan" >> "$GITHUB_OUTPUT"
           else
-            echo "ref=${REGISTRY}/${image_name}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "ref=${REGISTRY}/${image_name}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Log in to registry
@@ -685,7 +721,9 @@ jobs:
     steps:
       - name: Image reference
         id: image
-        run: echo "ref=${REGISTRY}/${GITHUB_REPOSITORY,,}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        env:
+          IMAGE_DIGEST: ${{ needs.merge.outputs.digest }}
+        run: echo "ref=${REGISTRY}/${GITHUB_REPOSITORY,,}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
@@ -697,15 +735,16 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
+          upload-release-assets: false
+          syft-version: v1.57.1
           image: ${{ steps.image.outputs.ref }}
           artifact-name: sbom.spdx.json
           format: spdx-json
-        continue-on-error: true
 
   docker-success:
     name: Docker Build Success
     runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
-    needs: [build, merge, scan, test]
+    needs: [build, merge, scan, test, sign, sbom, promote]
     if: always()
     steps:
       - name: Check results
@@ -714,6 +753,7 @@ jobs:
           MERGE_RESULT: ${{ needs.merge.result }}
           SCAN_RESULT: ${{ needs.scan.result }}
           TEST_RESULT: ${{ needs.test.result }}
+          PROMOTE_RESULT: ${{ needs.promote.result }}
         run: |
           if [[ "${BUILD_RESULT}" != "success" ]]; then
             echo "Docker build failed"
@@ -731,4 +771,93 @@ jobs:
             echo "Docker image tests failed"
             exit 1
           fi
+          if [[ "${GITHUB_EVENT_NAME}" != "pull_request" && "${PROMOTE_RESULT}" != "success" ]]; then
+            echo "Verified container alias promotion failed"
+            exit 1
+          fi
           echo "Docker workflow completed successfully"
+
+  promote:
+    name: Promote verified container aliases
+    needs: [build, merge, scan, test, sign, sbom]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ${{ vars.RUST_TEMPLATE_RUNNER_UBUNTU || 'ubuntu-latest' }}
+    concurrency:
+      group: container-alias-promotion
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout the already built and scanned source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the exact base image digest
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: base-image-digest
+          path: ${{ runner.temp }}/base-image
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: image=moby/buildkit:v0.35.0@sha256:aa632b921ef07411d2cb77292cd34213d4f7b384001d6fceef1e1f25bf9752bb
+          version: v0.39.0
+
+      - name: Log in to registry
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: needs.merge.outputs.dockerhub_enabled == 'true'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Re-evaluate refs and promote only the verified digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DIGEST: ${{ needs.merge.outputs.digest }}
+          DOCKERHUB_ENABLED: ${{ needs.merge.outputs.dockerhub_enabled }}
+        run: |
+          set -euo pipefail
+          IMAGE_NAME="${GITHUB_REPOSITORY,,}"
+          BASE_DIGEST="$(cat "$RUNNER_TEMP/base-image/digest.txt")"
+          RUST_VERSION="$(cat "$RUNNER_TEMP/base-image/rust-version.txt")"
+          dockerhub_repo="${IMAGE_NAME##*/}"
+          dockerhub_repo="${dockerhub_repo//_/-}"
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$BASE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$RUST_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          # The concurrency lock covers this fresh decision and all promotions.
+          # A historical retry cannot finish after a newer promotion and rewind it.
+          python3 scripts/container_publish_policy.py > "$RUNNER_TEMP/alias-policy.json"
+          mapfile -t runtime_aliases < <(jq -r '.runtime[]' "$RUNNER_TEMP/alias-policy.json")
+          base_aliases=()
+          if [[ "$(jq -r .base "$RUNNER_TEMP/alias-policy.json")" == true ]]; then
+            base_aliases=("base-rust-$RUST_VERSION" base-rust-latest)
+          fi
+          images=("$REGISTRY/$IMAGE_NAME")
+          if [[ "$DOCKERHUB_ENABLED" == true ]]; then
+            images+=("$DOCKERHUB_REGISTRY/$DOCKERHUB_NAMESPACE/$dockerhub_repo")
+          fi
+          for image in "${images[@]}"; do
+            for alias in "${runtime_aliases[@]}"; do
+              docker buildx imagetools create --tag "$image:$alias" "$image@$DIGEST"
+              actual="$(docker buildx imagetools inspect "$image:$alias" --format '{{.Manifest.Digest}}')"
+              [[ "$actual" == "$DIGEST" ]]
+            done
+            for alias in "${base_aliases[@]}"; do
+              docker buildx imagetools create --tag "$image:$alias" "$image@$BASE_DIGEST"
+              actual="$(docker buildx imagetools inspect "$image:$alias" --format '{{.Manifest.Digest}}')"
+              [[ "$actual" == "$BASE_DIGEST" ]]
+            done
+          done

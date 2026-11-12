@@ -39,7 +39,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
       
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked --version 0.22.2
+        run: cargo install cargo-audit --locked --version 0.23.0
       
       - name: Verify YARA-X advisory scope
         run: python3 scripts/check_yara_security.py
@@ -205,7 +205,7 @@ jobs:
     name: Semgrep Security Scan
     runs-on: ubuntu-latest
     container:
-      image: semgrep/semgrep:1.182.0@sha256:4a34048c04fef049f71665047f074cffb00cc3d89482f965a5cd151d589237af
+      image: semgrep/semgrep:1.185.0@sha256:67518c174185a2043fdbed16c70631b79209499b3671178e7194379b48295a0d
     permissions:
       contents: read
       security-events: write
@@ -270,9 +270,8 @@ jobs:
         continue-on-error: true
       
       - name: Install cargo-cyclonedx
-        uses: taiki-e/install-action@3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2 # v2.90.2
-        with:
-          tool: cargo-cyclonedx@0.5.9
+        # This version has no hash entry in the pinned binary installer manifest.
+        run: cargo install --locked --version 0.5.10 cargo-cyclonedx
 
       - name: Generate SBOM
         run: make sbom BINARY_NAME="${BINARY_NAME}" SBOM_MANIFEST_PATH="${SBOM_MANIFEST_PATH}"

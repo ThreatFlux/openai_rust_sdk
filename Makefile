@@ -57,10 +57,10 @@ dev-setup: ## Install development tools
 	@rustup toolchain install $(RUST_TOOLCHAIN) --profile minimal
 	@rustup component add rustfmt clippy llvm-tools-preview
 	@cargo install cargo-llvm-cov --locked --version 0.9.1
-	@cargo install cargo-audit --locked --version 0.22.2
+	@cargo install cargo-audit --locked --version 0.23.0
 	@cargo install cargo-deny --locked --version 0.20.2
-	@cargo install cargo-cyclonedx --locked --version 0.5.9
-	@cargo install cargo-hack --locked --version 0.6.45
+	@cargo install cargo-cyclonedx --locked --version 0.5.10
+	@cargo install cargo-hack --locked --version 0.6.46
 	@python3 -m pip install --user pre-commit==4.7.0
 	@echo "$(GREEN)Development tools installed!$(NC)"
 
