@@ -63,6 +63,9 @@ jobs:
       - name: Check Cargo package contents
         run: python3 scripts/check_package.py
       
+      - name: Check container publication ordering
+        run: python3 -m unittest discover -s scripts -p test_container_publish_policy.py
+
       - name: Check formatting
         run: cargo fmt --all -- --check
       
@@ -208,6 +211,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
+          version: v11.3.2
           files: lcov.info
           fail_ci_if_error: false
           verbose: true

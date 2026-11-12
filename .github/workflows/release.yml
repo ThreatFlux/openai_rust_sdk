@@ -372,9 +372,8 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo-cyclonedx
-        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
-        with:
-          tool: cargo-cyclonedx@0.5.9
+        # This version has no hash entry in the pinned binary installer manifest.
+        run: cargo install --locked --version 0.5.10 cargo-cyclonedx
 
       - name: Generate SBOM files
         env:

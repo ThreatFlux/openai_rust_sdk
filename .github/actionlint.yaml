@@ -1,0 +1,6 @@
+# GitHub supports queue: max; stable actionlint 1.7.12 predates that schema.
+# https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+paths:
+  .github/workflows/docker.yml:
+    ignore:
+      - '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$'

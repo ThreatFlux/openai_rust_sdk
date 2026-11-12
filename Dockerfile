@@ -95,7 +95,7 @@ RUN rustc --version --verbose && cargo --version && \
 
 # cargo-cyclonedx writes the SBOM beside the manifest it was handed, which in a
 # workspace is not necessarily /build. The find normalizes the output location.
-RUN cargo install cargo-cyclonedx --locked --version 0.5.9 && \
+RUN cargo install cargo-cyclonedx --locked --version 0.5.10 && \
     cargo cyclonedx \
       --manifest-path "${SBOM_MANIFEST_PATH}" \
       --all-features \
