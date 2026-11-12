@@ -246,7 +246,7 @@ rather than only when opening the stream.
 The crate declares `rust-version = 1.97.1`. Version **2.0.0** introduced a
 breaking WebRTC dependency-type migration; see the
 [migration guide](migration-2.0.md).
-Development and CI use the pinned **1.99.1** toolchain; the separate MSRV check
+Development and CI use the pinned **1.100.0** toolchain; the separate MSRV check
 uses **1.97.1** with all features.
 After publication, the release tag, packaged crate, and matching docs.rs page
 should describe the same source.
