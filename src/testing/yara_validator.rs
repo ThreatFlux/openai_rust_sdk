@@ -717,7 +717,7 @@ mod tests {
 
         // Check that error is properly categorized
         let ValidationError::CompilationError { message } = &result.errors[0];
-        assert!(!message.is_empty());
+        assert_ne!(message, "");
     }
 
     #[test]
@@ -736,7 +736,7 @@ mod tests {
 
         // Test that result can be serialized to JSON
         let json = serde_json::to_string(&result).unwrap();
-        assert!(!json.is_empty());
+        assert_ne!(json, "");
 
         // Test that it can be deserialized back
         let deserialized: ValidationResult = serde_json::from_str(&json).unwrap();
