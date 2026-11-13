@@ -54,6 +54,13 @@ jobs:
       # inputs.* is empty for workflow_run events, so automatic runs stay real.
       dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
       create-pr: true
+      # Explicit manual bumps own distinct reserved branches so an automatic
+      # patch proposal cannot replace an open manual major/minor release PR.
+      release-branch: >-
+        ${{ github.event_name == 'workflow_dispatch'
+            && contains(fromJSON('["patch","minor","major"]'), inputs.version_bump)
+            && format('automation/release/manual-{0}', inputs.version_bump)
+            || 'automation/release/auto' }}
       required-workflows: CI,Security
       # Only dispatched on the GITHUB_TOKEN fallback path (no App key available).
       dispatch-workflows: release.yml,docker.yml
