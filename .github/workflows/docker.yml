@@ -125,12 +125,12 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Detect Rust base image version
+      - name: Detect installed Rust compiler version
         id: rust_base
         run: |
-          RUST_BASE_VERSION="$(sed -n 's/^FROM rust:\([0-9][0-9.]*\)[^@ ]*@sha256:[^ ]* AS rust-base$/\1/p' Dockerfile | sed -n '1p')"
-          if [ -z "${RUST_BASE_VERSION}" ]; then
-            echo "Unable to detect the pinned Rust base image version" >&2
+          RUST_BASE_VERSION="$(python3 -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])')"
+          if [[ ! "${RUST_BASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || ! grep -Fxq "ENV RUST_VERSION=${RUST_BASE_VERSION}" Dockerfile; then
+            echo "The base stage must declare the selected exact Rust compiler" >&2
             exit 1
           fi
           echo "version=${RUST_BASE_VERSION}" >> "$GITHUB_OUTPUT"

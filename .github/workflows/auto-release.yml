@@ -3,7 +3,8 @@ name: Auto Release
 concurrency:
   # Dry runs get their own group, so a rehearsal never cancels a real release run.
   group: auto-release-${{ github.event.workflow_run.head_branch || github.ref_name || 'main' }}${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '-dry-run' || '' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+  queue: max
 
 # workflow_run is required here: a release may only be cut once CI and Security
 # have both succeeded for the commit on main. The trigger is limited to main,
@@ -47,12 +48,19 @@ jobs:
       actions: write
       contents: write
       pull-requests: write
-    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@e0e9e823a404f6d0ae22797e8b19514c63c4ceaf # v0.7.9
+    uses: ThreatFlux/github_actions/.github/workflows/reusable-auto-release.yml@c0af79c1d1cbce16cb627d1301942ac668c98beb # v0.7.11
     with:
       bump: ${{ github.event.inputs.version_bump || 'auto' }}
       # inputs.* is empty for workflow_run events, so automatic runs stay real.
       dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
       create-pr: true
+      # Explicit manual bumps own distinct reserved branches so an automatic
+      # patch proposal cannot replace an open manual major/minor release PR.
+      release-branch: >-
+        ${{ github.event_name == 'workflow_dispatch'
+            && contains(fromJSON('["patch","minor","major"]'), inputs.version_bump)
+            && format('automation/release/manual-{0}', inputs.version_bump)
+            || 'automation/release/auto' }}
       required-workflows: CI,Security
       # Only dispatched on the GITHUB_TOKEN fallback path (no App key available).
       dispatch-workflows: release.yml,docker.yml

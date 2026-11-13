@@ -34,8 +34,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  RUST_VERSION: 1.99.1
-  RUSTUP_TOOLCHAIN: 1.99.1
+  RUST_VERSION: 1.100.0
+  RUSTUP_TOOLCHAIN: 1.100.0
   BINARY_NAME: ${{ vars.RUST_TEMPLATE_BINARY_NAME || 'openai_rust_sdk' }}
   BINARY_PACKAGE: ${{ vars.RUST_TEMPLATE_BINARY_PACKAGE || '' }}
   CLI_NAME: ${{ vars.RUST_TEMPLATE_CLI_NAME || 'openai-rust-sdk' }}

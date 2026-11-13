@@ -278,8 +278,8 @@ mod tests {
 
         // Check that each test result has required fields
         for test_result in &result.test_results {
-            assert!(!test_result.test_id.is_empty());
-            assert!(!test_result.test_name.is_empty());
+            assert_ne!(test_result.test_id, "");
+            assert_ne!(test_result.test_name, "");
 
             // If test failed, should have error message
             if !test_result.passed {
@@ -345,7 +345,7 @@ mod tests {
 
         // Test serialization to JSON
         let json = serde_json::to_string(&result).unwrap();
-        assert!(!json.is_empty());
+        assert_ne!(json, "");
 
         // Test deserialization
         let deserialized: TestSuiteResult = serde_json::from_str(&json).unwrap();
@@ -362,8 +362,8 @@ mod tests {
 
         for test_result in &result.test_results {
             // Test that all required fields are populated
-            assert!(!test_result.test_id.is_empty());
-            assert!(!test_result.test_name.is_empty());
+            assert_ne!(test_result.test_id, "");
+            assert_ne!(test_result.test_name, "");
 
             // Validation result should have basic fields
             assert!(test_result.validation_result.metrics.rule_size_bytes > 0);
