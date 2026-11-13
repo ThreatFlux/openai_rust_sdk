@@ -18,11 +18,12 @@ Configure the `main` branch protection rule with:
   - `Security Audit`
   - `CodeQL Analysis`
   - `Quality Gate`
+  - `CI Success`
 
-The check names above are the job names emitted by the CI, Security, and Code
-Quality workflows. Keep this list aligned with those workflows when renaming
-jobs. The previous list included names that are not emitted as checks, which
-would leave pull requests permanently pending if required.
+The check names above are emitted by the CI, Security, and Code Quality
+workflows. `CI Success` also gates the MSRV, feature, coverage, benchmark and
+documentation jobs; the platform checks alone do not cover those jobs. Keep
+this list aligned with the emitted job names when renaming workflows.
 
 The auto-release workflow creates a release pull request and tags the merged
 main commit. It does not require a direct push to `main`; release pull requests
