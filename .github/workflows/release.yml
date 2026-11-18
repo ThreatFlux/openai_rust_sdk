@@ -484,9 +484,9 @@ jobs:
               gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TITLE}" --prerelease="${IS_PRERELEASE}"
             fi
           elif [[ "${IS_PRERELEASE}" == "true" ]]; then
-            gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md --prerelease
+            gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md --prerelease --draft
           else
-            gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md
+            gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${TITLE}" --notes-file release_notes.md --draft
           fi
 
       - name: Download all artifacts
@@ -502,11 +502,24 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s globstar nullglob
+          count=0
           for file in artifacts/**/*; do
             if [[ -f "${file}" ]]; then
               gh release upload "v${VERSION}" "${file}" --repo "${GITHUB_REPOSITORY}" --clobber
+              count=$((count + 1))
             fi
           done
+          (( count > 0 )) || { echo "No qualified release assets" >&2; exit 1; }
+
+      - name: Publish the completed GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          source="$(gh api "repos/${GITHUB_REPOSITORY}/commits/refs/tags/v${VERSION}" --jq .sha)"
+          [[ "$source" == "$GITHUB_SHA" ]] || { echo "Release tag source changed" >&2; exit 1; }
+          gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --draft=false
 
   publish:
     name: Publish to crates.io
