@@ -119,6 +119,9 @@
 #[macro_use]
 pub mod macros;
 
+/// Maintained UTC timestamps used by Realtime sessions, events and statistics.
+pub use jiff::Timestamp;
+
 // Re-export shortened serde traits for use across the codebase
 pub use macros::{De, Ser};
 

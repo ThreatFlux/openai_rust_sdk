@@ -144,8 +144,10 @@ pub async fn demo_latest_models(api: &ModelsApi) -> Result<(), Box<dyn std::erro
             "{:?}: {} (created: {})",
             family,
             model.id,
-            chrono::DateTime::from_timestamp(model.created as i64, 0)
-                .map(|dt| dt.format("%Y-%m-%d").to_string())
+            i64::try_from(model.created)
+                .ok()
+                .and_then(|seconds| openai_rust_sdk::Timestamp::from_second(seconds).ok())
+                .map(|dt| dt.strftime("%Y-%m-%d").to_string())
                 .unwrap_or_else(|| model.created.to_string())
         );
     }
