@@ -354,7 +354,12 @@ jobs:
   duplication:
     name: Code Duplication
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # This action requires a PR number and posts its report to that PR.
+    # Fork tokens cannot create the report, so keep this write scope on same-repo PRs.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
