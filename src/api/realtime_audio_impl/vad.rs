@@ -5,7 +5,7 @@
 use crate::models::realtime_audio::{
     AudioBuffer, VoiceActivityDetectionConfig, VoiceActivityResult,
 };
-use chrono::Utc;
+use jiff::Timestamp;
 use std::time::Instant;
 
 /// Voice Activity Detector
@@ -73,7 +73,7 @@ impl VoiceActivityDetector {
             is_speech: self.is_speaking,
             confidence,
             energy,
-            timestamp: Utc::now(),
+            timestamp: Timestamp::now(),
         }
     }
 

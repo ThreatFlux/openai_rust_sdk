@@ -7,7 +7,7 @@
 //! - Display batch job details and statistics
 //! - Filter by status and analyze completion rates
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use openai_rust_sdk::{
     api::{
         batch::{BatchApi, BatchStatus},
@@ -207,8 +207,8 @@ fn display_tips() {
 
 /// Helper function to format Unix timestamps
 fn format_timestamp(timestamp: u64) -> String {
-    let datetime = DateTime::<Utc>::from_timestamp(timestamp as i64, 0).unwrap_or_else(Utc::now);
-    datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string()
+    let datetime = Timestamp::from_second(timestamp as i64).unwrap_or_else(|_| Timestamp::now());
+    datetime.strftime("%Y-%m-%d %H:%M:%S UTC").to_string()
 }
 
 /// Statistics tracker for batch jobs

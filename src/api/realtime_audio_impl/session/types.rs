@@ -6,7 +6,7 @@ use crate::error::Result;
 use crate::models::realtime_audio::{
     AudioBuffer, RealtimeEvent, RealtimeSessionConfig, WebRtcConnectionState, WebRtcStats,
 };
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{Mutex, mpsc};
@@ -55,7 +55,7 @@ pub struct RealtimeSession {
     _vad: Arc<Mutex<VoiceActivityDetector>>,
 
     /// Session start time
-    started_at: DateTime<Utc>,
+    started_at: Timestamp,
 
     /// Is session active
     is_active: Arc<AtomicBool>,
@@ -90,7 +90,7 @@ impl RealtimeSession {
             connection_state: Arc::new(Mutex::new(WebRtcConnectionState::New)),
             stats: Arc::new(Mutex::new(WebRtcStats::default())),
             _vad: Arc::new(Mutex::new(vad)),
-            started_at: Utc::now(),
+            started_at: Timestamp::now(),
             is_active: Arc::new(AtomicBool::new(true)),
             reconnect_handler: Arc::new(Mutex::new(None)),
         }
@@ -119,7 +119,7 @@ impl RealtimeSession {
 
     /// Get session start time
     #[must_use]
-    pub fn started_at(&self) -> DateTime<Utc> {
+    pub fn started_at(&self) -> Timestamp {
         self.started_at
     }
 

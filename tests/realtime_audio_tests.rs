@@ -75,6 +75,26 @@ fn test_session_config_defaults() {
 }
 
 #[test]
+fn test_session_response_timestamps_round_trip_as_rfc3339() {
+    let response = serde_json::json!({
+        "id": "realtime-test",
+        "object": "realtime.session",
+        "status": "active",
+        "ephemeral_key": "ephemeral-test",
+        "webrtc_url": "https://example.test/realtime",
+        "config": {},
+        "created_at": "2026-11-18T09:00:00.123456789-05:00",
+        "expires_at": "2026-11-18T14:01:00Z"
+    });
+
+    let session: RealtimeSessionResponse = serde_json::from_value(response).unwrap();
+    let serialized = serde_json::to_value(session).unwrap();
+
+    assert_eq!(serialized["created_at"], "2026-11-18T14:00:00.123456789Z");
+    assert_eq!(serialized["expires_at"], "2026-11-18T14:01:00Z");
+}
+
+#[test]
 fn test_audio_buffer_operations() {
     // Test mono audio buffer
     let mono_samples = vec![100, -200, 300, -400, 500];

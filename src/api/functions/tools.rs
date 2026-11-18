@@ -74,7 +74,7 @@ impl FunctionsApi {
             }
             "get_time" => {
                 let result = json!({
-                    "current_time": chrono::Utc::now().to_rfc3339(),
+                    "current_time": jiff::Timestamp::now().display_with_offset(jiff::tz::Offset::UTC).to_string(),
                     "timezone": "UTC"
                 });
 

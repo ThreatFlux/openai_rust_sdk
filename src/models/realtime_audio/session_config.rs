@@ -4,7 +4,7 @@
 //! including audio formats, voice options, detection settings, and tools.
 
 use crate::{De, Ser};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::{self, Deserialize, Serialize};
 
 /// Request for creating a real-time audio session
@@ -191,10 +191,10 @@ pub struct RealtimeSessionResponse {
     pub config: RealtimeSessionConfig,
 
     /// Expiration time of the session
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: Timestamp,
 
     /// Creation timestamp
-    pub created_at: DateTime<Utc>,
+    pub created_at: Timestamp,
 }
 
 /// Session status

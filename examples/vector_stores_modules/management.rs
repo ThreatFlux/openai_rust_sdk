@@ -17,7 +17,12 @@ pub async fn demo_vector_store_management(
 
     let update_request = VectorStoreRequest::builder()
         .name("Updated Demo Knowledge Base")
-        .add_metadata("updated_at", chrono::Utc::now().to_rfc3339())
+        .add_metadata(
+            "updated_at",
+            jiff::Timestamp::now()
+                .display_with_offset(jiff::tz::Offset::UTC)
+                .to_string(),
+        )
         .add_metadata("status", "production")
         .build();
 

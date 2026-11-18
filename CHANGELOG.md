@@ -2,8 +2,17 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Public Realtime timestamps now use `jiff::Timestamp` in place of
+  `chrono::DateTime<chrono::Utc>`. Realtime session response timestamps continue
+  to use RFC 3339 strings in JSON.
+
 ### Security and dependencies
 
+- Replace unmaintained Chrono (RUSTSEC-2026-0543) with Jiff. Build the optional
+  YARA-X validator with its published protobuf sources and existing runtime
+  modules, removing the remaining build-time Chrono dependency.
 - Consolidate stable Rust 1.99.1, crate/lockfile and CI tool updates. Preserve
   consumer MSRV 1.97.1 and every optional feature.
 - Upgrade YARA-X to 1.22.0/Wasmtime 48.0.7 and remove four superseded Wasmtime

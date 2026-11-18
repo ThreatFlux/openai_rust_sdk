@@ -3,7 +3,7 @@
 //! Contains data structures for WebRTC connections, voice activity detection,
 //! audio buffer management, and real-time audio processing utilities.
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 
 /// WebRTC connection state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,7 +50,7 @@ pub struct WebRtcStats {
     pub jitter_ms: Option<f64>,
 
     /// Connected timestamp
-    pub connected_at: Option<DateTime<Utc>>,
+    pub connected_at: Option<Timestamp>,
 }
 
 /// Voice activity detection result
@@ -66,7 +66,7 @@ pub struct VoiceActivityResult {
     pub energy: f32,
 
     /// Timestamp of the detection
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: Timestamp,
 }
 
 /// Audio buffer for real-time processing
@@ -82,7 +82,7 @@ pub struct AudioBuffer {
     pub channels: u16,
 
     /// Timestamp when buffer was created
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: Timestamp,
 }
 
 impl WebRtcStats {
@@ -124,7 +124,7 @@ impl WebRtcStats {
     #[must_use]
     pub fn connection_duration_seconds(&self) -> Option<i64> {
         self.connected_at
-            .map(|connected| Utc::now().signed_duration_since(connected).num_seconds())
+            .map(|connected| Timestamp::now().duration_since(connected).as_secs())
     }
 }
 
@@ -152,7 +152,7 @@ impl AudioBuffer {
             samples,
             sample_rate,
             channels,
-            timestamp: Utc::now(),
+            timestamp: Timestamp::now(),
         }
     }
 
@@ -163,7 +163,7 @@ impl AudioBuffer {
             samples: Vec::with_capacity(capacity),
             sample_rate,
             channels,
-            timestamp: Utc::now(),
+            timestamp: Timestamp::now(),
         }
     }
 
@@ -238,7 +238,7 @@ impl AudioBuffer {
     /// Clear the buffer
     pub fn clear(&mut self) {
         self.samples.clear();
-        self.timestamp = Utc::now();
+        self.timestamp = Timestamp::now();
     }
 
     /// Truncate the buffer to specified length
@@ -253,7 +253,7 @@ impl AudioBuffer {
             samples: remaining_samples,
             sample_rate: self.sample_rate,
             channels: self.channels,
-            timestamp: Utc::now(),
+            timestamp: Timestamp::now(),
         }
     }
 }
@@ -266,7 +266,7 @@ impl VoiceActivityResult {
             is_speech,
             confidence,
             energy,
-            timestamp: Utc::now(),
+            timestamp: Timestamp::now(),
         }
     }
 
@@ -392,7 +392,7 @@ mod tests {
         assert!(stats.connection_duration_seconds().is_none());
 
         // Test with connection time
-        stats.connected_at = Some(Utc::now() - chrono::Duration::seconds(30));
+        stats.connected_at = Some(Timestamp::now() - jiff::SignedDuration::from_secs(30));
         let duration = stats.connection_duration_seconds();
         assert!(duration.is_some());
         assert!(duration.unwrap() >= 29 && duration.unwrap() <= 31); // Allow some timing variance

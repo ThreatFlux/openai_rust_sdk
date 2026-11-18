@@ -166,9 +166,7 @@ pub async fn demo_latest_models(api: &ModelsApi) -> Result<(), Box<dyn std::erro
             "{:?}: {} (created: {})",
             family,
             model.id,
-            chrono::DateTime::from_timestamp(model.created as i64, 0)
-                .map(|dt| dt.format("%Y-%m-%d").to_string())
-                .unwrap_or_else(|| model.created.to_string())
+            super::helpers::format_creation_date(model.created)
         );
     }
 

@@ -158,7 +158,7 @@ impl RealtimeAudioApi {
             .await;
 
         let mut session_stats = session.stats_mutex().lock().await;
-        session_stats.connected_at = Some(chrono::Utc::now());
+        session_stats.connected_at = Some(jiff::Timestamp::now());
 
         info!("WebRTC connection established for session: {}", session.id);
 
@@ -267,10 +267,9 @@ pub(crate) fn map_webrtc_connection_state(state: RTCPeerConnectionState) -> WebR
 mod tests {
     use super::*;
     use crate::models::realtime_audio::{RealtimeSessionConfig, SessionStatus};
-    use chrono::Utc;
 
     fn test_session_response() -> RealtimeSessionResponse {
-        let now = Utc::now();
+        let now = jiff::Timestamp::now();
         RealtimeSessionResponse {
             id: "realtime-test".to_owned(),
             object: "realtime.session".to_owned(),

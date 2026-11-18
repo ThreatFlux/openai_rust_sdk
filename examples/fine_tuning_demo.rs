@@ -405,9 +405,9 @@ async fn monitor_job_with_events(api: &FineTuningApi, job_id: &str) -> Result<()
     // Set up event callback
     let event_callback = Box::new(
         |event: &openai_rust_sdk::models::fine_tuning::FineTuningJobEvent| {
-            let timestamp = chrono::DateTime::from_timestamp(event.created_at, 0).map_or_else(
-                || "Unknown".to_string(),
-                |dt| dt.format("%Y-%m-%d %H:%M:%S").to_string(),
+            let timestamp = jiff::Timestamp::from_second(event.created_at).map_or_else(
+                |_| "Unknown".to_string(),
+                |dt| dt.strftime("%Y-%m-%d %H:%M:%S").to_string(),
             );
 
             println!(

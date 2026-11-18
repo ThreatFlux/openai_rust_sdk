@@ -26,16 +26,16 @@ pub struct CostConfig {
 
 /// Helper function to format model creation date
 pub fn format_creation_date(timestamp: u64) -> String {
-    chrono::DateTime::from_timestamp(timestamp as i64, 0)
-        .map(|dt| dt.format("%Y-%m-%d").to_string())
-        .unwrap_or_else(|| timestamp.to_string())
+    jiff::Timestamp::from_second(timestamp as i64)
+        .map(|dt| dt.strftime("%Y-%m-%d").to_string())
+        .unwrap_or_else(|_| timestamp.to_string())
 }
 
 /// Helper function to format detailed timestamp
 pub fn format_detailed_timestamp(timestamp: u64) -> String {
-    chrono::DateTime::from_timestamp(timestamp as i64, 0)
-        .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-        .unwrap_or_else(|| timestamp.to_string())
+    jiff::Timestamp::from_second(timestamp as i64)
+        .map(|dt| dt.strftime("%Y-%m-%d %H:%M:%S").to_string())
+        .unwrap_or_else(|_| timestamp.to_string())
 }
 
 /// Helper function to format context tokens
