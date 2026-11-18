@@ -74,7 +74,7 @@ impl FunctionsApi {
             }
             "get_time" => {
                 let result = json!({
-                    "current_time": chrono::Utc::now().to_rfc3339(),
+                    "current_time": crate::Timestamp::now().to_string(),
                     "timezone": "UTC"
                 });
 

@@ -272,7 +272,10 @@ async fn modify_run_demo(
     let mut new_metadata = HashMap::new();
     new_metadata.insert("status".to_string(), "modified".to_string());
     new_metadata.insert("priority".to_string(), "high".to_string());
-    new_metadata.insert("updated_at".to_string(), chrono::Utc::now().to_rfc3339());
+    new_metadata.insert(
+        "updated_at".to_string(),
+        openai_rust_sdk::Timestamp::now().to_string(),
+    );
 
     let modify_request = ModifyRunRequest {
         metadata: Some(new_metadata),

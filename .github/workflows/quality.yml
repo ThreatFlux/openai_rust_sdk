@@ -354,21 +354,69 @@ jobs:
   duplication:
     name: Code Duplication
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # This action requires a PR number and posts its report to that PR.
+    # Fork tokens cannot create the report, so keep this write scope on same-repo PRs.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
-      - name: Check for code duplication
-        uses: platisd/duplicate-code-detection-tool@f0413b1571a98b653f617a59fec0097001e18c0e # v1.2.0
+      - name: Checkout pinned duplication reporter
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          directories: "src"
-          file_extensions: "rs"
-          ignore_below: 5
-          fail_above: 95
-          warn_above: 15
+          repository: platisd/duplicate-code-detection-tool
+          ref: f0413b1571a98b653f617a59fec0097001e18c0e # v1.2.0
+          path: .duplication-tool
+          persist-credentials: false
+
+      - name: Build pinned reporter
+        run: docker build --tag duplication-reporter .duplication-tool
+
+      - name: Check for code duplication
+        env:
+          INPUT_GITHUB_TOKEN: ${{ github.token }}
+          INPUT_DIRECTORIES: src
+          INPUT_IGNORE_DIRECTORIES: ""
+          INPUT_PROJECT_ROOT_DIR: ./
+          INPUT_FILE_EXTENSIONS: rs
+          INPUT_IGNORE_BELOW: "5"
+          INPUT_FAIL_ABOVE: "95"
+          INPUT_WARN_ABOVE: "15"
+          INPUT_ONLY_CODE: "false"
+          INPUT_HEADER_MESSAGE_START: "## Duplicate code detection report"
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        # The upstream entrypoint clones inside its disposable container and
+        # silently accepts a rejected comment. Keep message.md in the mounted
+        # workspace instead, preserving the original detection exit status.
+        run: |
+          docker run --rm --entrypoint python3 \
+            --volume "$GITHUB_WORKSPACE:/github/workspace" --workdir /github/workspace \
+            -e INPUT_GITHUB_TOKEN -e INPUT_DIRECTORIES -e INPUT_IGNORE_DIRECTORIES \
+            -e INPUT_PROJECT_ROOT_DIR -e INPUT_FILE_EXTENSIONS -e INPUT_IGNORE_BELOW \
+            -e INPUT_FAIL_ABOVE -e INPUT_WARN_ABOVE -e INPUT_ONLY_CODE \
+            -e INPUT_HEADER_MESSAGE_START -e GITHUB_REPOSITORY -e GITHUB_API_URL \
+            duplication-reporter /action/run_action.py \
+            --latest-head "$PR_HEAD" --pull-request-id "$PR_NUMBER"
+
+      - name: Retain complete duplication report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: code-duplication-report
+          path: message.md
+          if-no-files-found: error
+
+      - name: Link the retained report in the check summary
+        if: always()
+        run: |
+          test -s message.md
+          echo 'The complete duplication report is retained in the code-duplication-report artifact of this run, including when GitHub rejects an oversized PR comment.' >> "$GITHUB_STEP_SUMMARY"
 
   # Spell check
   spellcheck:

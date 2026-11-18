@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Breaking
+
+- Replace public Realtime chrono timestamps with SDK-reexported Jiff 1.0.1
+  `Timestamp`. UTC RFC3339 strings, optional nulls and nanosecond instants remain
+  supported. Jiff normalizes an RFC3339 leap second (60) to Unix second 59;
+  fractional serialization uses its canonical precision. See migration-3.0.md.
+  This requires the next major release, 3.0.0. No advisory exception is added.
+
 ### Security and dependencies
 
 - Consolidate stable Rust 1.99.1, crate/lockfile and CI tool updates. Preserve
