@@ -28,6 +28,7 @@ ALLOWED_FILES = frozenset(
         "docs/api-coverage.md",
         "docs/sdk-feature-plan.md",
         "docs/migration-2.0.md",
+        "docs/migration-3.0.md",
         "docs/configuration.md",
         "docs/examples/batch-yara-x.md",
     }
@@ -121,7 +122,9 @@ def packaged_markdown_link_errors(files: set[str]) -> list[str]:
                 continue
 
             prefix = f"{relative.rstrip('/')}/"
-            if relative not in files and not any(path.startswith(prefix) for path in files):
+            if relative not in files and not any(
+                path.startswith(prefix) for path in files
+            ):
                 errors.append(
                     f"{package_path}:{number}: relative link target is not packaged: {target}"
                 )
