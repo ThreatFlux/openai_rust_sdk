@@ -2,10 +2,10 @@
 //!
 //! Voice activity detection for real-time audio processing.
 
+use crate::Timestamp;
 use crate::models::realtime_audio::{
     AudioBuffer, VoiceActivityDetectionConfig, VoiceActivityResult,
 };
-use chrono::Utc;
 use std::time::Instant;
 
 /// Voice Activity Detector
@@ -73,7 +73,7 @@ impl VoiceActivityDetector {
             is_speech: self.is_speaking,
             confidence,
             energy,
-            timestamp: Utc::now(),
+            timestamp: Timestamp::now(),
         }
     }
 
