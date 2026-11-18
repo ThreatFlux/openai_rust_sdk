@@ -28,20 +28,21 @@ REVIEWED_ADVISORIES = {
     "RUSTSEC-2025-0141",
 }
 RESIDUAL_PACKAGES = {"yara-x", "rsa", "bincode"}
+# Keep every default runtime module and optimization. Upstream 1.23.0 ships
+# generated protobuf Rust, so generate-proto-code (and its chrono-based build
+# dependency yara-x-proto) is deliberately absent. Neither is a runtime API.
 REVIEWED_YARA_FEATURES = {
     "console-module",
     "constant-folding",
     "crx-module",
     "crypto",
     "cuckoo-module",
-    "default",
     "default-modules",
     "dex-module",
     "dotnet-module",
     "elf-module",
     "exact-atoms",
     "fast-regexp",
-    "generate-proto-code",
     "hash-module",
     "lnk-module",
     "macho-module",
@@ -93,6 +94,10 @@ def feature_scope_errors(profiles: dict[str, dict]) -> list[str]:
     for profile, metadata in profiles.items():
         packages = {package["id"]: package for package in metadata["packages"]}
         active = {packages[node["id"]]["name"] for node in metadata["resolve"]["nodes"]}
+        if active & {"chrono", "yara-x-proto"}:
+            errors.append(
+                f"{profile} must use maintained timestamps and shipped protobuf Rust"
+            )
         found = active & RESIDUAL_PACKAGES
         expected = RESIDUAL_PACKAGES if profile in {"yara", "full", "all"} else set()
         if found != expected:
@@ -100,13 +105,19 @@ def feature_scope_errors(profiles: dict[str, dict]) -> list[str]:
                 f"Re-review {profile} feature scope: expected {sorted(expected)}, found {sorted(found)}"
             )
         if "yara-x" in found:
-            yara = next(package for package in packages.values() if package["name"] == "yara-x")
+            yara = next(
+                package for package in packages.values() if package["name"] == "yara-x"
+            )
             node = next(
-                node for node in metadata["resolve"]["nodes"] if node["id"] == yara["id"]
+                node
+                for node in metadata["resolve"]["nodes"]
+                if node["id"] == yara["id"]
             )
             features = set(node["features"])
             if features != REVIEWED_YARA_FEATURES:
-                errors.append(f"Re-review {profile} YARA-X features: {sorted(features)}")
+                errors.append(
+                    f"Re-review {profile} YARA-X features: {sorted(features)}"
+                )
     return errors
 
 
