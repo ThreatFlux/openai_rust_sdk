@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REVIEWED_VERSIONS = {
     "yara-x": "1.23.0",
-    "wasmtime": "48.0.8",
+    "wasmtime": "48.0.10",
     "rsa": "0.10.0",
     "bincode": "2.0.1",
 }

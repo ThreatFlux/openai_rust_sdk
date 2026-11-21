@@ -253,8 +253,8 @@ should describe the same source.
 
 The default branch can advance after a release. Let `cargo add openai_rust_sdk` select
 the published version, inspect the resolved version in `Cargo.lock`, and use the
-matching docs.rs page. If you intentionally depend on Git, pin a reviewed commit SHA instead of
-a moving branch.
+matching docs.rs page. If you intentionally depend on Git, pin a reviewed
+commit SHA instead of a moving branch.
 
 The repository's `rust-toolchain.toml` and `Cargo.toml` are authoritative for a
 source build. The selected crate release's manifest is authoritative for a
@@ -262,11 +262,11 @@ registry dependency.
 
 ## Optional YARA-X dependency security review
 
-Reviewed on **2026-11-12** against the locked all-feature graph and the published
-YARA-X **1.23.0** source: Wasmtime **48.0.8**, RSA **0.10.0**, and Bincode
+Reviewed on **2026-11-21** against the locked all-feature graph and the published
+YARA-X **1.23.0** source: Wasmtime **48.0.10**, RSA **0.10.0**, and Bincode
 **2.0.1**. The reviewed
 [YARA-X manifest](https://github.com/VirusTotal/yara-x/blob/v1.23.0/Cargo.toml)
-permits this repository's locked Wasmtime 48.0.8. The following remaining
+permits this repository's locked Wasmtime 48.0.10. The following remaining
 exceptions apply to the inspected feature graph and SDK operations. They do not
 patch dependencies or clear the Scorecard finding.
 
@@ -318,3 +318,7 @@ The optional `yara` feature explicitly enables RSA's `pkcs1v15` feature because
 the stable RSA release makes the public-signature scheme used by YARA-X opt-in.
 The SDK exposes no RSA operations. The Bincode maintenance exception remains
 scoped to the unchanged internal-globals path described above.
+
+The 2026-11-21 refresh updates Wasmtime to 48.0.10 for
+RUSTSEC-2026-0566 through RUSTSEC-2026-0573. The resolved SDK features and
+Wasmtime caller remain the same.
