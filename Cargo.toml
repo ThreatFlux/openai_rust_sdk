@@ -37,16 +37,16 @@ anyhow = "1.0.104"
 thiserror = "2.0.21"
 async-trait = "0.1.92"
 reqwest = { version = "0.13.5", default-features = false, features = ["json", "stream", "multipart", "rustls"] }
-clap = { version = "4.6.7", features = ["derive"] }
-uuid = { version = "1.29.2", features = ["v4"] }
+clap = { version = "4.6.9", features = ["derive"] }
+uuid = { version = "1.29.3", features = ["v4"] }
 tokio-stream = "0.1.19"
 eventsource-stream = "0.2.3"
 futures = "0.3.34"
 jiff = { version = "1.0.1", features = ["serde"] }
 indexmap = { version = "2.14.2", features = ["serde"] }
-jsonschema = "0.61.2"
+jsonschema = "0.62.0"
 async-stream = "0.3.6"
-bytes = "1.12.1"
+bytes = "1.12.2"
 rtc = "0.21.1"
 base64 = "0.23.1"
 const_format = "0.2.37"
@@ -55,8 +55,8 @@ paste = { package = "qlora-paste", version = "1.0.21" }
 webrtc = "0.21.1"
 # WebRTC signaling and peer connection
 tokio-tungstenite = "0.30.0"
-url = "2.5.8"
-rand = "0.10.3"
+url = "2.5.9"
+rand = "0.10.4"
 log = "0.4.35"
 hmac = "0.13.0"
 sha2 = "0.11.1"
@@ -64,7 +64,7 @@ sha2 = "0.11.1"
 # Optional validation support for the YARA-X Batch API example
 # Keep every upstream default runtime feature, using its shipped protobuf Rust
 # sources rather than regenerating them with the chrono-based build tool.
-yara-x = { version = "1.23.0", default-features = false, features = ["constant-folding", "default-modules", "exact-atoms", "fast-regexp"], optional = true }
+yara-x = { version = "1.24.0", default-features = false, features = ["constant-folding", "default-modules", "exact-atoms", "fast-regexp"], optional = true }
 # YARA-X's crypto module imports this RSA scheme. Stable rsa 0.10 makes the
 # module opt-in, so enable it only with the optional YARA capability.
 rsa = { version = "0.10.0", default-features = false, features = ["pkcs1v15"], optional = true }
