@@ -9,9 +9,8 @@ updates:
       - "/"
       - "/fuzz"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
+      interval: "cron"
+      cronjob: "0 4 * * *"
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
@@ -35,14 +34,13 @@ updates:
     allow:
       - dependency-type: "all"
     rebase-strategy: "auto"
-    
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
+      interval: "cron"
+      cronjob: "0 4 * * *"
       timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
@@ -58,14 +56,13 @@ updates:
       actions:
         patterns:
           - "*"
-    
+
   # Docker dependencies
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
+      interval: "cron"
+      cronjob: "0 4 * * *"
       timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
