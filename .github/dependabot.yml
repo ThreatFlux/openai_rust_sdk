@@ -1,78 +1,46 @@
 # Dependabot configuration for automated dependency updates
-# See: https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# See: https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configuring-multi-ecosystem-updates
 
 version: 2
+multi-ecosystem-groups:
+  nightly:
+    schedule:
+      interval: "cron"
+      cronjob: "0 4 * * *"
+      timezone: "UTC"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
 updates:
   # Rust dependencies (Cargo): root and independent fuzz workspaces
   - package-ecosystem: "cargo"
     directories:
       - "/"
       - "/fuzz"
-    schedule:
-      interval: "cron"
-      cronjob: "0 4 * * *"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "wroersma"
+    patterns: ["*"]
+    multi-ecosystem-group: "nightly"
     labels:
       - "dependencies"
       - "rust"
-    commit-message:
-      prefix: "chore"
-      prefix-development: "chore"
-      include: "scope"
-    groups:
-      # Group minor and patch updates together
-      minor-and-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-    # Allow specific updates
     allow:
       - dependency-type: "all"
     rebase-strategy: "auto"
 
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
-    schedule:
-      interval: "cron"
-      cronjob: "0 4 * * *"
-      timezone: "UTC"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "wroersma"
+    patterns: ["*"]
+    multi-ecosystem-group: "nightly"
     labels:
       - "dependencies"
       - "github-actions"
-    commit-message:
-      prefix: "ci"
-      include: "scope"
-    groups:
-      # Group all action updates together
-      actions:
-        patterns:
-          - "*"
 
-  # Docker dependencies
   - package-ecosystem: "docker"
     directory: "/"
-    schedule:
-      interval: "cron"
-      cronjob: "0 4 * * *"
-      timezone: "UTC"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "wroersma"
+    patterns: ["*"]
+    multi-ecosystem-group: "nightly"
     labels:
       - "dependencies"
       - "docker"
-    commit-message:
-      prefix: "build"
-      include: "scope"
 
-# Dependabot security updates must be enabled separately in repository settings.
-# This version-update configuration does not enable them.
+# GitHub repository settings control Dependabot security updates.
