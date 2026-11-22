@@ -12,8 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEWED_VERSIONS = {
-    "yara-x": "1.23.0",
-    "wasmtime": "48.0.8",
+    "yara-x": "1.24.0",
+    "wasmtime": "48.0.10",
     "rsa": "0.10.0",
     "bincode": "2.0.1",
 }
@@ -28,7 +28,7 @@ REVIEWED_ADVISORIES = {
     "RUSTSEC-2025-0141",
 }
 RESIDUAL_PACKAGES = {"yara-x", "rsa", "bincode"}
-# Keep every default runtime module and optimization. Upstream 1.23.0 ships
+# Keep every default runtime module and optimization. Upstream 1.24.0 ships
 # generated protobuf Rust, so generate-proto-code (and its chrono-based build
 # dependency yara-x-proto) is deliberately absent. Neither is a runtime API.
 REVIEWED_YARA_FEATURES = {
