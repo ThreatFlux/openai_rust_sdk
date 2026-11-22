@@ -1784,7 +1784,7 @@ dependencies = [
 
 [[package]]
 name = "openai_rust_sdk"
-version = "3.0.0"
+version = "3.0.1"
 dependencies = [
  "anyhow",
  "async-stream",
